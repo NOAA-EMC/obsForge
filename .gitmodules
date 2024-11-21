@@ -25,3 +25,7 @@
 	path = sorc/spoc
 	url = https://github.com/NOAA-EMC/spoc
 	branch = develop
+[submodule "sorc/wxflow"]
+	path = sorc/wxflow
+	url = https://github.com/noaa-emc/wxflow
+	branch = develop
