@@ -38,5 +38,23 @@ set( ENABLE_MPI ON CACHE BOOL "Compile with MPI" )
 # Install utility scripts.
 #add_subdirectory(ush)
 
+# Include tools. 
+add_subdirectory(tools)
+
 # Include testing.
-#add_subdirectory(test)
+add_subdirectory(test)
+
+## Tests
+ecbuild_add_test( TARGET ${PROJECT_NAME}_coding_norms
+                  TYPE SCRIPT
+                  COMMAND ${PROJECT_NAME}_py_lint.sh
+                  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/sorc/spoc/dump/mapping ${CMAKE_CURRENT_SOURCE_DIR}
+                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set_tests_properties( ${PROJECT_NAME}_coding_norms PROPERTIES TIMEOUT 90 )
+
+## Package Config
+ecbuild_install_project( NAME ${PROJECT_NAME} )
+
+ecbuild_print_summary()
+
+
