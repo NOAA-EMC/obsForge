@@ -1,0 +1,59 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+  bound to include: begin
+
+observations:
+- obs space:
+    name: "satwind_goes-16"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput//bufr_satwnd_amv_goes_mapping.yaml"
+        category: ["goes-16"]
+        cache categories:            # optional
+          - ["goes-16"]
+          - ["goes-17"]
+          - ["goes-18"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-16.tm00.nc"
+
+- obs space:
+    name: "satwind_goes-17"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+        category: ["goes-17"]
+        cache categories:            # optional
+          - ["goes-16"]
+          - ["goes-17"]
+          - ["goes-18"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-17.tm00.nc"
+
+- obs space:
+    name: "satwind_goes-18"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+        category: ["goes-18"]
+        cache categories:            # optional
+          - ["goes-16"]
+          - ["goes-17"]
+          - ["goes-18"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-18.tm00.nc"
