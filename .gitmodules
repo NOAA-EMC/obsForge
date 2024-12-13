@@ -1,7 +1,7 @@
 [submodule "sorc/bufr-query"]
 	path = sorc/bufr-query
 	url = https://github.com/NOAA-EMC/bufr-query
-	branch = develop
+	branch = feature/parse_parameters
 [submodule "sorc/da-utils"]
 	path = sorc/da-utils
 	url = https://github.com/NOAA-EMC/da-utils
@@ -24,7 +24,7 @@
 [submodule "sorc/spoc"]
 	path = sorc/spoc
 	url = https://github.com/NOAA-EMC/spoc
-	branch = develop
+	branch = feature/ocelot
 [submodule "sorc/wxflow"]
 	path = sorc/wxflow
 	url = https://github.com/noaa-emc/wxflow
