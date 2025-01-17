@@ -11,7 +11,7 @@ observations:
       engine:
         type: bufr 
         obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-        mapping file: "./testinput//bufr_satwnd_amv_goes_mapping.yaml"
+        mapping file: "./testinput//bufr_satwnd_amv_abi_mapping.yaml"
         category: ["goes-16"]
         cache categories:            # optional
           - ["goes-16"]
@@ -20,7 +20,7 @@ observations:
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-16.tm00.nc"
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-16.tm00_mpi4.nc"
 
 - obs space:
     name: "satwind_goes-17"
@@ -29,7 +29,7 @@ observations:
       engine:
         type: bufr 
         obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-        mapping file: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+        mapping file: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
         category: ["goes-17"]
         cache categories:            # optional
           - ["goes-16"]
@@ -38,7 +38,7 @@ observations:
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-17.tm00.nc"
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-17.tm00_mpi4.nc"
 
 - obs space:
     name: "satwind_goes-18"
@@ -47,7 +47,7 @@ observations:
       engine:
         type: bufr 
         obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-        mapping file: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+        mapping file: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
         category: ["goes-18"]
         cache categories:            # optional
           - ["goes-16"]
@@ -56,4 +56,4 @@ observations:
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-18.tm00.nc"
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.abi_goes-18.tm00_mpi4.nc"

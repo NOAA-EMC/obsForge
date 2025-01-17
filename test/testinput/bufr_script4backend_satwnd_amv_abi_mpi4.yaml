@@ -12,15 +12,15 @@ observations:
     obsdatain:
       engine:
         type: script 
-        script file: "./testinput/bufr_satwnd_amv_goes.py"
+        script file: "./testinput/bufr_satwnd_amv_abi.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
           category: "goes-16"
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-16.tm00.nc"
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-16.tm00_mpi4.nc"
 
 - obs space:
     name: "satwind_goes-17"
@@ -30,15 +30,15 @@ observations:
     obsdatain:
       engine:
         type: script 
-        script file: "./testinput/bufr_satwnd_amv_goes.py"
+        script file: "./testinput/bufr_satwnd_amv_abi.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
           category: "goes-17"
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-17.tm00.nc"
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-17.tm00_mpi4.nc"
 
 - obs space:
     name: "satwind_goes-18"
@@ -48,12 +48,12 @@ observations:
     obsdatain:
       engine:
         type: script 
-        script file: "./testinput/bufr_satwnd_amv_goes.py"
+        script file: "./testinput/bufr_satwnd_amv_abi.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput/bufr_satwnd_amv_goes_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
           category: "goes-18"
     obsdataout:
       engine:
         type: H5File
-        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-18.tm00.nc"
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.abi_goes-18.tm00_mpi4.nc"
