@@ -1,0 +1,58 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+
+observations:
+- obs space:
+    name: "satwind_viirs-npp"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
+        category: ["npp"]
+        cache categories:            # optional
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.viirs_npp.tm00.nc"
+
+- obs space:
+    name: "satwind_viirs-n20"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
+        category: ["n20"]
+        cache categories:            # optional
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.viirs_n20.tm00.nc"
+
+- obs space:
+    name: "satwind_viirs-n21"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
+        category: ["n21"]
+        cache categories:            # optional
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.viirs_n21.tm00.nc"

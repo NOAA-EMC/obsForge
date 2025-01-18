@@ -1,0 +1,76 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+
+observations:
+- obs space:
+    name: "satwind_seviri-m8"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script 
+        script file: "./testinput/bufr_satwnd_amv_seviri.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+          category: "m8"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.seviri_m8.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m9"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script
+        script file: "./testinput/bufr_satwnd_amv_seviri.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+          category: "m9"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.seviri_m9.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m10"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script
+        script file: "./testinput/bufr_satwnd_amv_seviri.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+          category: "m10"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.seviri_m10.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m11"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script
+        script file: "./testinput/bufr_satwnd_amv_seviri.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+          category: "m11"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.seviri_m11.tm00.nc"

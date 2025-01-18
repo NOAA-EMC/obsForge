@@ -1,0 +1,58 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+
+observations:
+- obs space:
+    name: "satwind_viirs-npp"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script 
+        script file: "./testinput/bufr_satwnd_amv_viirs.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
+          category: "npp"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.viirs_npp.tm00_mpi4.nc"
+
+- obs space:
+    name: "satwind_viirs-n20"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script 
+        script file: "./testinput/bufr_satwnd_amv_viirs.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput//bufr_satwnd_amv_viirs_mapping.yaml"
+          category: "n20"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.viirs_n20.tm00_mpi4.nc"
+
+- obs space:
+    name: "satwind_viirs-n21"
+    observed variables: [windSpeed, windDirection]
+    derived variables: [windEastward, windNorthward]
+    simulated variables: [windEastward, windNorthward]
+    obsdatain:
+      engine:
+        type: script 
+        script file: "./testinput/bufr_satwnd_amv_viirs.py"
+        args:
+          input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+          mapping_path: "./testinput//bufr_satwnd_amv_viirs_mapping.yaml"
+          category: "n21"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/script4backend/gdas.t00z.satwnd.viirs_n21.tm00_mpi4.nc"

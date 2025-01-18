@@ -1,0 +1,80 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+
+observations:
+- obs space:
+    name: "satwind_seviri-m8"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+        category: ["m8"]
+        cache categories:            # optional
+          - ["m8"]
+          - ["m9"]
+          - ["m10"]
+          - ["m11"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.seviri_m8.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m9"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+        category: ["m9"]
+        cache categories:            # optional
+          - ["m8"]
+          - ["m9"]
+          - ["m10"]
+          - ["m11"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.seviri_m9.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m10"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+        category: ["m10"]
+        cache categories:            # optional
+          - ["m8"]
+          - ["m9"]
+          - ["m10"]
+          - ["m11"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.seviri_m10.tm00.nc"
+
+- obs space:
+    name: "satwind_seviri-m11"
+    simulated variables: [windDirection, windSpeed]
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
+        mapping file: "./testinput/bufr_satwnd_amv_seviri_mapping.yaml"
+        category: ["m11"]
+        cache categories:            # optional
+          - ["m8"]
+          - ["m9"]
+          - ["m10"]
+          - ["m11"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.satwnd.seviri_m11.tm00.nc"
