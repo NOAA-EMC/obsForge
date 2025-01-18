@@ -40,9 +40,6 @@ if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf remote_data)
 endif()
 
-message("Emily checking test/CMAKE_CURRENT_SOURCE_DIR - ${CMAKE_CURRENT_SOURCE_DIR}")
-message("Emily checking test/CMAKE_CURRENT_BINARY_DIR - ${CMAKE_CURRENT_BINARY_DIR}")
-
 # Function definitions
 
 # The list of all test input config files, which need to be symlink from the build folder.
