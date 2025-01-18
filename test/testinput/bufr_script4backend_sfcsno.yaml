@@ -6,9 +6,6 @@ time window:
 observations:
 - obs space:
     name: "sfcsno_snow"
-    distribution:
-      name: Halo
-      halo size: 250e3
     simulated variables: [totalSnowDepth]
     obsdatain:
       engine:
