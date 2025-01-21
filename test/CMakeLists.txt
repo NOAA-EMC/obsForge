@@ -10,7 +10,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
 
     # bufr2netcdf
     if(test_config STREQUAL "bufr2netcdf") 
-        set(target_name "${target_prefix}_${test_config}_${obs_type}_${sat_name}")
+        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
         set(env_args "")
         set(command_args
             "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.${obs_source}.tm00.bufr_d
@@ -39,7 +39,6 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # script2netcdf
     elseif(test_config STREQUAL "script2netcdf")
@@ -75,7 +74,6 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # bufr4backend
     elseif(test_config STREQUAL "bufr4backend")
@@ -110,7 +108,6 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # script4backend
     elseif(test_config STREQUAL "script4backend")
@@ -145,7 +142,6 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     else()
 	    message(Status "Unknown test configuration")     
@@ -156,11 +152,11 @@ endfunction()
 # ================================================================================
 # Function to add tests for conventional observations from bufr dump dynamically
 # ================================================================================
-function(add_obsforge_test_convobs_dump target_prefix obs_type obs_source test_config mpi_count)
+function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config mpi_count)
 
     # bufr2netcdf
     if(test_config STREQUAL "bufr2netcdf") 
-        set(target_name "${target_prefix}_${test_config}_${obs_type}")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
         set(env_args "")
         set(command_args
             "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.${obs_source}.tm00.bufr_d
@@ -189,7 +185,6 @@ function(add_obsforge_test_convobs_dump target_prefix obs_type obs_source test_c
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # script2netcdf
     elseif(test_config STREQUAL "script2netcdf")
@@ -225,7 +220,6 @@ function(add_obsforge_test_convobs_dump target_prefix obs_type obs_source test_c
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # bufr4backend
     elseif(test_config STREQUAL "bufr4backend")
@@ -260,7 +254,6 @@ function(add_obsforge_test_convobs_dump target_prefix obs_type obs_source test_c
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     # script4backend
     elseif(test_config STREQUAL "script4backend")
@@ -295,7 +288,6 @@ function(add_obsforge_test_convobs_dump target_prefix obs_type obs_source test_c
                 ${env_args}
             )
         endif()
-        message(STATUS "target_name: ${target_name}")
 
     else()
 	    message(Status "Unknown test configuration")     
@@ -321,39 +313,23 @@ set_property(GLOBAL PROPERTY satwnd_amv_leogeo_satellites "multi")
 # Get the length of the satobs_types list
 list(LENGTH satobs_types satobs_types_length)
 math(EXPR satobs_types_last_index "${satobs_types_length} - 1")
-message(STATUS "satobs_types_length: ${satobs_types_length}")
-message(STATUS "satobs_types_last_index: ${satobs_types_last_index}")
 
 # ======================================================
 # Generate tests for satellite observations dynamically
 # ======================================================
 foreach(index RANGE 0 ${satobs_types_last_index})
     list(GET satobs_types ${index} satobs_type)
-    message(STATUS "satobs_types_length: ${satobs_types_length}")
-    message(STATUS "index: ${index}")
-    message(STATUS "satobs_type: ${satobs_type}")
     
     # Extract components from satobs_type
     string(REPLACE "_" ";" satobs_type_parts "${satobs_type}")
     list(GET satobs_type_parts 0 obs_source)    # Extract "satwnd"
     list(GET satobs_type_parts 2 sensor_name)   # Extract "abi"
 
-    message(STATUS "Observation Type: ${satobs_type}")
-    message(STATUS "  obs_source: ${obs_source}")
-    message(STATUS "  sensor_name: ${sensor_name}")
-
     # Retrieve the nested list of satellite IDs for the current observation type
     get_property(satellites GLOBAL PROPERTY ${satobs_type}_satellites)
-    message(STATUS "Observation Type: ${satobs_type}")
-    message(STATUS "  Source: ${obs_source}")
-    message(STATUS "  Sensor: ${sensor_name}")
-    message(STATUS "  satellites: ${satellites}")
     foreach(sat_name ${satellites})
-        message(STATUS "Satellite: ${sat_name}")
 	foreach(test_config ${test_configs})
-	    message(STATUS "Test Configuration: ${test_config}")
 	    foreach(mpi_count ${mpi_counts_satobs})
-	        message(STATUS "MPI : ${mpi_count}")
                 add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${sensor_name} ${sat_name} ${test_config} ${mpi_count})
             endforeach()
         endforeach()
@@ -368,27 +344,18 @@ set(convobs_types "sfcsno")
 # Get the length of the convobs_types list
 list(LENGTH convobs_types convobs_types_length)
 math(EXPR convobs_types_last_index "${convobs_types_length} - 1")
-message(STATUS "convobs_types_length: ${convobs_types_length}")
-message(STATUS "convobs_types_last_index: ${convobs_types_last_index}")
 
 # =========================================================
 # Generate tests for conventional observations dynamically
 # =========================================================
 foreach(index RANGE 0 ${convobs_types_last_index})
     list(GET convobs_types ${index} convobs_type)
-    message(STATUS "convobs_types_length: ${convobs_types_length}")
-    message(STATUS "index: ${index}")
-    message(STATUS "convobs_type: ${convobs_type}")
     
     foreach(convobs_type ${convobs_types})
         set(obs_source ${convobs_type})
-        message(STATUS "convobs_type: ${convobs_type}")
-        message(STATUS "obs_source: ${obs_source}")
 	foreach(test_config ${test_configs})
-	    message(STATUS "Test Configuration: ${test_config}")
 	    foreach(mpi_count ${mpi_counts_convobs})
-	        message(STATUS "MPI : ${mpi_count}")
-                add_obsforge_test_convobs_dump("test_obsforge_convobs_dump" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
+                add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
             endforeach()
         endforeach()
     endforeach()
@@ -407,7 +374,6 @@ endforeach()
 set(obs_types "")
 set(obs_types ${satobs_types})
 list(APPEND obs_types ${convobs_types})
-message(STATUS "Combined obs_types: ${obs_types}")
 
 # Create directories and subdirectories
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
@@ -431,11 +397,11 @@ endforeach()
 
 # List for mapping files and Python scripts (test_input_configs) 
 foreach (test_config ${test_configs})
-    foreach (obs_type ${obs_types_satobs})
+    foreach (obs_type ${satobs_types})
         list(APPEND test_input_configs
             "bufr_${test_config}_${obs_type}.yaml"
         )
-        foreach (mpi_count ${mpi_counts})
+        foreach (mpi_count ${mpi_counts_satobs})
             if(mpi_count GREATER 0)
                 list(APPEND test_input_configs
                     "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
@@ -446,11 +412,11 @@ foreach (test_config ${test_configs})
 endforeach()
 
 foreach (test_config ${test_configs})
-    foreach (obs_type ${obs_types_convobs})
+    foreach (obs_type ${convobs_types})
         list(APPEND test_input_configs
             "bufr_${test_config}_${obs_type}.yaml"
         )
-        foreach (mpi_count ${mpi_counts})
+        foreach (mpi_count ${mpi_counts_convobs})
             if(mpi_count GREATER 0)
                 list(APPEND test_input_configs
                     "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
@@ -459,9 +425,6 @@ foreach (test_config ${test_configs})
         endforeach()
     endforeach()
 endforeach()
-
-# Print the constructed list (optional, for debugging purposes)
-message(STATUS "Test Input Files: ${test_input_files}")
 
 # Create symlinks for input mapping files and Python scripts
 foreach(file ${test_input_files})
@@ -507,9 +470,7 @@ if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
     return()
   endif()
 
-#>>emily
 # file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-#<<emily
 
   add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
   add_custom_command(
