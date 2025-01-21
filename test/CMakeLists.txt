@@ -42,7 +42,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
 
     # script2netcdf
     elseif(test_config STREQUAL "script2netcdf")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}_${sat_name}")
+        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
         set(env_args "")
         set(command_args
             "testinput/bufr_${obs_type}.py testdata/gdas.t00z.${obs_source}.tm00.bufr_d
@@ -77,7 +77,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
 
     # bufr4backend
     elseif(test_config STREQUAL "bufr4backend")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}_${sat_name}")
+        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
         set(env_args "")
         if(mpi_count GREATER 0)
             set(target_name "${target_name}_mpi${mpi_count}")
@@ -111,7 +111,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name 
 
     # script4backend
     elseif(test_config STREQUAL "script4backend")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}_${sat_name}")
+        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
         set(env_args "")
         if(mpi_count GREATER 0)
             set(target_name "${target_name}_mpi${mpi_count}")
@@ -188,7 +188,7 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
 
     # script2netcdf
     elseif(test_config STREQUAL "script2netcdf")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
         set(env_args "")
         set(command_args
             "testinput/bufr_${obs_type}.py testdata/gdas.t00z.${obs_source}.tm00.bufr_d
@@ -223,7 +223,7 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
 
     # bufr4backend
     elseif(test_config STREQUAL "bufr4backend")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
         set(env_args "")
         if(mpi_count GREATER 0)
             set(target_name "${target_name}_mpi${mpi_count}")
@@ -257,7 +257,7 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
 
     # script4backend
     elseif(test_config STREQUAL "script4backend")
-        set(target_name "${target_prefix}_${test_config}_${obs_type}")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
         set(env_args "")
         if(mpi_count GREATER 0)
             set(target_name "${target_name}_mpi${mpi_count}")
