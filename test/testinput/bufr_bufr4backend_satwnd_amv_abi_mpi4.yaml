@@ -11,7 +11,7 @@ observations:
       engine:
         type: bufr 
         obsfile: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-        mapping file: "./testinput//bufr_satwnd_amv_abi_mapping.yaml"
+        mapping file: "./testinput/bufr_satwnd_amv_abi_mapping.yaml"
         category: ["goes-16"]
         cache categories:            # optional
           - ["goes-16"]

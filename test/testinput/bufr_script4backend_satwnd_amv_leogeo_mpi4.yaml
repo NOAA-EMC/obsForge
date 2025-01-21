@@ -14,7 +14,7 @@ observations:
         script file: "./testinput/bufr_satwnd_amv_leogeo.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput//bufr_satwnd_amv_leogeo_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_leogeo_mapping.yaml"
           category: "multi"
     obsdataout:
       engine:

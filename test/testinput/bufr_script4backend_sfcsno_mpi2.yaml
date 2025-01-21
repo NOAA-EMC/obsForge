@@ -13,7 +13,7 @@ observations:
         script file: "./testinput/bufr_sfcsno.py"
         args:
           input_path: "./testdata/gdas.t00z.sfcsno.tm00.bufr_d"
-          mapping_path: "./testinput//bufr_sfcsno_mapping.yaml"
+          mapping_path: "./testinput/bufr_sfcsno_mapping.yaml"
     obsdataout:
       engine:
         type: H5File

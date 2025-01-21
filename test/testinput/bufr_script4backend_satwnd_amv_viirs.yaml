@@ -32,7 +32,7 @@ observations:
         script file: "./testinput/bufr_satwnd_amv_viirs.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput//bufr_satwnd_amv_viirs_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
           category: "n20"
     obsdataout:
       engine:
@@ -50,7 +50,7 @@ observations:
         script file: "./testinput/bufr_satwnd_amv_viirs.py"
         args:
           input_path: "./testdata/gdas.t00z.satwnd.tm00.bufr_d"
-          mapping_path: "./testinput//bufr_satwnd_amv_viirs_mapping.yaml"
+          mapping_path: "./testinput/bufr_satwnd_amv_viirs_mapping.yaml"
           category: "n21"
     obsdataout:
       engine:
