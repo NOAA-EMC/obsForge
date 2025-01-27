@@ -18,13 +18,13 @@
 #include "../Smos2Ioda.h"
 #include "../Viirsaod2Ioda.h"
 
-namespace gdasapp {
+namespace obsforge {
   class ObsProvider2IodaApp : public oops::Application {
    public:
     explicit ObsProvider2IodaApp(const eckit::mpi::Comm & comm = oops::mpi::world())
       : Application(comm) {}
 
-    static const std::string classname() {return "gdasapp::ObsProvider2IodaApp";}
+    static const std::string classname() {return "obsforge::ObsProvider2IodaApp";}
 
 
     int execute(const eckit::Configuration & fullConfig) const {
@@ -74,8 +74,8 @@ namespace gdasapp {
     // -----------------------------------------------------------------------------
    private:
     std::string appname() const {
-      return "gdasapp::ObsProvider2IodaApp";
+      return "obsforge::ObsProvider2IodaApp";
     }
     // -----------------------------------------------------------------------------
   };
-}  // namespace gdasapp
+}  // namespace obsforge

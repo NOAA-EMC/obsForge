@@ -16,7 +16,7 @@
 #include "NetCDFToIodaConverter.h"
 #include "superob.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   class Ghrsst2Ioda : public NetCDFToIodaConverter {
    public:
@@ -26,7 +26,7 @@ namespace gdasapp {
     }
 
     // Read netcdf file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
+    obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by GHRSST" << std::endl;
 
       // Get the sst bounds from the configuration
@@ -165,11 +165,11 @@ namespace gdasapp {
       std::vector<std::vector<float>> obserror_s;
       std::vector<std::vector<double>> seconds_s;
       if ( fullConfig_.has("binning") ) {
-        sst_s = gdasapp::superobutils::subsample2D(sst, mask, fullConfig_);
-        lon2d_s = gdasapp::superobutils::subsample2D(lon2d, mask, fullConfig_);
-        lat2d_s = gdasapp::superobutils::subsample2D(lat2d, mask, fullConfig_);
-        obserror_s = gdasapp::superobutils::subsample2D(obserror, mask, fullConfig_);
-        seconds_s = gdasapp::superobutils::subsample2D(seconds, mask, fullConfig_);
+        sst_s = obsforge::superobutils::subsample2D(sst, mask, fullConfig_);
+        lon2d_s = obsforge::superobutils::subsample2D(lon2d, mask, fullConfig_);
+        lat2d_s = obsforge::superobutils::subsample2D(lat2d, mask, fullConfig_);
+        obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_);
+        seconds_s = obsforge::superobutils::subsample2D(seconds, mask, fullConfig_);
       } else {
         sst_s = sst;
         lon2d_s = lon2d;
@@ -188,7 +188,7 @@ namespace gdasapp {
       std::vector<std::string> floatMetadataNames = {};
 
       // Create instance of iodaVars object
-      gdasapp::obsproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
 
       // Reference time is Jan 01 1981 00:00:00 GMT+0000
       iodaVars.referenceDate_ = refDate;
@@ -217,4 +217,4 @@ namespace gdasapp {
       return iodaVars;
     };
   };  // class Ghrsst2Ioda
-}  // namespace gdasapp
+}  // namespace obsforge

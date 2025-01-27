@@ -21,7 +21,7 @@
 
 #include "NetCDFToIodaConverter.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   class IcecJpssrr2Ioda : public NetCDFToIodaConverter {
    public:
@@ -31,7 +31,7 @@ namespace gdasapp {
     }
 
     // Read netcdf file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
+    obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by the JPSSRR" << std::endl;
 
       // Open the NetCDF file in read-only mode
@@ -50,7 +50,7 @@ namespace gdasapp {
       std::vector<std::string> floatMetadataNames = {};
 
       // Create instance of iodaVars object
-      gdasapp::obsproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
 
       oops::Log::debug() << "--- iodaVars.location_: " << iodaVars.location_ << std::endl;
 
@@ -121,5 +121,5 @@ namespace gdasapp {
       return iodaVars;
     };
   };  // class IcecMirs2Ioda
-}  // namespace gdasapp
+}  // namespace obsforge
 

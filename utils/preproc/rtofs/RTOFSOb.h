@@ -4,7 +4,7 @@
 #include <string>
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 namespace rtofs
@@ -63,4 +63,4 @@ class RTOFSOb
 
 }    // namespace rtofs
 
-}    // namespace gdasapp
+}    // namespace obsforge

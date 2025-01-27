@@ -6,7 +6,7 @@
 #include "RTOFSOb.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 namespace rtofs
 {
@@ -26,4 +26,4 @@ class RTOFSDataFile
 
 }    // namespace rtofs
 
-}    // namespace gdasapp
+}    // namespace obsforge

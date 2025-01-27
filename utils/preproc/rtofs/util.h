@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 
@@ -58,4 +58,4 @@ void
 
 }    // namespace rtofs
 
-}    // namespace gdasapp
+}    // namespace obsforge

@@ -21,7 +21,7 @@
 
 #include "NetCDFToIodaConverter.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   class Smap2Ioda : public NetCDFToIodaConverter {
    public:
@@ -31,7 +31,7 @@ namespace gdasapp {
     }
 
     // Read netcdf file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
+    obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by SMAP" << std::endl;
 
       // Open the NetCDF file in read-only mode
@@ -50,7 +50,7 @@ namespace gdasapp {
       std::vector<std::string> floatMetadataNames = {};
 
       // Create instance of iodaVars object
-      gdasapp::obsproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
 
       // TODO(AFE): these arrays can be done as 1D vectors, but those need proper ushorts in
       // the input files, at odd with the current ctests
@@ -124,4 +124,4 @@ namespace gdasapp {
       return iodaVars;
     };
   };  // class Smap2Ioda
-}  // namespace gdasapp
+}  // namespace obsforge

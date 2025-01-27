@@ -10,8 +10,8 @@
 #include "ioda/../../../../core/IodaUtils.h"
 #include "oops/util/dateFunctions.h"
 
-namespace gdasapp {
-  namespace obsproc {
+namespace obsforge {
+  namespace preproc {
     namespace oceanmask {
       struct OceanMask {
         std::vector<std::vector<int>> mask_;   // ocean basin mask identifier
@@ -319,5 +319,5 @@ namespace gdasapp {
            }
          }  // void
     }  // namespace utils
-  }  // namespace obsproc
-};  // namespace gdasapp
+  }  // namespace preproc
+};  // namespace obsforge

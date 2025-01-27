@@ -7,7 +7,7 @@
 #include "RTOFSInSitu.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 
@@ -24,13 +24,13 @@ class RTOFSTemperature:
     }
 
     // Read binary file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars
+    obsforge::preproc::iodavars::IodaVars
         providerToIodaVars(const std::string filename) final;
 };  // class RTOFSTemperature
 
 
 
-gdasapp::obsproc::iodavars::IodaVars
+obsforge::preproc::iodavars::IodaVars
 RTOFSTemperature::
     providerToIodaVars(const std::string filename)
 {
@@ -43,7 +43,7 @@ RTOFSTemperature::
     std::vector<std::string> floatMetadataNames = {"level"};
     rtofs::RTOFSOb & ob = * pob;
 
-    gdasapp::obsproc::iodavars::IodaVars iodaVars(
+    obsforge::preproc::iodavars::IodaVars iodaVars(
         ob.TotalNumberOfValues(),
         floatMetadataNames,
         intMetadataNames);
@@ -78,4 +78,4 @@ RTOFSTemperature::
 };  // class RTOFSTemperature
 
 
-}    // namespace gdasapp
+}    // namespace obsforge

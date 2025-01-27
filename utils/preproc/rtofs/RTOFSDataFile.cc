@@ -9,7 +9,7 @@ using std::ofstream;
 #include "util.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 namespace rtofs
 {
@@ -92,4 +92,4 @@ RTOFSDataFile::
 }    // RTOFSDataFile::read_file
 
 }    // namespace rtofs
-}    // namespace gdasapp
+}    // namespace obsforge

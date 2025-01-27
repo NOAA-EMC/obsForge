@@ -19,7 +19,7 @@
 
 # include "util.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   // Base class for the converters
   class NetCDFToIodaConverter {
@@ -62,7 +62,7 @@ namespace gdasapp {
       ASSERT(comm_.size() <= inputFilenames_.size());
 
       // Read the provider's netcdf file
-      gdasapp::obsproc::iodavars::IodaVars iodaVars = providerToIodaVars(inputFilenames_[myrank]);
+      obsforge::preproc::iodavars::IodaVars iodaVars = providerToIodaVars(inputFilenames_[myrank]);
 
 
       for (int i = myrank + comm_.size(); i < inputFilenames_.size(); i += comm_.size()) {
@@ -76,7 +76,7 @@ namespace gdasapp {
       // Get the total number of obs across pe's
       int nobsAll(0);
       comm_.allReduce(nobs, nobsAll, eckit::mpi::sum());
-      gdasapp::obsproc::iodavars::IodaVars iodaVarsAll(nobsAll,
+      obsforge::preproc::iodavars::IodaVars iodaVarsAll(nobsAll,
                                     iodaVars.floatMetadataName_,
                                     iodaVars.intMetadataName_);
 
@@ -161,7 +161,7 @@ namespace gdasapp {
           tmpIntMeta = ogrp.vars.createWithScales<int>("MetaData/"+strMeta,
                                                          {ogrp.vars["Location"]}, int_params);
           // get ocean basin masks if asked in the config
-          obsproc::oceanmask::OceanMask* oceanMask = nullptr;
+          preproc::oceanmask::OceanMask* oceanMask = nullptr;
           if (fullConfig_.has("ocean basin")) {
              std::string fileName;
              fullConfig_.get("ocean basin", fileName);
@@ -169,7 +169,7 @@ namespace gdasapp {
              // only apply the basin mask if the file exist
              std::ifstream testFile(fileName.c_str());
              if (testFile.good()) {
-              oceanMask = new obsproc::oceanmask::OceanMask(fileName);
+              oceanMask = new preproc::oceanmask::OceanMask(fileName);
 
               for (int i = 0; i < iodaVars.location_; i++) {
                 iodaVars.intMetadata_.coeffRef(i, size(iodaVars.intMetadataName_)-1) =
@@ -211,7 +211,7 @@ namespace gdasapp {
    private:
     // Virtual method that reads the provider's netcdf file and store the relevant
     // info in a IodaVars struct
-    virtual gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(
+    virtual obsforge::preproc::iodavars::IodaVars providerToIodaVars(
                                                         const std::string fileName) = 0;
 
     // Gather for eigen array
@@ -273,4 +273,4 @@ namespace gdasapp {
     const eckit::mpi::Comm & comm_;
     const eckit::Configuration & fullConfig_;
   };
-}  // namespace gdasapp
+}  // namespace obsforge

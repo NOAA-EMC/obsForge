@@ -8,7 +8,7 @@
 #include "RTOFSInSitu.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 
@@ -25,13 +25,13 @@ class RTOFSSalinity:
     }
 
     // Read binary file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars
+    obsforge::preproc::iodavars::IodaVars
         providerToIodaVars(const std::string filename) final;
 };  // class RTOFSSalinity
 
 
 // Read binary file and populate iodaVars
-gdasapp::obsproc::iodavars::IodaVars
+obsforge::preproc::iodavars::IodaVars
 RTOFSSalinity::
     providerToIodaVars(const std::string filename)
 {
@@ -45,7 +45,7 @@ RTOFSSalinity::
 
     rtofs::RTOFSOb & ob = * pob;
 
-    gdasapp::obsproc::iodavars::IodaVars iodaVars(
+    obsforge::preproc::iodavars::IodaVars iodaVars(
         ob.TotalNumberOfValues(),
         floatMetadataNames,
         intMetadataNames);
@@ -80,4 +80,4 @@ RTOFSSalinity::
 }    // RTOFSInSitu::providerToIodaVars
 
 
-}    // namespace gdasapp
+}    // namespace obsforge

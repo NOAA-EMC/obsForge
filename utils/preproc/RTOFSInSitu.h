@@ -9,7 +9,7 @@
 #include "rtofs/util.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 
@@ -34,7 +34,7 @@ class RTOFSInSitu:
 
  private:
     // Read binary file and populate iodaVars
-    virtual gdasapp::obsproc::iodavars::IodaVars
+    virtual obsforge::preproc::iodavars::IodaVars
         providerToIodaVars(const std::string filename) = 0;
 };  // class RTOFSInSitu
 
@@ -68,4 +68,4 @@ RTOFSInSitu::
 
 }    // namespace rtofs
 
-}  // namespace gdasapp
+}  // namespace obsforge

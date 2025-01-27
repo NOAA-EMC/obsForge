@@ -3,6 +3,6 @@
 
 int main(int argc, char ** argv) {
   oops::Run run(argc, argv);
-  gdasapp::ObsProvider2IodaApp obsprovider2ioda;
+  obsforge::ObsProvider2IodaApp obsprovider2ioda;
   return run.execute(obsprovider2ioda);
 }

@@ -17,7 +17,7 @@
 #include "NetCDFToIodaConverter.h"
 #include "superob.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   class Viirsaod2Ioda : public NetCDFToIodaConverter {
    public:
@@ -27,7 +27,7 @@ namespace gdasapp {
     }
 
     // Read netcdf file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
+    obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by VIIRSAOD" << std::endl;
 
       // Open the NetCDF file in read-only mode
@@ -152,26 +152,26 @@ namespace gdasapp {
            }
         }
 
-        lon2d_s = gdasapp::superobutils::subsample2D(lon, mask, fullConfig_);
+        lon2d_s = obsforge::superobutils::subsample2D(lon, mask, fullConfig_);
         for (auto& row : lon2d_s) {
             for (float& lonValue : row) {
                 lonValue = fmod(lonValue + 360, 360);
             }
         }
 
-        lat2d_s = gdasapp::superobutils::subsample2D(lat, mask, fullConfig_);
-        mask_s = gdasapp::superobutils::subsample2D(mask, mask, fullConfig_);
+        lat2d_s = obsforge::superobutils::subsample2D(lat, mask, fullConfig_);
+        mask_s = obsforge::superobutils::subsample2D(mask, mask, fullConfig_);
         if (fullConfig_.has("binning.cressman radius")) {
         // Weighted-average (cressman) superob
           bool useCressman = true;
-          obsvalue_s = gdasapp::superobutils::subsample2D(obsvalue, mask, fullConfig_,
+          obsvalue_s = obsforge::superobutils::subsample2D(obsvalue, mask, fullConfig_,
                        useCressman, lat, lon, lat2d_s, lon2d_s);
-          obserror_s = gdasapp::superobutils::subsample2D(obserror, mask, fullConfig_,
+          obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_,
                        useCressman, lat, lon, lat2d_s, lon2d_s);
         } else {
         // Simple-average superob
-          obsvalue_s = gdasapp::superobutils::subsample2D(obsvalue, mask, fullConfig_);
-          obserror_s = gdasapp::superobutils::subsample2D(obserror, mask, fullConfig_);
+          obsvalue_s = obsforge::superobutils::subsample2D(obsvalue, mask, fullConfig_);
+          obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_);
         }
       } else {
         obsvalue_s = obsvalue;
@@ -207,7 +207,7 @@ namespace gdasapp {
       int nchan(channelNumber.size());
       oops::Log::info() << " number of channels " << nchan << std::endl;
       // Create instance of iodaVars object
-      gdasapp::obsproc::iodavars::IodaVars iodaVars(nobs, {}, {});
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, {}, {});
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
       oops::Log::info() << " eigen... row and column:" << obsvalue_s.size() << " "
@@ -240,4 +240,4 @@ namespace gdasapp {
       return iodaVars;
     };
   };  // class Viirsaod2Ioda
-}  // namespace gdasapp
+}  // namespace obsforge

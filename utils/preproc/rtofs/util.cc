@@ -15,7 +15,7 @@ using std::cout;
 
 
 
-namespace gdasapp
+namespace obsforge
 {
 
 namespace rtofs
@@ -213,4 +213,4 @@ std::vector<int>
 
 }    // namespace rtofs
 
-}    // namespace gdasapp
+}    // namespace obsforge

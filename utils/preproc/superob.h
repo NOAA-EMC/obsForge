@@ -11,7 +11,7 @@
 
 
 
-namespace gdasapp {
+namespace obsforge {
   namespace superobutils {
     // Function to perform subsampling/binning of gridded data with a given stride
     template <typename T>
@@ -113,4 +113,4 @@ namespace gdasapp {
       return subsampled;
     }
   }  // namespace superobutils
-}  // namespace gdasapp
+}  // namespace obsforge

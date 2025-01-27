@@ -14,7 +14,7 @@ using std::ofstream;
 #include "oops/util/dateFunctions.h"
 
 
-namespace gdasapp
+namespace obsforge
 {
 namespace rtofs
 {
@@ -215,4 +215,4 @@ RTOFSOb::
 }    // RTOFSOb::print
 
 }    // namespace rtofs
-}    // namespace gdasapp
+}    // namespace obsforge

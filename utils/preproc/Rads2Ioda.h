@@ -15,7 +15,7 @@
 
 #include "NetCDFToIodaConverter.h"
 
-namespace gdasapp {
+namespace obsforge {
 
   class Rads2Ioda : public NetCDFToIodaConverter {
    public:
@@ -25,7 +25,7 @@ namespace gdasapp {
     }
 
     // Read netcdf file and populate iodaVars
-    gdasapp::obsproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
+    obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by the RADS" << std::endl;
 
       //  Abort the case where the 'error ratio' key is not found
@@ -51,7 +51,7 @@ namespace gdasapp {
       std::vector<std::string> floatMetadataNames = {"mdt"};
 
       // Create instance of iodaVars object
-      gdasapp::obsproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
 
       // Read non-optional metadata: datetime, longitude and latitude
       std::vector<int> lat(iodaVars.location_);
@@ -143,4 +143,4 @@ namespace gdasapp {
      return iodaVars;
     };
   };  // class Rads2Ioda
-}  // namespace gdasapp
+}  // namespace obsforge

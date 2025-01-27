@@ -9,7 +9,7 @@ set(
 )
 
 list(
-	APPEND gdasapp_provider2ioda_src_files
+	APPEND obsforge_provider2ioda_src_files
 	${rtofs_src_files}
 )
 
