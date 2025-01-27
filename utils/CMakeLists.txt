@@ -1,4 +1,4 @@
-project(ioda-utils LANGUAGES C CXX )
+project(obsforge-utils LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,5 +12,6 @@ set(CMAKE_FORTRAN_EXTENSIONS OFF)
 
 find_package(NetCDF REQUIRED COMPONENTS CXX)
 find_package(oops REQUIRED)
+find_package(ioda REQUIRED)
 
 add_subdirectory(preproc)
