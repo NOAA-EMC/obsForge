@@ -295,6 +295,172 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
 
 endfunction()
 
+# ================================================================================
+# Function to add tests for conventional observations from prepbufr dynamically
+# ================================================================================
+function(add_obsforge_test_convobs_prepbufr target_prefix obs_type obs_source test_config mpi_count)
+
+    # bufr2netcdf
+    if(test_config STREQUAL "bufr2netcdf") 
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
+        set(env_args "")
+	if(obs_source STREQUAL "acft_profiles")
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.prepbufr.${obs_source}
+                testinput/bufr_${obs_type}_mapping.yaml
+                testrun/${test_config}/gdas.t00z.${obs_type}.tm00.nc"
+                ${test_config}/gdas.t00z.${obs_type}.tm00.nc
+            )
+	else()
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.prepbufr
+                testinput/bufr_${obs_type}_mapping.yaml
+                testrun/${test_config}/gdas.t00z.${obs_type}.tm00.nc"
+                ${test_config}/gdas.t00z.${obs_type}.tm00.nc
+            )
+        endif()
+        if(mpi_count GREATER 0)
+            set(target_name "${target_name}_mpi${mpi_count}")
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                MPI ${mpi_count}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        else()
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        endif()
+
+    # script2netcdf
+    elseif(test_config STREQUAL "script2netcdf")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
+        set(env_args "")
+        if(obs_source STREQUAL "acft_profiles")
+            set(command_args
+                "testinput/bufr_${obs_type}.py testdata/gdas.t00z.prepbufr.${obs_source}
+                testinput/bufr_${obs_type}_mapping.yaml
+                testrun/${test_config}/gdas.t00z.${obs_type}.tm00.nc
+		2021080100"
+                ${test_config}/gdas.t00z.${obs_type}.tm00.nc
+            )
+        else()
+            set(command_args
+                "testinput/bufr_${obs_type}.py testdata/gdas.t00z.prepbufr
+                testinput/bufr_${obs_type}_mapping.yaml
+                testrun/${test_config}/gdas.t00z.${obs_type}.tm00.nc
+		2021080100"
+                ${test_config}/gdas.t00z.${obs_type}.tm00.nc
+            )
+        endif()
+        set(env_args
+            "ENVIRONMENT PYTHONPATH=${CMAKE_BINARY_DIR}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages:$ENV{PYTHONPATH}"
+        )
+        if(mpi_count GREATER 0)
+            set(target_name "${target_name}_mpi${mpi_count}")
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                MPI ${mpi_count}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        else()
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        endif()
+
+    # bufr4backend
+    elseif(test_config STREQUAL "bufr4backend")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
+        set(env_args "")
+        if(mpi_count GREATER 0)
+            set(target_name "${target_name}_mpi${mpi_count}")
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
+                ${test_config}/gdas.t00z.${obs_source}.tm00_mpi${mpi_count}.nc
+            )
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                MPI ${mpi_count}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        else()
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
+                ${test_config}/gdas.t00z.${obs_type}.tm00.nc
+            )
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        endif()
+
+    # script4backend
+    elseif(test_config STREQUAL "script4backend")
+        set(target_name "${target_prefix}_${obs_type}_${test_config}")
+        set(env_args "")
+        if(mpi_count GREATER 0)
+            set(target_name "${target_name}_mpi${mpi_count}")
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
+                ${test_config}/gdas.t00z.${obs_source}.tm00_mpi${mpi_count}.nc
+            )
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                MPI ${mpi_count}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        else()
+            set(command_args
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
+                ${test_config}/gdas.t00z.${obs_source}.tm00.nc
+            )
+            # Add the test
+            ecbuild_add_test(
+                TARGET ${target_name}
+                TYPE SCRIPT
+                COMMAND bash
+                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
+                ${env_args}
+            )
+        endif()
+
+    else()
+	    message(Status "Unknown test configuration")
+    endif()
+
+endfunction()
+
 # ===============================================
 # Set test parameters for satellite observations
 # ===============================================
@@ -339,7 +505,7 @@ endforeach()
 # ==================================================================
 # Set test parameters for conventional observations from bufr dump
 # ==================================================================
-set(convobs_types "sfcsno")
+set(convobs_types "sfcsno" )
 
 # Get the length of the convobs_types list
 list(LENGTH convobs_types convobs_types_length)
@@ -350,13 +516,40 @@ math(EXPR convobs_types_last_index "${convobs_types_length} - 1")
 # =========================================================
 foreach(index RANGE 0 ${convobs_types_last_index})
     list(GET convobs_types ${index} convobs_type)
-    
-    foreach(convobs_type ${convobs_types})
-        set(obs_source ${convobs_type})
-	foreach(test_config ${test_configs})
-	    foreach(mpi_count ${mpi_counts_convobs})
-                add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
-            endforeach()
+
+    set(obs_source ${convobs_type})
+    foreach(test_config ${test_configs})
+        foreach(mpi_count ${mpi_counts_convobs})
+            add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
+        endforeach()
+    endforeach()
+endforeach()
+
+
+# ==================================================================
+# Set test parameters for conventional observations from prepbufr 
+# ==================================================================
+set(convobs_prepbufr_types "adpsfc_prepbufr" "sfcshp_prepbufr" "acft_profiles_prepbufr" "adpupa_prepbufr")
+set(mpi_counts_convobs_prepbufr "0" "4")
+
+# Get the length of the convobs_prepbufr_types list
+list(LENGTH convobs_prepbufr_types convobs_prepbufr_types_length)
+math(EXPR convobs_prepbufr_types_last_index "${convobs_prepbufr_types_length} - 1")
+
+# =================================================================
+# Generate tests for conventional prepbufr observations dynamically
+# =================================================================
+foreach(index RANGE 0 ${convobs_prepbufr_types_last_index})
+    list(GET convobs_prepbufr_types ${index} convobs_prepbufr_type)
+
+    # Extract components from convobs_prepbufr_type
+    string(REPLACE "_prepbufr" ";prepbufr" convobs_prepbufr_type_parts "${convobs_prepbufr_type}")
+    list(GET convobs_prepbufr_type_parts 0 obs_source)
+
+    set(obs_source ${convobs_prepbufr_type})
+    foreach(test_config ${test_configs})
+        foreach(mpi_count ${mpi_counts_convobs_prepbufr})
+            add_obsforge_test_convobs_prepbufr("test_obsforge_convobs_prepbufr" ${convobs_prepbufr_type} ${obs_source} ${test_config} ${mpi_count})
         endforeach()
     endforeach()
 endforeach()
@@ -374,6 +567,7 @@ endforeach()
 set(obs_types "")
 set(obs_types ${satobs_types})
 list(APPEND obs_types ${convobs_types})
+list(APPEND obs_types ${convobs_prepbufr_types})
 
 # Create directories and subdirectories
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
@@ -422,6 +616,21 @@ foreach (test_config ${test_configs})
                     "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
                 ) 
 	    endif() 		 
+        endforeach()
+    endforeach()
+endforeach()
+
+foreach (test_config ${test_configs})
+    foreach (obs_type ${convobs_prepbufr_types})
+        list(APPEND test_input_configs
+            "bufr_${test_config}_${obs_type}.yaml"
+        )
+        foreach (mpi_count ${mpi_counts_convobs_prepbufr})
+            if(mpi_count GREATER 0)
+                list(APPEND test_input_configs
+                    "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
+                )
+            endif()
         endforeach()
     endforeach()
 endforeach()

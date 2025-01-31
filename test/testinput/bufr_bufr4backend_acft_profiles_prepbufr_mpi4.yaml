@@ -1,0 +1,18 @@
+time window:
+  begin: "2021-07-31T21:00:00Z"
+  end: "2021-08-01T03:00:00Z"
+  bound to include: begin
+
+observations:
+- obs space:
+    name: "AIRCFT"
+    simulated variables: ['airTemperature','specificHumidity','windNorthward','windEastward']
+    obsdatain:
+      engine:
+        type: bufr
+        obsfile: "./testdata/gdas.t00z.prepbufr.acft_profiles"
+        mapping file: "./testinput/bufr_acft_profiles_prepbufr_mapping.yaml"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.acft_profiles_prepbufr.tm00_mpi4.nc"
