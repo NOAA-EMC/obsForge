@@ -4,295 +4,119 @@ cmake_minimum_required(VERSION 3.10)
 project(obsforge_tests)
 
 # =============================================================
+# Helper function to add MPI-enabled tests
+# =============================================================
+function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
+    if (mpi_count GREATER 0)
+        set(target_name "${target_name}_mpi${mpi_count}")
+    endif()
+    ecbuild_add_test(
+        TARGET ${target_name}
+        TYPE SCRIPT
+        COMMAND bash
+        ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
+        $<$<BOOL:${mpi_count}>:MPI ${mpi_count}>
+    )
+endfunction()
+
+# =============================================================
 # Function to add tests for satellite observations dynamically
 # =============================================================
 function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name sat_name test_config mpi_count)
+    set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
+    set(env_args "")
 
-    # bufr2netcdf
-    if(test_config STREQUAL "bufr2netcdf") 
-        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
-        set(env_args "")
+    if (test_config STREQUAL "bufr2netcdf")
         set(command_args
-            "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.${obs_source}.tm00.bufr_d
+            "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x
+            testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.${sensor_name}_{splits/satId}.tm00.nc"
-            ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc
+            "${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc"
         )
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
 
-    # script2netcdf
-    elseif(test_config STREQUAL "script2netcdf")
-        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
-        set(env_args "")
+    elseif (test_config STREQUAL "script2netcdf")
         set(command_args
-            "testinput/bufr_${obs_type}.py testdata/gdas.t00z.${obs_source}.tm00.bufr_d
+            "testinput/bufr_${obs_type}.py
+            testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.${sensor_name}_{splits/satId}.tm00.nc"
-            ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc
+            "${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc"
         )
         set(env_args
             "ENVIRONMENT PYTHONPATH=${CMAKE_BINARY_DIR}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages:$ENV{PYTHONPATH}"
         )
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
 
-    # bufr4backend
-    elseif(test_config STREQUAL "bufr4backend")
-        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
-        set(env_args "")
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
+    elseif (test_config STREQUAL "bufr4backend" OR test_config STREQUAL "script4backend")
+        if (mpi_count GREATER 0)
             set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00_mpi${mpi_count}.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
+                testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
+                "${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00_mpi${mpi_count}.nc"
             )
         else()
             set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
+                testinput/bufr_${test_config}_${obs_type}.yaml"
+                "${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc"
             )
         endif()
-
-    # script4backend
-    elseif(test_config STREQUAL "script4backend")
-        set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
-        set(env_args "")
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00_mpi${mpi_count}.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.${sensor_name}_${sat_name}.tm00.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
-
     else()
-	    message(Status "Unknown test configuration")     
+        message(STATUS "Unknown test configuration")
+        return()
     endif()
 
+    add_obsforge_mpi_test(${target_name} ${mpi_count} "${command_args}" "${env_args}")
 endfunction()
 
 # ================================================================================
 # Function to add tests for conventional observations from bufr dump dynamically
 # ================================================================================
 function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config mpi_count)
+    set(target_name "${target_prefix}_${obs_type}_${test_config}")
+    set(env_args "")
 
-    # bufr2netcdf
-    if(test_config STREQUAL "bufr2netcdf") 
-        set(target_name "${target_prefix}_${obs_type}_${test_config}")
-        set(env_args "")
+    if (test_config STREQUAL "bufr2netcdf")
         set(command_args
-            "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x testdata/gdas.t00z.${obs_source}.tm00.bufr_d
+            "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x
+            testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.tm00.nc"
-            ${test_config}/gdas.t00z.${obs_source}.tm00.nc
+            "${test_config}/gdas.t00z.${obs_source}.tm00.nc"
         )
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
 
-    # script2netcdf
-    elseif(test_config STREQUAL "script2netcdf")
-        set(target_name "${target_prefix}_${obs_type}_${test_config}")
-        set(env_args "")
+    elseif (test_config STREQUAL "script2netcdf")
         set(command_args
-            "testinput/bufr_${obs_type}.py testdata/gdas.t00z.${obs_source}.tm00.bufr_d
+            "testinput/bufr_${obs_type}.py
+            testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.tm00.nc"
-            ${test_config}/gdas.t00z.${obs_source}.tm00.nc
+            "${test_config}/gdas.t00z.${obs_source}.tm00.nc"
         )
         set(env_args
             "ENVIRONMENT PYTHONPATH=${CMAKE_BINARY_DIR}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages:$ENV{PYTHONPATH}"
         )
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
 
-    # bufr4backend
-    elseif(test_config STREQUAL "bufr4backend")
-        set(target_name "${target_prefix}_${obs_type}_${test_config}")
-        set(env_args "")
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
+    elseif (test_config STREQUAL "bufr4backend" OR test_config STREQUAL "script4backend")
+        if (mpi_count GREATER 0)
             set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.tm00_mpi${mpi_count}.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
+                testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
+                "${test_config}/gdas.t00z.${obs_source}.tm00_mpi${mpi_count}.nc"
             )
         else()
             set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.tm00.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
+                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
+                testinput/bufr_${test_config}_${obs_type}.yaml"
+                "${test_config}/gdas.t00z.${obs_source}.tm00.nc"
             )
         endif()
-
-    # script4backend
-    elseif(test_config STREQUAL "script4backend")
-        set(target_name "${target_prefix}_${obs_type}_${test_config}")
-        set(env_args "")
-        if(mpi_count GREATER 0)
-            set(target_name "${target_name}_mpi${mpi_count}")
-            set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.tm00_mpi${mpi_count}.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                MPI ${mpi_count}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        else()
-            set(command_args
-                "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x testinput/bufr_${test_config}_${obs_type}.yaml"
-                ${test_config}/gdas.t00z.${obs_source}.tm00.nc
-            )
-            # Add the test
-            ecbuild_add_test(
-                TARGET ${target_name}
-                TYPE SCRIPT
-                COMMAND bash
-                ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args}
-                ${env_args}
-            )
-        endif()
-
     else()
-	    message(Status "Unknown test configuration")     
+        message(STATUS "Unknown test configuration")
+        return()
     endif()
 
+    add_obsforge_mpi_test(${target_name} ${mpi_count} "${command_args}" "${env_args}")
 endfunction()
 
 # ===============================================
@@ -339,24 +163,16 @@ endforeach()
 # ==================================================================
 # Set test parameters for conventional observations from bufr dump
 # ==================================================================
-set(convobs_types "sfcsno")
-
-# Get the length of the convobs_types list
-list(LENGTH convobs_types convobs_types_length)
-math(EXPR convobs_types_last_index "${convobs_types_length} - 1")
+set(convobs_types sfcsno)
 
 # =========================================================
 # Generate tests for conventional observations dynamically
 # =========================================================
-foreach(index RANGE 0 ${convobs_types_last_index})
-    list(GET convobs_types ${index} convobs_type)
-    
-    foreach(convobs_type ${convobs_types})
-        set(obs_source ${convobs_type})
-	foreach(test_config ${test_configs})
-	    foreach(mpi_count ${mpi_counts_convobs})
-                add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
-            endforeach()
+foreach(convobs_type IN LISTS convobs_types)
+    set(obs_source ${convobs_type})
+    foreach(test_config IN LISTS test_configs)
+        foreach(mpi_count IN LISTS mpi_counts_convobs)
+            add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
         endforeach()
     endforeach()
 endforeach()
@@ -371,63 +187,59 @@ endforeach()
 # =================================================================================
 
 # Create combined obs types
-set(obs_types "")
-set(obs_types ${satobs_types})
-list(APPEND obs_types ${convobs_types})
+set(obs_types ${satobs_types} ${convobs_types})
 
 # Create directories and subdirectories
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testrun)
+
+
 # Ensure output directories for each configuration
-foreach(test_config ${test_configs})
+foreach(test_config IN LISTS test_configs)
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testrun/${test_config})
 endforeach()
 
 # Initialize the test_input_files and test_input_configs list
 set(test_input_files "")
 set(test_input_configs "")
+set(test_aux_files "")
 
-# List for mapping files and Python scripts (test_input_files)
-foreach(obs_type ${obs_types}) 
+
+# List for test auxiliary files (test_aux_files)
+list(APPEND test_aux_files
+        "atms_beamwidth.txt"
+)
+
+# List for mapping files and Python scripts
+foreach(obs_type IN LISTS obs_types)
     list(APPEND test_input_files
         "bufr_${obs_type}_mapping.yaml"
         "bufr_${obs_type}.py"
     )
 endforeach()
 
-# List for mapping files and Python scripts (test_input_configs) 
-foreach (test_config ${test_configs})
-    foreach (obs_type ${satobs_types})
-        list(APPEND test_input_configs
-            "bufr_${test_config}_${obs_type}.yaml"
-        )
-        foreach (mpi_count ${mpi_counts_satobs})
+# List for test configuration files
+foreach(test_config IN LISTS test_configs)
+    foreach(obs_type IN LISTS satobs_types)
+        list(APPEND test_input_configs "bufr_${test_config}_${obs_type}.yaml")
+        foreach(mpi_count IN LISTS mpi_counts_satobs)
             if(mpi_count GREATER 0)
-                list(APPEND test_input_configs
-                    "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ) 
-	    endif() 		 
+                list(APPEND test_input_configs "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml")
+            endif()
         endforeach()
     endforeach()
-endforeach()
-
-foreach (test_config ${test_configs})
-    foreach (obs_type ${convobs_types})
-        list(APPEND test_input_configs
-            "bufr_${test_config}_${obs_type}.yaml"
-        )
-        foreach (mpi_count ${mpi_counts_convobs})
+    foreach(obs_type IN LISTS convobs_types)
+        list(APPEND test_input_configs "bufr_${test_config}_${obs_type}.yaml")
+        foreach(mpi_count IN LISTS mpi_counts_convobs)
             if(mpi_count GREATER 0)
-                list(APPEND test_input_configs
-                    "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                ) 
-	    endif() 		 
+                list(APPEND test_input_configs "bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml")
+            endif()
         endforeach()
     endforeach()
 endforeach()
 
 # Create symlinks for input mapping files and Python scripts
-foreach(file ${test_input_files})
+foreach(file IN LISTS test_input_files)
     execute_process(
         COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/../sorc/spoc/dump/mapping/${file}
@@ -436,11 +248,13 @@ foreach(file ${test_input_files})
 endforeach()
 
 # Create symlinks for input configurations files
-foreach(FILENAME ${test_input_configs})
-  execute_process( COMMAND ${CMAKE_COMMAND} -E create_symlink
-    ${CMAKE_CURRENT_SOURCE_DIR}/testinput/${FILENAME}
-    ${CMAKE_CURRENT_BINARY_DIR}/testinput/${FILENAME} )
-endforeach(FILENAME)
+foreach(FILENAME IN LISTS test_input_configs)
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/testinput/${FILENAME}
+        ${CMAKE_CURRENT_BINARY_DIR}/testinput/${FILENAME}
+    )
+endforeach()
 
 # ===================================================================
 # Download the test data ./build/obsForge/test/ if we don't have it
@@ -452,14 +266,14 @@ set(FILE_COLLECTION "obsforge-0.0.0.tgz")
 
 # Get the test data if we don't have it.
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
-   message(STATUS "Downloading: " ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-  file(DOWNLOAD
-    ${DOWNLOAD_URL}/${FILE_COLLECTION}
-    ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
-    SHOW_PROGRESS
-    STATUS download_status
-    INACTIVITY_TIMEOUT 30
-  )
+    message(STATUS "Downloading: ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
+    file(DOWNLOAD
+        ${DOWNLOAD_URL}/${FILE_COLLECTION}
+        ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
+        SHOW_PROGRESS
+        STATUS download_status
+        INACTIVITY_TIMEOUT 30
+    )
 
   list(GET download_status 0 download_status_num)
 
@@ -470,7 +284,7 @@ if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
     return()
   endif()
 
-# file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
   add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
   add_custom_command(
