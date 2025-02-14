@@ -275,23 +275,25 @@ if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
         INACTIVITY_TIMEOUT 30
     )
 
-    list(GET download_status 0 download_status_num)
+  list(GET download_status 0 download_status_num)
 
-    if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-        file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-        message(STATUS "Could not download test files, not building tests")
-        return()
-    endif()
+  if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
+    # Remove empty file if download doesn't complete
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${BUFR_TAR})
+    message(STATUS "Could not download test files, not building tests")
+    return()
+  endif()
 
-    add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-    add_custom_command(
-        TARGET get_obsforge_test_data
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILE_COLLECTION} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMAND ${CMAKE_COMMAND} -E rm -rf testdata testoutput
-        COMMAND ${CMAKE_COMMAND} -E mv remote_data/testdata testdata
-        COMMAND ${CMAKE_COMMAND} -E mv remote_data/testoutput testoutput
-        COMMAND ${CMAKE_COMMAND} -E rm -rf remote_data
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
+  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+  add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
+  add_custom_command(
+    TARGET get_obsforge_test_data
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} tar xzf ${FILE_COLLECTION}
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testdata
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testoutput
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testdata testdata
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testoutput testoutput
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf remote_data)
 endif()
