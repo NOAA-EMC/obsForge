@@ -4,19 +4,27 @@ cmake_minimum_required(VERSION 3.10)
 project(obsforge_tests)
 
 # =============================================================
-# Helper function to add MPI-enabled tests
+# Helper function to simplify MPI and non-MPI test addition
 # =============================================================
 function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
+    # Append MPI count to target name if MPI is used
     if (mpi_count GREATER 0)
         set(target_name "${target_name}_mpi${mpi_count}")
+        ecbuild_add_test(
+            TARGET ${target_name}
+            MPI ${mpi_count}
+            TYPE SCRIPT
+            COMMAND bash
+            ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
+        )
+    else()
+        ecbuild_add_test(
+            TARGET ${target_name}
+            TYPE SCRIPT
+            COMMAND bash
+            ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
+        )
     endif()
-    ecbuild_add_test(
-        TARGET ${target_name}
-        TYPE SCRIPT
-        COMMAND bash
-        ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
-        $<$<BOOL:${mpi_count}>:MPI ${mpi_count}>
-    )
 endfunction()
 
 # =============================================================
