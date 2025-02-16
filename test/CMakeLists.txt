@@ -11,7 +11,6 @@ function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
     if (mpi_count GREATER 0)
         # Set test name 
         set(target_name "${target_name}_mpi${mpi_count}")
-
 	ecbuild_add_test(
             TARGET ${target_name}
             MPI ${mpi_count}
@@ -20,7 +19,7 @@ function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
             ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
         )
     else()
-	ecbuild_add_test(
+        ecbuild_add_test(
             TARGET ${target_name}
             TYPE SCRIPT
             COMMAND bash
@@ -312,25 +311,25 @@ set(FILE_COLLECTION "obsforge-0.0.0.tgz")
 
 # Get the test data if we don't have it.
 if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
-#    message(STATUS "Downloading: ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
-#    file(DOWNLOAD
-#        ${DOWNLOAD_URL}/${FILE_COLLECTION}
-#        ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
-#        SHOW_PROGRESS
-#        STATUS download_status
-#        INACTIVITY_TIMEOUT 30
-#    )
-#
-#  list(GET download_status 0 download_status_num)
-#
-#  if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-#    # Remove empty file if download doesn't complete
-#    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${BUFR_TAR})
-#    message(STATUS "Could not download test files, not building tests")
-#    return()
-#  endif()
+    message(STATUS "Downloading: ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
+    file(DOWNLOAD
+        ${DOWNLOAD_URL}/${FILE_COLLECTION}
+        ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
+        SHOW_PROGRESS
+        STATUS download_status
+        INACTIVITY_TIMEOUT 30
+    )
 
-  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  list(GET download_status 0 download_status_num)
+
+  if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
+    # Remove empty file if download doesn't complete
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${BUFR_TAR})
+    message(STATUS "Could not download test files, not building tests")
+    return()
+  endif()
+
+  # file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
   add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
   add_custom_command(
