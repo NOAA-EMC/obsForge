@@ -1,0 +1,59 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+  bound to include: begin
+
+observations:
+- obs space:
+    name: "atms_npp"
+    simulated variables: ['brightnessTemperature']
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testinput/gdas.t00z.atms.tm00.bufr_d"
+        mapping file: "./bufr_atms_mapping.yaml"
+        category: ["npp"]            # optional (needed if the BUFR mapping defines splits)
+        cache categories:            # optional
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.atms_npp.tm00_mpi4.nc"
+
+- obs space:
+    name: "atms_n20"
+    simulated variables: ['brightnessTemperature']
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testinput/gdas.t00z.atms.tm00.bufr_d"
+        mapping file: "./bufr_atms_mapping.yaml"
+        category: ["n20"]
+        cache categories:
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.atms_n20.tm00_mpi4.nc"
+
+- obs space:
+    name: "atms_n21"
+    simulated variables: ['brightnessTemperature']
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testinput/gdas.t00z.atms.tm00.bufr_d"
+        mapping file: "./bufr_atms_mapping.yaml"
+        category: ["n21"]            # optional (needed if the BUFR mapping defines splits)
+        cache categories:            # optional
+          - ["npp"]
+          - ["n20"]
+          - ["n21"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.atms_n21.tm00_mpi4.nc"
