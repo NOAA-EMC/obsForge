@@ -19,7 +19,7 @@ function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
             ARGS ${CMAKE_BINARY_DIR}/bin/bufr_comp.sh netcdf ${command_args} ${env_args}
         )
     else()
-        ecbuild_add_test(
+	ecbuild_add_test(
             TARGET ${target_name}
             TYPE SCRIPT
             COMMAND bash
