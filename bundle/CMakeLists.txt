@@ -54,7 +54,7 @@ option(ENABLE_IODA_DATA "Obtain ioda test data from ioda-data repository (vs tar
 ecbuild_bundle( PROJECT ioda SOURCE "../sorc/ioda" )
 
 # Build JEDI/DA or other peripherals
-#ecbuild_bundle( PROJECT obsforge-utils SOURCE "../utils" )
+ecbuild_bundle( PROJECT obsforge-utils SOURCE "../utils" )
 ecbuild_bundle( PROJECT da-utils SOURCE "../sorc/da-utils" )
 
 # Build IODA converters
