@@ -31,7 +31,7 @@ endfunction()
 # =============================================================
 # Function to add tests for satellite observations dynamically
 # =============================================================
-function(add_obsforge_test_satobs target_prefix obs_type obs_source sensor_name sat_name file_name test_config mpi_count)
+function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name file_name test_config mpi_count)
     set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
     set(env_args "")
 
@@ -196,7 +196,7 @@ foreach(index RANGE 0 ${satobs_types_last_index})
     foreach(sat_name ${satellites})
 	foreach(test_config ${test_configs})
 	    foreach(mpi_count ${mpi_counts})
-                add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${sensor_name} ${sat_name} ${file_name} ${test_config} ${mpi_count})
+                add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${sat_name} ${file_name} ${test_config} ${mpi_count})
             endforeach()
         endforeach()
     endforeach()
