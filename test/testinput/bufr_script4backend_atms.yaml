@@ -1,0 +1,53 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+  bound to include: begin
+
+observations:
+  - obs space:
+      name: "atms_npp"
+      simulated variables: ["brightnessTemperature"]
+      obsdatain:
+        engine:
+          type: script
+          script file: "./testinput/bufr_atms.py"
+          args:
+            input_path: "./testdata/gdas.t00z.atms.tm00.bufr_d"
+            mapping_path: "./testinput/bufr_atms_mapping.yaml"
+            category: "npp" 
+      obsdataout:
+        engine:
+          type: H5File
+          obsfile: "./testrun/script4backend/gdas.t00z.atms_npp.tm00.nc"
+
+  - obs space:
+      name: "atms_n20"
+      simulated variables: ["brightnessTemperature"]
+      obsdatain:
+        engine:
+          type: script
+          script file: "./testinput/bufr_atms.py"
+          args:
+            input_path: "./testdata/gdas.t00z.atms.tm00.bufr_d"
+            mapping_path: "./testinput/bufr_atms_mapping.yaml"
+            category: "n20" 
+      obsdataout:
+        engine:
+          type: H5File
+          obsfile: "./testrun/script4backend/gdas.t00z.atms_n20.tm00.nc"
+
+  - obs space:
+      name: "atms_n21"
+      simulated variables: ["brightnessTemperature"]
+      obsdatain:
+        engine:
+          type: script
+          script file: "./testinput/bufr_atms.py"
+          args:
+            input_path: "./testdata/gdas.t00z.atms.tm00.bufr_d"
+            mapping_path: "./testinput/bufr_atms_mapping.yaml"
+            category: "n21" 
+      obsdataout:
+        engine:
+          type: H5File
+          obsfile: "./testrun/script4backend/gdas.t00z.atms_n21.tm00.nc"
