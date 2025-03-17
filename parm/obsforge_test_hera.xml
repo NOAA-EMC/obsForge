@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!DOCTYPE workflow
+[
+	<!--
+	PROGRAM
+		Main workflow manager for ObsForge
+
+	-->
+	<!ENTITY PSLOT "stat_wcda">
+	<!ENTITY ROTDIR "/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/stat_workflow//COMROOT/stat_wcda">
+	<!ENTITY JOBS_DIR "/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/stat_workflow/global-workflow/jobs/rocoto">
+	<!ENTITY MAXTRIES "2">
+]>
+
+<workflow realtime="F" scheduler="slurm" cyclethrottle="3" taskthrottle="25">
+
+	<log verbosity="10"><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/stat_workflow//EXPDIR/stat_wcda/logs/@Y@m@d@H.log</cyclestr></log>
+
+	<!-- Define the cycles -->
+	<cycledef group="gdas">202103250000 202103250000 06:00:00</cycledef>
+	<cycledef group="gfs">202103250000 202103250000 06:00:00</cycledef>
+
+</workflow>
