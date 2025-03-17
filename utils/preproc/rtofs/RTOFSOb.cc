@@ -1,19 +1,15 @@
 // NOLINT
 #include <iostream>
+#include <fstream>  // NOLINT
+
+#include "rtofs/RTOFSOb.h"
+#include "rtofs/util.h"
+#include "oops/util/dateFunctions.h"
+
 using std::cerr;
 using std::endl;
 using std::cout;
-
-#include <fstream>
 using std::ofstream;
-
-#include "RTOFSOb.h"
-#include "util.h"
-
-
-#include "oops/util/dateFunctions.h"
-
-
 namespace obsforge
 {
 namespace rtofs

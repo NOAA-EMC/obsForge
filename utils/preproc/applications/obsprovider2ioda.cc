@@ -1,4 +1,4 @@
-#include "obsprovider2ioda.h"
+#include "applications/obsprovider2ioda.h"
 #include "oops/runs/Run.h"
 
 int main(int argc, char ** argv) {

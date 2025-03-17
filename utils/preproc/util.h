@@ -270,16 +270,16 @@ namespace obsforge {
            double H,
            double r_eq,
            double r_pol,
-           std::vector<std::vector<double>>& abi_lat,
-           std::vector<std::vector<double>>& abi_lon
+           std::vector<std::vector<double>>* abi_lat,
+           std::vector<std::vector<double>>* abi_lon
        ) {
            int sizeX = x_coordinate_2d[0].size();
            int sizeY = x_coordinate_2d.size();
 
            double lambda_0 = (lon_origin * M_PI) / 180.0;
 
-           abi_lat.resize(sizeY, std::vector<double>(sizeX));
-           abi_lon.resize(sizeY, std::vector<double>(sizeX));
+           abi_lat->resize(sizeY, std::vector<double>(sizeX));
+           abi_lon->resize(sizeY, std::vector<double>(sizeX));
 
            for (int i = 0; i < sizeY; ++i) {
              for (int j = 0; j < sizeX; ++j) {
@@ -306,14 +306,14 @@ namespace obsforge {
                     double s_y = -r_s * sin_x;
                     double s_z = r_s * cos_x * sin_y;
 
-                    abi_lat[i][j] = (180.0 / M_PI) * (std::atan(((r_eq * r_eq) / (r_pol * r_pol))
+                    (*abi_lat)[i][j] = (180.0 / M_PI) * (std::atan(((r_eq * r_eq) / (r_pol * r_pol))
                                   * (s_z / std::sqrt(((H - s_x) * (H - s_x)) + (s_y * s_y)))));
-                    abi_lon[i][j] = (lambda_0 - std::atan(s_y / (H - s_x))) * (180.0 / M_PI);
+                    (*abi_lon)[i][j] = (lambda_0 - std::atan(s_y / (H - s_x))) * (180.0 / M_PI);
                 } else {
                     // Handle invalid values
                     // Set latitude and longitude to NaN if discriminant <= 0)
-                    abi_lat[i][j] = std::numeric_limits<double>::quiet_NaN();
-                    abi_lon[i][j] = std::numeric_limits<double>::quiet_NaN();
+                    (*abi_lat)[i][j] = std::numeric_limits<double>::quiet_NaN();
+                    (*abi_lon)[i][j] = std::numeric_limits<double>::quiet_NaN();
                 }
              }
            }

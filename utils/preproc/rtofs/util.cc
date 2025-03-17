@@ -1,19 +1,16 @@
-#include "util.h"
+#include "rtofs/util.h"
 
-#include <sys/stat.h>                // used in file_exists
-
+#include <cstdint>
 #include <fstream>
-using std::ofstream;
-
 #include <iomanip>
-using std::setprecision;
-
 #include <iostream>
+#include <sys/stat.h>  // NOLINT              // used in file_exists
+
+using std::ofstream;
+using std::setprecision;
 using std::cerr;
 using std::endl;
 using std::cout;
-
-
 
 namespace obsforge
 {
