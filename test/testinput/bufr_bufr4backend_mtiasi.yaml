@@ -1,0 +1,68 @@
+time window:
+  begin: "2018-04-14T21:00:00Z"
+  end: "2023-12-15T03:00:00Z"
+  bound to include: begin
+
+observations:
+- obs space:
+    name: "mtiasi_metop-a"
+#    observed variables: [radiance]
+#    simulated variables: [brightnessTemperature]
+#    derived variables: [brightnessTemperature]
+    simulated variables: [radiance]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.mtiasi.tm00.bufr_d"
+        mapping file: "./testinput/bufr_mtiasi_mapping.yaml"
+        category: ["metop-a"]
+        cache categories:            # optional
+          - ["metop-a"]
+          - ["metop-b"]
+          - ["metop-c"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.mtiasi_metop-a.tm00.nc"
+
+- obs space:
+    name: "mtiasi_metop-b"
+#    observed variables: [radiance]
+#    simulated variables: [brightnessTemperature]
+#    derived variables: [brightnessTemperature]
+    simulated variables: [radiance]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.mtiasi.tm00.bufr_d"
+        mapping file: "./testinput/bufr_mtiasi_mapping.yaml"
+        category: ["metop-b"]
+        cache categories:            # optional
+          - ["metop-b"]
+          - ["metop-b"]
+          - ["metop-c"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.mtiasi_metop-b.tm00.nc"
+
+- obs space:
+    name: "mtiasi_metop-c"
+#    observed variables: [radiance]
+#    simulated variables: [brightnessTemperature]
+#    derived variables: [brightnessTemperature]
+    simulated variables: [radiance]
+    obsdatain:
+      engine:
+        type: bufr 
+        obsfile: "./testdata/gdas.t00z.mtiasi.tm00.bufr_d"
+        mapping file: "./testinput/bufr_mtiasi_mapping.yaml"
+        category: ["metop-c"]
+        cache categories:            # optional
+          - ["metop-a"]
+          - ["metop-b"]
+          - ["metop-c"]
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "./testrun/bufr4backend/gdas.t00z.mtiasi_metop-c.tm00.nc"
