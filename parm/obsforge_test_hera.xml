@@ -12,7 +12,7 @@
 	<!ENTITY MAXTRIES "2">
 ]>
 
-<workflow realtime="F" scheduler="slurm" cyclethrottle="3" taskthrottle="25">
+<workflow realtime="F" scheduler="slurm" cyclethrottle="1" taskthrottle="25">
 
 	<log verbosity="10"><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/obsforge/logs/@Y@m@d@H.log</cyclestr></log>
 
@@ -42,6 +42,7 @@
 	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>NO</value></envar>
 	<envar><name>COMROOT</name><value>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/obsforge/</value></envar>
 	<envar><name>DATAROOT</name><value>/scratch1/NCEPDEV/stmp2/Cory.R.Martin/RUNDIRS/obsforge/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
 
@@ -74,6 +75,7 @@
 	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>NO</value></envar>
 	<envar><name>COMROOT</name><value>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/obsforge/</value></envar>
 	<envar><name>DATAROOT</name><value>/scratch1/NCEPDEV/stmp2/Cory.R.Martin/RUNDIRS/obsforge/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
 

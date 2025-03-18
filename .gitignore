@@ -49,3 +49,6 @@ install*/
 /sorc/obsforge-utils
 !/bundle/CMakeLists.txt
 /bundle/*
+
+# rocoto
+*.db

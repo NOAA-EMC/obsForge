@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 source "${HOMEobsforge}/ush/preamble.sh"
-#source "${HOMEobsforge}/ush/jjob_header.sh"
+source "${HOMEobsforge}/ush/jjob_header.sh"
 
 ##############################################
 # Set variables used in the script
@@ -15,7 +15,7 @@ source "${HOMEobsforge}/ush/preamble.sh"
 ###############################################################
 # Run relevant script
 
-EXSCRIPT=${DUMPAODPY:-${SCRobsforge}/exobsforge_global_aod_dump.py}
+EXSCRIPT=${DUMPAODPY:-${HOMEobsforge}/scripts/exobsforge_global_aod_dump.py}
 ${EXSCRIPT}
 status=$?
 if [[ ${status} -ne 0 ]]; then
