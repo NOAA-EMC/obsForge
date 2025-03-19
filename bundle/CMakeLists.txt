@@ -44,6 +44,7 @@ option( ENABLE_LORENZ95_MODEL "Build LORENZ95 toy model" OFF )
 option( ENABLE_QG_MODEL "Build QG toy model" OFF )
 
 # EMC BUFR-query library
+set( SKIP_DOWNLOAD_TEST_DATA OFF )
 ecbuild_bundle( PROJECT bufr-query SOURCE "../sorc/bufr-query" )
 
 # Core JEDI repositories
