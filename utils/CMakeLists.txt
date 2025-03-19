@@ -15,3 +15,4 @@ find_package(oops REQUIRED)
 find_package(ioda REQUIRED)
 
 add_subdirectory(preproc)
+add_subdirectory(b2i)
