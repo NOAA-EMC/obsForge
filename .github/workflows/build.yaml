@@ -1,0 +1,52 @@
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free Up Space
+        run: |
+          echo "Before cleanup:"
+          df -h
+          sudo apt-get clean
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/dotnet /usr/share/swift /usr/local/lib/node_modules
+          echo "After cleanup:"
+          df -h
+
+      - name: Cache Docker Image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.docker-cache
+          key: docker-${{ runner.os }}-jcsda/docker-gnu-openmpi-dev
+          restore-keys: |
+            docker-${{ runner.os }}-
+
+      - name: Load Cached Docker Image
+        run: |
+          mkdir -p /tmp/.docker-cache
+          if [ -f /tmp/.docker-cache/jcsda/docker-gnu-openmpi-dev.tar ]; then
+            docker load -i /tmp/.docker-cache/jcsda/docker-gnu-openmpi-dev.tar || true
+          fi
+
+      - name: Pull or Use Cached Image
+        run: |
+          docker pull jcsda/docker-gnu-openmpi-dev:latest || true
+          mkdir -p /tmp/.docker-cache/jcsda/
+          docker save -o /tmp/.docker-cache/jcsda/docker-gnu-openmpi-dev.tar jcsda/docker-gnu-openmpi-dev:latest
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build inside Docker container
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace jcsda/docker-gnu-openmpi-dev:latest /bin/bash -c "
+            echo '===== Inside Docker container ${PWD}' &&
+            mkdir -p build &&
+            cd build &&
+            ls /workspace/bundle &&
+            ls /workspace/sorc &&
+            cmake /workspace/bundle/ &&
+            make -j$(nproc)"
+
