@@ -48,5 +48,6 @@ jobs:
             ls /workspace/bundle &&
             ls /workspace/sorc &&
             cmake /workspace/bundle/ &&
-            make -j$(nproc)"
+            make -j$(nproc) &&
+            cd obsforge-utils && ctest -j$(nproc) --output-on-failure"
 
