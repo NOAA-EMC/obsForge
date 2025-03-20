@@ -16,3 +16,4 @@ find_package(ioda REQUIRED)
 
 add_subdirectory(preproc)
 add_subdirectory(b2i)
+add_subdirectory(test)

@@ -15,7 +15,7 @@
 #include "ioda/ObsGroup.h"
 
 #include "NetCDFToIodaConverter.h"
-#include "superob.h"
+#include "superob.h"   // NOLINT
 
 namespace obsforge {
 

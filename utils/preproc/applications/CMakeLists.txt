@@ -8,7 +8,11 @@ ecbuild_add_executable( TARGET obsforge_obsprovider2ioda.x
 
 target_compile_features( obsforge_obsprovider2ioda.x PUBLIC cxx_std_17)
 
-target_link_libraries( obsforge_obsprovider2ioda.x PUBLIC oops ioda NetCDF::NetCDF_CXX)
+target_link_libraries( obsforge_obsprovider2ioda.x PUBLIC oops ioda netcdf2ioda NetCDF::NetCDF_CXX)
 
-link_directories(${CMAKE_SOURCE_DIR}/rtofs)
-target_link_libraries(obsforge_obsprovider2ioda.x PRIVATE rtofs)
+# Set the RPATH to the build directory
+set_target_properties(obsforge_obsprovider2ioda.x PROPERTIES
+    BUILD_WITH_INSTALL_RPATH TRUE
+    INSTALL_RPATH "${CMAKE_BINARY_DIR}/lib"
+    INSTALL_RPATH_USE_LINK_PATH TRUE
+)

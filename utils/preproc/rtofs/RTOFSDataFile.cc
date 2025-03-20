@@ -1,12 +1,12 @@
 #include <iostream>
+#include <fstream>
+
+#include "rtofs/RTOFSDataFile.h"
+#include "rtofs/util.h"
+
 using std::cerr;
 using std::endl;
-
-#include <fstream>
 using std::ofstream;
-
-#include "RTOFSDataFile.h"
-#include "util.h"
 
 
 namespace obsforge
