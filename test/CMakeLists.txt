@@ -9,7 +9,7 @@ project(obsforge_tests)
 function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
     # Append MPI count to target name if MPI is used
     if (mpi_count GREATER 0)
-        # Set test name 
+        # Set test name
         set(target_name "${target_name}_mpi${mpi_count}")
 	ecbuild_add_test(
             TARGET ${target_name}
@@ -70,7 +70,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name fil
                 "${test_config}/gdas.t00z.${file_name}_${sat_name}.tm00.nc"
             )
         endif()
-  
+
 
     else()
         message(STATUS "Unknown test configuration")
@@ -166,7 +166,7 @@ foreach(index RANGE 0 ${satobs_types_last_index})
         set(mpi_counts ${mpi_counts_satobs})  # Use default if not overridden
     else()
         get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type})
-    endif()   
+    endif()
 
     # Split satobs_type into parts using "_" as a delimiter
     string(REPLACE "_" ";" satobs_type_parts "${satobs_type}")
@@ -225,7 +225,7 @@ endforeach()
 # testdata   : input bufr files
 # testoutput : test references
 # testinput  : mapping files, Python scripts, and test configuration YAML files
-# testrun    : test output files 
+# testrun    : test output files
 # =================================================================================
 
 # Create combined obs types

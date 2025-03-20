@@ -216,8 +216,8 @@ namespace obsforge {
 
     // Gather for eigen array
     template <typename T>
-    void gatherObs(const Eigen::Array<T, Eigen::Dynamic, 1> & obsPe,
-                   Eigen::Array<T, Eigen::Dynamic, 1> & obsAllPes) {
+    // NOLINTNEXTLINE
+    void gatherObs(const Eigen::Array<T, Eigen::Dynamic, 1> & obsPe, Eigen::Array<T, Eigen::Dynamic, 1> & obsAllPes) {
       // define root pe
       const size_t root = 0;
 
@@ -235,8 +235,8 @@ namespace obsforge {
       size_t rcvsz = sizes[0];
       displs[0] = 0;
       for (size_t jj = 1; jj < ntasks; ++jj) {
-        displs[jj] = displs[jj - 1] + sizes[jj - 1];
-        rcvsz += sizes[jj];
+      displs[jj] = displs[jj - 1] + sizes[jj - 1];
+      rcvsz += sizes[jj];
       }
 
       // create receiving buffer
@@ -248,8 +248,8 @@ namespace obsforge {
       comm_.gatherv(send, recv, sizes, displs, root);
 
       if (comm_.rank() == root) {
-        obsAllPes.segment(0, recv.size()) =
-          Eigen::Map<Eigen::Array<T, Eigen::Dynamic, 1>>(recv.data(), recv.size());
+      obsAllPes.segment(0, recv.size()) =
+        Eigen::Map<Eigen::Array<T, Eigen::Dynamic, 1>>(recv.data(), recv.size());
       }
     }
 

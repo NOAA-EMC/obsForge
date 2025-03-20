@@ -79,8 +79,8 @@ namespace obsforge {
       // Create 2D arrays (meshgrid equivalent)
       std::vector<std::vector<double>> x_coordinate_2d(dimySize, std::vector<double>(dimxSize));
       std::vector<std::vector<double>> y_coordinate_2d(dimySize, std::vector<double>(dimxSize));
-      std::vector<std::vector<double>> abi_lon;
-      std::vector<std::vector<double>> abi_lat;
+      std::vector<std::vector<double>>* abi_lon;
+      std::vector<std::vector<double>>* abi_lat;
 
       // Create 2D coordinate matrices from 1D coordinate vectors
       for (int i = 0; i < dimySize; ++i) {
@@ -121,8 +121,8 @@ namespace obsforge {
       int loc(0);
       for (int i = 0; i < dimySize; i++) {
         for (int j = 0; j < dimxSize; j++) {
-          iodaVars.longitude_(loc) = std::real(abi_lon[i][j]);
-          iodaVars.latitude_(loc)  = std::real(abi_lat[i][j]);
+          iodaVars.longitude_(loc) = std::real((*abi_lon)[i][j]);
+          iodaVars.latitude_(loc)  = std::real((*abi_lat)[i][j]);
           loc += 1;
         }
       }
