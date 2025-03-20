@@ -1,7 +1,8 @@
 # Find Python (required for running tests)
 find_package(Python REQUIRED)
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+).*" "\\1" PYTHON_MAJOR_MINOR ${Python_VERSION})
-set(PYIODACONV_DIR "${PROJECT_SOURCE_DIR}/build/lib/python${PYTHON_MAJOR_MINOR}/")
+set(PYIODACONV_DIR "${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}/")
+
 
 # Define test input YAML files
 list(APPEND b2i_test_input
@@ -53,10 +54,17 @@ foreach(FILENAME ${b2i_test_ref})
 endforeach()
 
 # Define paths for BUFR-to-IODA scripts and executable
-set(B2I_SCRIPT_DIR ${PROJECT_SOURCE_DIR}/util/b2i)
+# careful: this assume the test dir is a subdir of the script dir
+set(B2I_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # Function to process .in files
-function(CREATE_CONFIG_FILE test_config_in test_config_out bufr_input_dir ioda_output_dir ocean_basin_file)
+function(CREATE_CONFIG_FILE 
+	test_config_in 
+	test_config_out 
+	bufr_input_dir 
+	ioda_output_dir 
+	ocean_basin_file
+)
     file(READ "${test_config_in}" file_content)
     string(REPLACE "__BUFRINPUTDIR__" "\"${bufr_input_dir}\"" temp_content "${file_content}")
     string(REPLACE "__IODAOUTPUTDIR__" "\"${ioda_output_dir}\"" temp_content2 "${temp_content}")
@@ -96,6 +104,7 @@ endif()
 
 # Function to add b2i tests
 function(ADD_B2I_TEST testname testbufr)
+	# set(CONFIG_TYPE "json")
     set(CONFIG_TYPE "yaml")
     if(testbufr STREQUAL "dbuoy")
         set(DATE "2019010700")
@@ -121,13 +130,20 @@ function(ADD_B2I_TEST testname testbufr)
     set(CONFIG_FILE_NAME "${TEST}_${DATE}.${CONFIG_TYPE}")
     set(CONFIG_FILE_IN "${B2I_TESTINPUT_DIR}/${TEST}_${DATE}.${CONFIG_TYPE}.in")
     set(CONFIG_FILE "${B2I_TEST_DIR}/${CONFIG_FILE_NAME}")
-    CREATE_CONFIG_FILE(${CONFIG_FILE_IN} ${CONFIG_FILE} ${BUFR_INPUT_DIR} ${IODA_OUTPUT_DIR} ${OCEAN_BASIN_FILE})
+    CREATE_CONFIG_FILE(
+		${CONFIG_FILE_IN} 
+		${CONFIG_FILE} 
+		${BUFR_INPUT_DIR} 
+		${IODA_OUTPUT_DIR} 
+		${OCEAN_BASIN_FILE}
+	)
 
     add_test(NAME test_b2i_${TEST}
              COMMAND ${B2I_SCRIPT_DIR}/${TEST}.py -c ${CONFIG_FILE} -t ${B2I_TESTREF_DIR}/${TESTREF_FILE}
              WORKING_DIRECTORY ${B2I_TEST_DIR})
     set_property(TEST test_b2i_${TEST}
-                 APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
+                 APPEND PROPERTY 
+					ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
 endfunction()
 
 # Add tests if prerequisites are met
