@@ -159,7 +159,7 @@ namespace obsforge {
         int count = 0;
         for (const std::string& strMeta : iodaVars.intMetadataName_) {
           tmpIntMeta = ogrp.vars.createWithScales<int>("MetaData/"+strMeta,
-                                                         {ogrp.vars["Location"]}, int_params);
+                                                         {ogrp.vars["Location"]}, long_params);
           // get ocean basin masks if asked in the config
           preproc::oceanmask::OceanMask* oceanMask = nullptr;
           if (fullConfig_.has("ocean basin")) {
