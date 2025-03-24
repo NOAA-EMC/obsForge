@@ -114,7 +114,7 @@ namespace obsforge {
         // Optional metadata
         Eigen::ArrayXXf floatMetadata_;                // Optional array of float metadata
         std::vector<std::string> floatMetadataName_;  // String descriptor of the float metadata
-        Eigen::Array<int64_t, Eigen::Dynamic, Eigen::Dynamic> intMetadata_;
+        Eigen::ArrayXXi intMetadata_;                  // Optional array of integer metadata
         std::vector<std::string> intMetadataName_;    // String descriptor of the integer metadata
 
         // Optional global attributes
@@ -145,6 +145,9 @@ namespace obsforge {
           ASSERT(nVars_ == other.nVars_);
           ASSERT(nfMetadata_ == other.nfMetadata_);
           ASSERT(niMetadata_ == other.niMetadata_);
+          ASSERT(floatMetadataName_ == floatMetadataName_);
+          ASSERT(intMetadataName_ == intMetadataName_);
+
           // Concatenate Eigen arrays and vectors
           longitude_.conservativeResize(location_ + other.location_);
           latitude_.conservativeResize(location_ + other.location_);
@@ -218,52 +221,11 @@ namespace obsforge {
           oops::Log::test() << checksum(longitude_, "longitude") << std::endl;
           oops::Log::test() << checksum(latitude_, "latitude") << std::endl;
           oops::Log::test() << checksum(datetime_, "datetime") << std::endl;
-
-          add_originalDatetime_test();
         }
-
-
-        void add_originalDatetime_test() {
-            // Find the index of "originalDatetime" in intMetadataName_
-            int colIndex = -1;
-            for (size_t i = 0; i < intMetadataName_.size(); ++i) {
-                if (intMetadataName_[i] == "originalDatetime") {
-                    colIndex = static_cast<int>(i);
-                    break;
-                }
-            }
-
-            // Check if "originalDatetime" was found
-            if (colIndex == -1) {
-                return;
-            }
-
-            Eigen::Array<int64_t, Eigen::Dynamic, 1> od;
-            // Ensure od has the correct size (same as intMetadata_ rows)
-            if (od.size() != intMetadata_.rows()) {
-                od.resize(intMetadata_.rows());
-            }
-
-            // Copy the corresponding column from intMetadata_ to od
-            od = intMetadata_.col(colIndex);
-
-            oops::Log::test() << checksum(od, "originalDatetime") << std::endl;
-        }
-
 
         // Changing the date and Adjusting Errors
         void reDate(const util::DateTime & windowBegin, const util::DateTime & windowEnd,
                     const std::string &epochDate, float errRatio) {
-          // Preserve original datetime_ values in a new column
-          int nCols = intMetadata_.cols();  // Current number of columns
-          intMetadata_.conservativeResize(location_, nCols + 1);  // Add 1 column, preserve data
-          int newColIdx = nCols;  // Index of the new column
-          for (int i = 0; i < location_; i++) {
-            intMetadata_(i, newColIdx) = datetime_(i, 0);  // Store original datetime_
-          }
-          intMetadataName_.push_back("originalDatetime");
-          niMetadata_++;
-
           // windowBegin and End into DAwindowTimes
           std::vector<util::DateTime> DAwindowTimes = {windowBegin, windowEnd};
           // Epoch DateTime from Provider
