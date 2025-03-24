@@ -1,18 +1,17 @@
 import os
-import re
 import glob
-from datetime import datetime, timedelta
+from datetime import datetime
 from obsdb import BaseDatabase
+import re
 
 class JrrAodDatabase(BaseDatabase):
     """Class to manage an observation file database for JRR-AOD data."""
 
-    def __init__(self, db_path="jrr_aod_obs.db",
+    def __init__(self, db_name="jrr_aod_obs.db",
                  dcom_dir="/home/gvernier/Volumes/hera-s1/runs/realtimeobs/lfs/h1/ops/prod/dcom/",
-                 obs_dir="jrr_aod",
-                 pattern=re.compile(r"JRR-AOD_v\d+r\d+_n\d+_s(\d{15})_e\d{15}_c\d{15}\.nc")):
+                 obs_dir="jrr_aod"):
         base_dir = os.path.join(dcom_dir, '*', obs_dir)
-        super().__init__(db_path, base_dir, pattern)
+        super().__init__(db_name, base_dir)
 
     def create_database(self):
         """Create the SQLite database and observation files table."""
@@ -28,19 +27,25 @@ class JrrAodDatabase(BaseDatabase):
 
     def parse_filename(self, filename):
         """Extract metadata from filenames matching the JRR-AOD pattern."""
-        match = self.pattern.match(filename)
-        if match:
-            obs_time = datetime.strptime(match.group(1)[:12], "%Y%m%d%H%M")  # Extract only YYYYMMDDHHMM
-            return filename, obs_time
+        # Make sure the filename matches the expected pattern
+        # Pattern: JRR-AOD_v3r2_n21_sYYYYMMDDHHMMSS_eYYYYMMDDHHMMSS_cYYYYMMDDHHMMSS.nc
+        basename = os.path.basename(filename)
+        parts = basename.split('_')
+        try:
+            if len(parts) >= 4 and parts[0] == "JRR-AOD":
+                obs_time = datetime.strptime(parts[3][1:13], "%Y%m%d%H%M")
+                return filename, obs_time
+        except ValueError:
+            return None
+
         return None
 
     def ingest_files(self):
         """Scan the directory for new JRR-AOD observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
-
+        print(f"Found {len(obs_files)} new files to ingest")
         for file in obs_files:
-            filename = os.path.basename(file)
-            parsed_data = self.parse_filename(filename)
+            parsed_data = self.parse_filename(file)
             if parsed_data:
                 query = """
                     INSERT INTO obs_files (filename, obs_time)
@@ -56,10 +61,12 @@ if __name__ == "__main__":
 
    # Query files for a given DA cycle
    da_cycle = "20250316120000"
-   cutoff_time = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-   valid_files = db.get_valid_files(da_cycle) #, cutoff_time=cutoff_time)
+   cutoff_delta = 5  #datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
+   valid_files = db.get_valid_files(da_cycle, cutoff_delta=cutoff_delta)
 
-   print("Valid observation files:", valid_files)
    print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
    for valid_file in valid_files:
-       print(valid_file)
+       if os.path.exists(valid_file):
+           print(f"Valid file: {valid_file}")
+       else:
+           print(f"File does not exist: {valid_file}")
