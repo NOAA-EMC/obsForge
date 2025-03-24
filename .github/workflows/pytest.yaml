@@ -30,4 +30,4 @@ jobs:
       - name: Run Pytest
         run: |
           source obsdb/bin/activate
-          pytest --maxfail=1 --disable-warnings -v
+          pytest ush/python/pygfs/tests/ --disable-warnings -v
