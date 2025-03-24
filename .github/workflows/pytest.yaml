@@ -37,4 +37,4 @@ jobs:
       - name: Run Pytest
         run: |
           source obsdb/bin/activate
-          pytest ush/python/pyforge/tests/ --disable-warnings -v
+          pytest ush/python/pyobsforge/tests/ --disable-warnings -v
