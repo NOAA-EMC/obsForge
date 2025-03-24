@@ -24,5 +24,5 @@ if __name__ == '__main__':
 
     AeroObs = AerosolObsPrep(config)
     AeroObs.initialize()
-    AeroObs.runConverter()
+    AeroObs.execute()
     AeroObs.finalize()

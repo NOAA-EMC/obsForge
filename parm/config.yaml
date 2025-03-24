@@ -1,4 +1,4 @@
 obsforge:
   assim_freq: 6
 aoddump:
-  platforms: ['npp', 'j01', 'j02']
+  platforms: ['npp', 'n20', 'n21']
