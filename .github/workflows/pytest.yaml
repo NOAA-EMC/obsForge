@@ -31,8 +31,8 @@ jobs:
         run: |
           source obsdb/bin/activate
           pip install flake8
-          flake8 ush/python/pyforge/obsdb/
-          flake8 ush/python/pyforge/tests/
+          flake8 ush/python/pyobsforge/obsdb/
+          flake8 ush/python/pyobsforge/tests/
 
       - name: Run Pytest
         run: |
