@@ -19,7 +19,8 @@ if __name__ == '__main__':
     # Take configuration from YAML file to augment/append config dict
     config_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', 'config.yaml'), config_env)
     # Combine configs together
-    config = AttrDict(**config_env, **config_yaml)
+    config = AttrDict(**config_env, **config_yaml['obsforge'])
+    config = AttrDict(**config, **config_yaml['aoddump'])
 
     AeroObs = AerosolObsPrep(config)
     AeroObs.initialize()
