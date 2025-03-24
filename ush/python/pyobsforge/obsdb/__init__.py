@@ -1,1 +1,1 @@
-from .obsdb import BaseDatabase
+from .obsdb import BaseDatabase  # noqa
