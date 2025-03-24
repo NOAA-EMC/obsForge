@@ -35,6 +35,7 @@
 bin/
 build*/
 install*/
+__pycache__*/
 
 # Ignore the following bundle repositories
 /ecbuild
@@ -49,3 +50,6 @@ install*/
 /sorc/obsforge-utils
 !/bundle/CMakeLists.txt
 /bundle/*
+
+# rocoto
+*.db

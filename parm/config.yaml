@@ -1,0 +1,4 @@
+obsforge:
+  assim_freq: 6
+aoddump:
+  platforms: ['npp', 'n20', 'n21']
