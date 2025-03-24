@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4  # Clones the repository
+        with:
+            submodules: recursive
 
       - name: Set Up Python
         uses: actions/setup-python@v4
