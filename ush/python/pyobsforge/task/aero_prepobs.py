@@ -31,7 +31,6 @@ class AerosolObsPrep(Task):
             {
                 'window_begin': _window_begin,
                 'window_end': _window_end,
-                'platforms': self.task_config['platforms'],
                 'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
                 'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z."
             }
