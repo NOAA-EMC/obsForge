@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from obsdb.ghrsst_db import GhrSstDatabase  # Adjust as needed
+from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase  # Adjust as needed
 
 
 @pytest.fixture

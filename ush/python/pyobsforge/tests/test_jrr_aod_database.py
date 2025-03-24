@@ -2,11 +2,11 @@ import os
 import tempfile
 import shutil
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 
-from obsdb.jrr_aod_db import JrrAodDatabase
+from pyobsforge.obsdb.jrr_aod_db import JrrAodDatabase
 
 
 @pytest.fixture
@@ -43,10 +43,6 @@ def db(temp_obs_dir):
         dcom_dir=temp_obs_dir,
         obs_dir="jrr_aod"
     )
-    #database.create_database()
-    #database.ingest_files()
-    #database.connect()
-    #print('db:', database)
     return database
 
 
@@ -104,7 +100,6 @@ def test_parse_valid_filename(db):
     conn = db.get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = cursor.fetchall()
     conn.close()
     parsed = db.parse_filename(fname)
 

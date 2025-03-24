@@ -1,8 +1,8 @@
 import os
 import glob
 from datetime import datetime
-from obsdb import BaseDatabase
-import re
+from pyobsforge.obsdb import BaseDatabase
+
 
 class JrrAodDatabase(BaseDatabase):
     """Class to manage an observation file database for JRR-AOD data."""
@@ -53,20 +53,21 @@ class JrrAodDatabase(BaseDatabase):
                 """
                 self.insert_record(query, parsed_data)
 
+
 if __name__ == "__main__":
-   db = JrrAodDatabase()
+    db = JrrAodDatabase()
 
-   # Check for new files
-   db.ingest_files()
+    # Check for new files
+    db.ingest_files()
 
-   # Query files for a given DA cycle
-   da_cycle = "20250316120000"
-   cutoff_delta = 5  #datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-   valid_files = db.get_valid_files(da_cycle, cutoff_delta=cutoff_delta)
+    # Query files for a given DA cycle
+    da_cycle = "20250316120000"
+    cutoff_delta = 5
+    valid_files = db.get_valid_files(da_cycle, cutoff_delta=cutoff_delta)
 
-   print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
-   for valid_file in valid_files:
-       if os.path.exists(valid_file):
-           print(f"Valid file: {valid_file}")
-       else:
-           print(f"File does not exist: {valid_file}")
+    print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
+    for valid_file in valid_files:
+        if os.path.exists(valid_file):
+            print(f"Valid file: {valid_file}")
+        else:
+            print(f"File does not exist: {valid_file}")

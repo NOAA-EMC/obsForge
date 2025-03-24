@@ -1,7 +1,7 @@
 import os
 import glob
 from datetime import datetime
-from obsdb import BaseDatabase
+from pyobsforge.obsdb import BaseDatabase
 
 
 class GhrSstDatabase(BaseDatabase):

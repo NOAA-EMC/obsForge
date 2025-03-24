@@ -27,7 +27,14 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run Code Style Check
+        run: |
+          source obsdb/bin/activate
+          pip install flake8
+          flake8 ush/python/pyforge/obsdb/
+          flake8 ush/python/pyforge/tests/
+
       - name: Run Pytest
         run: |
           source obsdb/bin/activate
-          pytest ush/python/pygfs/tests/ --disable-warnings -v
+          pytest ush/python/pyforge/tests/ --disable-warnings -v

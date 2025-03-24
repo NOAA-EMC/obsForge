@@ -4,6 +4,7 @@ import sys
 import os
 # TODO(G): Hack to import wxflow module, do this properly.
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../sorc/wxflow/src/'))
+# flake8: noqa
 from wxflow.sqlitedb import SQLiteDB
 
 
