@@ -7,14 +7,14 @@
 
 	-->
 	<!ENTITY PSLOT "{{ PSLOT }}">
-	<!ENTITY ROTDIR "{{ ROTDIR }}">
+	<!ENTITY ROTDIR "{{ COMROOT }}/ {{ PSLOT }}">
 	<!ENTITY JOBS_DIR "{{ HOMEobsforge }}/jobs/rocoto">
 	<!ENTITY MAXTRIES "2">
 ]>
 
-<workflow realtime="F" scheduler="slurm" cyclethrottle="1" taskthrottle="25">
+<workflow realtime="F" scheduler="{{ SCHEDULER }}" cyclethrottle="1" taskthrottle="25">
 
-	<log verbosity="10"><cyclestr>{{ ROTDIR }}/{{ PSLOT }}/logs/@Y@m@d@H.log</cyclestr></log>
+	<log verbosity="10"><cyclestr>&ROTDIR;/logs/@Y@m@d@H.log</cyclestr></log>
 
 	<!-- Define the cycles -->
 	<cycledef group="gdas">{{ SDATE }} {{ EDATE }} 06:00:00</cycledef>
@@ -33,7 +33,7 @@
 	<memory>{{ MEMORY_AOD_DUMP }}</memory>
 	<native>--export=NONE</native>
 
-	<join><cyclestr>{{ ROTDIR }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_aod_dump_prep.log</cyclestr></join>
+	<join><cyclestr>&ROTDIR;/logs/@Y@m@d@H/gfs_aod_dump_prep.log</cyclestr></join>
 
 	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
 	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
@@ -43,7 +43,7 @@
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
 	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
-	<envar><name>COMROOT</name><value>{{ ROTDIR }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
 
@@ -67,7 +67,7 @@
 	<memory>{{ MEMORY_AOD_DUMP }}</memory>
 	<native>--export=NONE</native>
 
-	<join><cyclestr>{{ ROTDIR }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_aod_dump_prep.log</cyclestr></join>
+	<join><cyclestr>&ROTDIR;/logs/@Y@m@d@H/gdas_aod_dump_prep.log</cyclestr></join>
 
 	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
 	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
@@ -77,7 +77,7 @@
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
 	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
-	<envar><name>COMROOT</name><value>{{ ROTDIR }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
 
