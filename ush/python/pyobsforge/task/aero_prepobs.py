@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 
-import os
-import glob
-import gzip
-import tarfile
-import re
 from logging import getLogger
-from typing import List, Dict, Any, Union
+from typing import Dict, Any
 
-from wxflow import (AttrDict, FileHandler, rm_p, rmdir,
-                    Task, add_to_datetime, to_timedelta, to_datetime,
-                    datetime_to_YMD,
-                    chdir, Executable, WorkflowException,
-                    parse_j2yaml, save_as_yaml, logit)
+from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
+                    logit)
 
 logger = getLogger(__name__.split('.')[-1])
 

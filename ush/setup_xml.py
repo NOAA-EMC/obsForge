@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import os
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from logging import getLogger
 from wxflow import AttrDict, Jinja, YAMLFile
 
 
