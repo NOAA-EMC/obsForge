@@ -8,7 +8,7 @@ class GhrSstDatabase(BaseDatabase):
     """Class to manage an observation file database for data assimilation."""
 
     def __init__(self, db_name="obs_files.db",
-                 dcom_dir="/home/gvernier/Volumes/hera-s1/runs/realtimeobs/lfs/h1/ops/prod/dcom/",
+                 dcom_dir="/lfs/h1/ops/prod/dcom/",
                  obs_dir="sst"):
         base_dir = os.path.join(dcom_dir, '*', obs_dir)
         super().__init__(db_name, base_dir)

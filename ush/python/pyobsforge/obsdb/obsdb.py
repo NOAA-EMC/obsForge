@@ -2,9 +2,6 @@ import sqlite3
 from datetime import datetime, timedelta
 import sys
 import os
-# TODO(G): Hack to import wxflow module, do this properly.
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../sorc/wxflow/src/'))
-# flake8: noqa
 from wxflow.sqlitedb import SQLiteDB
 
 
@@ -15,7 +12,7 @@ class BaseDatabase(SQLiteDB):
         """
         Initialize the database.
 
-        :param db_name: Path to the SQLite database file.
+        :param db_name: Name of the SQLite database.
         :param base_dir: Directory containing observation files.
         """
         super().__init__(db_name)
