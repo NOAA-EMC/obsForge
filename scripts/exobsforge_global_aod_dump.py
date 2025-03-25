@@ -2,7 +2,7 @@
 # exobsforge_global_aod_dump.py
 # This script will collect and preprocess
 # aerosol optical depth observations for
-# global aerosol assimilation 
+# global aerosol assimilation
 import os
 
 from wxflow import AttrDict, Logger, cast_strdict_as_dtypedict, parse_j2yaml
