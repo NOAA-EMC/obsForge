@@ -14,7 +14,7 @@
 
 <workflow realtime="F" scheduler="{{ SCHEDULER }}" cyclethrottle="1" taskthrottle="25">
 
-	<log verbosity="10"><cyclestr>&ROTDIR;/logs/@Y@m@d@H.log</cyclestr></log>
+	<log verbosity="10"><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H.log</cyclestr></log>
 
 	<!-- Define the cycles -->
 	<cycledef group="gdas">{{ SDATE }} {{ EDATE }} 06:00:00</cycledef>
@@ -33,7 +33,7 @@
 	<memory>{{ MEMORY_AOD_DUMP }}</memory>
 	<native>--export=NONE</native>
 
-	<join><cyclestr>&ROTDIR;/logs/@Y@m@d@H/gfs_aod_dump_prep.log</cyclestr></join>
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_aod_dump_prep.log</cyclestr></join>
 
 	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
 	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
@@ -67,7 +67,7 @@
 	<memory>{{ MEMORY_AOD_DUMP }}</memory>
 	<native>--export=NONE</native>
 
-	<join><cyclestr>&ROTDIR;/logs/@Y@m@d@H/gdas_aod_dump_prep.log</cyclestr></join>
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_aod_dump_prep.log</cyclestr></join>
 
 	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
 	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
