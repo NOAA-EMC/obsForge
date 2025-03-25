@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from wxflow import AttrDict, Jinja, YAMLFile
+from pyobsforge.utils.workflow import gen_rocoto_xml
 
 
 def input_args(*argv):
@@ -31,17 +31,7 @@ def input_args(*argv):
 def main(*argv):
 
     user_inputs = input_args(argv)
-
-    # open input YAML configuration
-    config_input = YAMLFile(path=user_inputs.config)
-    # loop over keys and create a new config dict
-    config = AttrDict()
-    for key, value in config_input.items():
-        config.update(value)
-    # open Jinja XML template
-    xml_jinja = Jinja(user_inputs.template, config, allow_missing=True)
-    # save XML file
-    xml_jinja.save(user_inputs.output)
+    gen_rocoto_xml(user_inputs.config, user_inputs.template, user_inputs.output)
 
 
 if __name__ == '__main__':
