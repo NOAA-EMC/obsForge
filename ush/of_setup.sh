@@ -14,3 +14,5 @@ source "${HOMEobsforge}/ush/module-setup.sh"
 module use "${HOMEobsforge}/modulefiles"
 module load "obsforge/${MACHINE_ID}"
 export PYTHONPATH="${HOMEobsforge}/ush/python:$PYTHONPATH"
+
+set +ue
