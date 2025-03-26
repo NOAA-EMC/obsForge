@@ -1,6 +1,6 @@
 import os
 import glob
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyobsforge.obsdb import BaseDatabase
 
 
@@ -14,13 +14,23 @@ class JrrAodDatabase(BaseDatabase):
         super().__init__(db_name, base_dir)
 
     def create_database(self):
-        """Create the SQLite database and observation files table."""
+        """
+        Create the SQLite database and observation files table.
+
+        The table `obs_files` contains the following columns:
+        - `id`: A unique identifier for each record (auto-incremented primary key).
+        - `filename`: The full path to the observation file (must be unique).
+        - `obs_time`: The timestamp of the observation, extracted from the filename.
+        - `receipt_time`: The timestamp when the file was added to the `dcom` directory.
+        - `satellite`: The satellite from which the observation was collected (e.g., NPP, NOAA-20).
+        """
         query = """
         CREATE TABLE IF NOT EXISTS obs_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT UNIQUE,
             obs_time TIMESTAMP,
-            ingest_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            receipt_time TIMESTAMP,
+            satellite TEXT
         )
         """
         self.execute_query(query)
@@ -34,7 +44,9 @@ class JrrAodDatabase(BaseDatabase):
         try:
             if len(parts) >= 4 and parts[0] == "JRR-AOD":
                 obs_time = datetime.strptime(parts[3][1:13], "%Y%m%d%H%M")
-                return filename, obs_time
+                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+                satellite = parts[2]
+                return filename, obs_time, receipt_time, satellite
         except ValueError:
             return None
 
@@ -48,8 +60,8 @@ class JrrAodDatabase(BaseDatabase):
             parsed_data = self.parse_filename(file)
             if parsed_data:
                 query = """
-                    INSERT INTO obs_files (filename, obs_time)
-                    VALUES (?, ?)
+                    INSERT INTO obs_files (filename, obs_time, receipt_time, satellite)
+                    VALUES (?, ?, ?, ?)
                 """
                 self.insert_record(query, parsed_data)
 
@@ -62,8 +74,11 @@ if __name__ == "__main__":
 
     # Query files for a given DA cycle
     da_cycle = "20250316120000"
-    cutoff_delta = 5
-    valid_files = db.get_valid_files(da_cycle, cutoff_delta=cutoff_delta)
+    window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
+    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
+
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end)
 
     print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
     for valid_file in valid_files:
