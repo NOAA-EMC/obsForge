@@ -165,10 +165,7 @@ def test_get_valid_files_receipt(db):
                                      instrument="AVHRRF",
                                      satellite="MB",
                                      obs_type="SSTsubskin",
-                                     exclude_after_receipt=True)
+                                     check_receipt='gfs')
 
-    print(f"valid_files: {valid_files}")
-    #assert any("202503161000" in f for f in valid_files)
-    #assert any("202503161200" in f for f in valid_files)
-    #assert all("202503161500" not in f for f in valid_files)
-    #assert len(valid_files) == 2
+    # TODO (G): Giving up for now on trying to mock the receipt time, will revisit later
+    assert len(valid_files) == 2
