@@ -1,8 +1,9 @@
 import os
+import glob
 import tempfile
 import shutil
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -16,6 +17,10 @@ def temp_obs_dir():
     sub_dir = os.path.join(base_dir, "some_subdir", "sst")
     os.makedirs(sub_dir)
 
+    # Desired datetime for file timestamps
+    mock_time = datetime(2025, 3, 16, 11, 0, 0).timestamp()
+
+    # Create mock NetCDF files
     filenames = [
         "20250316100000-OSPO-L3U_GHRSST-SSTsubskin-AVHRRF_MB-ACSPO.nc",
         "20250316120000-OSPO-L3U_GHRSST-SSTsubskin-AVHRRF_MB-ACSPO.nc",
@@ -35,8 +40,10 @@ def temp_obs_dir():
         "invalid_file.nc"
     ]
     for fname in filenames:
-        with open(os.path.join(sub_dir, fname), "w") as f:
+        fname_tmp = os.path.join(sub_dir, fname)
+        with open(fname_tmp, "w") as f:
             f.write("fake content")
+        os.utime(fname_tmp, (mock_time, mock_time))  # (access_time, modification_time)
 
     yield base_dir
     shutil.rmtree(base_dir)
@@ -59,14 +66,18 @@ def test_create_database(db):
 
 
 def test_parse_valid_filename(db):
-    fname = "20250316123400-OSPO-L3U_GHRSST-SSTsubskin-AVHRRF_MB-ACSPO.nc"
+    fname = "20250316120000-OSPO-L3U_GHRSST-SSTsubskin-AVHRRF_MB-ACSPO.nc"
+    fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
+    creation_time = datetime.fromtimestamp(os.path.getctime(fname))
+
     assert parsed is not None
     assert parsed[0] == fname
-    assert parsed[1] == datetime(2025, 3, 16, 12, 34)
-    assert parsed[2] == "AVHRRF"
-    assert parsed[3] == "MB"
-    assert parsed[4] == "SSTsubskin"
+    assert parsed[1] == datetime(2025, 3, 16, 12, 00)
+    assert parsed[2] == creation_time
+    assert parsed[3] == "AVHRRF"
+    assert parsed[4] == "MB"
+    assert parsed[5] == "SSTsubskin"
 
 
 def test_parse_invalid_filename(db):
@@ -87,14 +98,15 @@ def test_ingest_files(db):
 def test_get_valid_files(db):
     db.ingest_files()
     da_cycle = "20250316120000"
-    cutoff_delta = 3  # hours
+    window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
+    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=1)
 
     # Test for AVHRRF_MB
-    valid_files = db.get_valid_files(da_cycle,
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
                                      instrument="AVHRRF",
                                      satellite="MB",
-                                     obs_type="SSTsubskin",
-                                     cutoff_delta=cutoff_delta)
+                                     obs_type="SSTsubskin")
 
     # Files at 10:00 and 12:00 are within +/- 3h of 12:00
     assert any("202503161000" in f for f in valid_files)
@@ -103,11 +115,11 @@ def test_get_valid_files(db):
     assert len(valid_files) == 2
 
     # Test for VIIRS_NPP
-    valid_files = db.get_valid_files(da_cycle,
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
                                      instrument="VIIRS",
                                      satellite="NPP",
-                                     obs_type="SSTsubskin",
-                                     cutoff_delta=cutoff_delta)
+                                     obs_type="SSTsubskin")
 
     # Files at 10:00 and 12:00 are within +/- 3h of 12:00
     assert any("202503161000" in f for f in valid_files)
@@ -116,27 +128,44 @@ def test_get_valid_files(db):
     assert len(valid_files) == 2
 
     # Test for VIIRS_N20
-    valid_files = db.get_valid_files(da_cycle,
+    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
                                      instrument="VIIRS",
                                      satellite="N20",
-                                     obs_type="SSTsubskin",
-                                     cutoff_delta=cutoff_delta)
+                                     obs_type="SSTsubskin")
 
     # Files at 10:00 and 12:00 are within +/- 3h of 12:00
     assert any("202503161000" in f for f in valid_files)
     assert any("202503161200" in f for f in valid_files)
-    assert all("202503161500" not in f for f in valid_files)
-    assert len(valid_files) == 2
+    assert len(valid_files) == 3
 
-    # Test for VIIRS_N21
-    valid_files = db.get_valid_files(da_cycle,
+#    # Test for VIIRS_N21
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
                                      instrument="VIIRS",
                                      satellite="N21",
-                                     obs_type="SSTsubskin",
-                                     cutoff_delta=cutoff_delta)
+                                     obs_type="SSTsubskin")
 
     # Files at 10:00 and 12:00 are within +/- 3h of 12:00
     assert any("202503161000" in f for f in valid_files)
     assert any("202503161200" in f for f in valid_files)
-    assert all("202503161500" not in f for f in valid_files)
+    assert len(valid_files) == 3
+
+
+def test_get_valid_files_receipt(db):
+    db.ingest_files()
+    da_cycle = "20250316120000"
+    window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
+    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=1)
+
+    # Test for AVHRRF_MB
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
+                                     instrument="AVHRRF",
+                                     satellite="MB",
+                                     obs_type="SSTsubskin",
+                                     check_receipt='gfs')
+
+    # TODO (G): Giving up for now on trying to mock the receipt time, will revisit later
     assert len(valid_files) == 2

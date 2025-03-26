@@ -55,26 +55,30 @@ class BaseDatabase(SQLiteDB):
         return results
 
     def get_valid_files(self,
-                        da_cycle: str,
-                        window_hours: int = 3,
+                        window_begin: datetime,
+                        window_end: datetime,
                         instrument: str = None,
                         satellite: str = None,
                         obs_type: str = None,
-                        cutoff_delta: int = 0) -> list:
+                        check_receipt: str = "none") -> list:
         """
-        Retrieve a list of observation files within a DA window, possibly filtered by instrument,
-        satellite, observation type, and cutoff delta (known latency to emulate the early cycle if needed).
+        Retrieve a list of observation files within a specified time window, possibly filtered by instrument,
+        satellite, and observation type. The check_receipt parameter can be 'gdas', 'gfs', or 'none'.
+
+        :param window_begin: Start of the time window (datetime object).
+        :param window_end: End of the time window (datetime object).
+        :param instrument: (Optional) Filter by instrument name.
+        :param satellite: (Optional) Filter by satellite name.
+        :param obs_type: (Optional) Filter by observation type.
+        :param check_receipt: (Optional) Specify receipt time check ('gdas', 'gfs', or 'none').
+        :return: List of valid observation file names.
         """
-        da_time = datetime.strptime(da_cycle, "%Y%m%d%H%M%S")
-        window = timedelta(hours=window_hours)
-        cutoff_delta = timedelta(hours=cutoff_delta)
-        window_begin = da_time - window
-        window_end = da_time + window - cutoff_delta
 
         query = """
         SELECT filename FROM obs_files
         WHERE obs_time BETWEEN ? AND ?
         """
+        minutes_behind_realtime = {'gdas': 160, 'gfs': 20}
         params = [window_begin, window_end]
 
         if instrument:
@@ -90,6 +94,16 @@ class BaseDatabase(SQLiteDB):
         results = self.execute_query(query, tuple(params))
         valid_files = []
         for row in results:
-            valid_files.append(row[0])
+            filename = row[0]
+            if check_receipt in ["gdas", "gfs"]:
+                query = "SELECT receipt_time FROM obs_files WHERE filename = ?"
+                receipt_time = self.execute_query(query, (filename,))[0][0]
+                receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S.%f")
+                print("receipt time, window end:", receipt_time, window_end)
+                print("Types - receipt_time:", type(receipt_time), "window_end:", type(window_end))
+                if receipt_time <= window_end - timedelta(minutes=minutes_behind_realtime[check_receipt]):
+                    continue
+
+            valid_files.append(filename)
 
         return valid_files

@@ -1,6 +1,6 @@
 import os
 import glob
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyobsforge.obsdb import BaseDatabase
 
 
@@ -14,13 +14,28 @@ class GhrSstDatabase(BaseDatabase):
         super().__init__(db_name, base_dir)
 
     def create_database(self):
-        """Create the SQLite database and observation files table."""
+        """
+        Create the SQLite database and observation files table.
+
+        This method initializes the database with a table named `obs_files` to store metadata
+        about observation files. The table contains the following columns:
+
+        - `id`: A unique identifier for each record (auto-incremented primary key).
+        - `filename`: The full path to the observation file (must be unique).
+        - `obs_time`: The timestamp of the observation, extracted from the filename.
+        - `receipt_time`: The timestamp when the file was added to the `dcom` directory.
+        - `instrument`: The instrument used to collect the observation (e.g., AVHRR, VIIRS).
+        - `satellite`: The satellite from which the observation was collected (e.g., NPP, NOAA-20).
+        - `obs_type`: The type of observation (e.g., SSTsubskin, SSTskin).
+
+        The table is created if it does not already exist.
+        """
         query = """
         CREATE TABLE IF NOT EXISTS obs_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT UNIQUE,
             obs_time TIMESTAMP,
-            ingest_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            receipt_time TIMESTAMP,
             instrument TEXT,
             satellite TEXT,
             obs_type TEXT
@@ -36,7 +51,8 @@ class GhrSstDatabase(BaseDatabase):
             obs_type = parts[4] if len(parts) > 2 else None
             instrument = parts[5] if len(parts) > 3 else None
             satellite = parts[6] if len(parts) > 4 else None
-            return filename, obs_time, instrument, satellite, obs_type
+            receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+            return filename, obs_time, receipt_time, instrument, satellite, obs_type
         return None
 
     def ingest_files(self):
@@ -47,8 +63,8 @@ class GhrSstDatabase(BaseDatabase):
             parsed_data = self.parse_filename(file)
             if parsed_data:
                 query = """
-                    INSERT INTO obs_files (filename, obs_time, instrument, satellite, obs_type)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO obs_files (filename, obs_time, receipt_time, instrument, satellite, obs_type)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """
                 self.insert_record(query, parsed_data)
 
@@ -64,12 +80,14 @@ if __name__ == "__main__":
 
     # Query files for a given DA cycle
     da_cycle = "20250316000000"
-    cutoff_delta = 4
-    valid_files = db.get_valid_files(da_cycle,
+    window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
+    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
+
+    valid_files = db.get_valid_files(window_begin=window_begin,
+                                     window_end=window_end,
                                      instrument="VIIRS",
                                      satellite="NPP",
-                                     obs_type="SSTsubskin",
-                                     cutoff_delta=cutoff_delta)
+                                     obs_type="SSTsubskin")
 
     print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
     for valid_file in valid_files:
