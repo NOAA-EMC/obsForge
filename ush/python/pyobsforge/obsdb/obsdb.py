@@ -78,7 +78,7 @@ class BaseDatabase(SQLiteDB):
         SELECT filename FROM obs_files
         WHERE obs_time BETWEEN ? AND ?
         """
-        minutes_behind_realtime = {'gdas': 60, 'gfs': 20}
+        minutes_behind_realtime = {'gdas': 160, 'gfs': 20}
         params = [window_begin, window_end]
 
         if instrument:
