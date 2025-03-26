@@ -2,12 +2,10 @@ import os
 import shutil
 import tempfile
 
-import pytest
-
 from pyobsforge.utils.workflow import gen_rocoto_xml
 from pyobsforge import pyobsforge_directory
 
-#     gen_rocoto_xml(user_inputs.config, user_inputs.template, user_inputs.output)
+
 def test_gen_rocoto_xml():
     """
     Test the generation of a Rocoto XML from a config and a template
