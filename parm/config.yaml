@@ -17,3 +17,8 @@ aoddump:
   WALLTIME_AOD_DUMP: '00:30:00'
   TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
   MEMORY_AOD_DUMP: 96GB
+marinedump:
+  platforms: ['npp', 'n20', 'n21']
+  WALLTIME_AOD_DUMP: '00:30:00'
+  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_AOD_DUMP: 96GB
