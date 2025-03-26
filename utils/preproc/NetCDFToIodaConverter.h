@@ -64,7 +64,6 @@ namespace obsforge {
       // Read the provider's netcdf file
       obsforge::preproc::iodavars::IodaVars iodaVars = providerToIodaVars(inputFilenames_[myrank]);
 
-
       for (int i = myrank + comm_.size(); i < inputFilenames_.size(); i += comm_.size()) {
         iodaVars.append(providerToIodaVars(inputFilenames_[i]));
         oops::Log::info() << " appending: " << inputFilenames_[i] << std::endl;
@@ -72,6 +71,7 @@ namespace obsforge {
         oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
       }
       nobs = iodaVars.location_;
+
 
       // Get the total number of obs across pe's
       int nobsAll(0);
@@ -87,6 +87,7 @@ namespace obsforge {
       gatherObs(iodaVars.obsVal_, iodaVarsAll.obsVal_);
       gatherObs(iodaVars.obsError_, iodaVarsAll.obsError_);
       gatherObs(iodaVars.preQc_, iodaVarsAll.preQc_);
+
 
       // Create empty group backed by HDF file
       if (oops::mpi::world().rank() == 0) {
@@ -122,7 +123,7 @@ namespace obsforge {
         ioda::VariableCreationParameters int_params = createVariableParams<int>();
         ioda::VariableCreationParameters long_params = createVariableParams<int64_t>();
 
-        // Create the mendatory IODA variables
+        // Create the mandatory IODA variables
         ioda::Variable iodaDatetime =
           ogrp.vars.createWithScales<int64_t>("MetaData/dateTime",
                                           {ogrp.vars["Location"]}, long_params);
@@ -178,6 +179,8 @@ namespace obsforge {
             }
           }
           tmpIntMeta.writeWithEigenRegular(iodaVars.intMetadata_.col(count));
+
+
           count++;
         }
 
@@ -190,6 +193,14 @@ namespace obsforge {
           tmpFloatMeta.writeWithEigenRegular(iodaVars.floatMetadata_.col(count));
           count++;
         }
+
+        if (iodaVars.originalDatetime_.size() != 0) {
+          ioda::Variable iodaOriginalDatetime =
+              ogrp.vars.createWithScales<int64_t>("MetaData/originalDateTime",
+                                          {ogrp.vars["Location"]}, long_params);
+          iodaOriginalDatetime.writeWithEigenRegular(iodaVars.originalDatetime_);
+          }
+
 
         // Test output
         iodaVars.testOutput();

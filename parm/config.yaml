@@ -1,4 +1,19 @@
 obsforge:
+  PSLOT: obsforge
+  HOMEobsforge: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/
+  SDATE: 202503160000
+  EDATE: 202503170000
+  COMROOT: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/
+  DCOMROOT: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/dcom
+  DATAROOT: /scratch1/NCEPDEV/stmp2/Cory.R.Martin/RUNDIRS
+  SCHEDULER: slurm
+  ACCOUNT: da-cpu
+  QUEUE: batch
+  PARTITION: hera
+  KEEPDATA: NO
   assim_freq: 6
 aoddump:
   platforms: ['npp', 'n20', 'n21']
+  WALLTIME_AOD_DUMP: '00:30:00'
+  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_AOD_DUMP: 96GB
