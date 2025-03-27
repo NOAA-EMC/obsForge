@@ -1,0 +1,34 @@
+obsforge:
+  PSLOT: obsforge
+  HOMEobsforge: ""
+  SDATE: 202503160000
+  EDATE: 202503170000
+  COMROOT: ./COMROOT/
+  DCOMROOT: ./dcom
+  DATAROOT: ./RUNDIRS
+  SCHEDULER: slurm
+  ACCOUNT: da-cpu
+  QUEUE: batch
+  PARTITION: hera
+  KEEPDATA: NO
+  assim_freq: 6
+aoddump:
+  platforms: ['npp', 'n20', 'n21']
+  WALLTIME_AOD_DUMP: '00:30:00'
+  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_AOD_DUMP: 96GB
+marinedump:
+  providers:
+    ghrsst:
+    - sst_viirs_n21_l3u
+    - sst_viirs_n20_l3u
+    - sst_viirs_npp_l3u
+    - sst_avhrrf_ma_l3u
+    - sst_avhrrf_mb_l3u
+    - sst_avhrrf_mc_l3u
+    - sst_ahi_h08_l3c
+    - sst_abi_g17_l3c
+    - sst_abi_g16_l3c
+  WALLTIME_DUMP: '00:30:00'
+  TASK_GEOM_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_DUMP: 96GB

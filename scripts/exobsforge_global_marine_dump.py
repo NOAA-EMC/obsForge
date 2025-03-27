@@ -14,15 +14,13 @@ logger = Logger(level='DEBUG', colored_log=True)
 
 if __name__ == '__main__':
 
-    print("Hello World")
     # Take configuration from environment and cast it as python dictionary
     config_env = cast_strdict_as_dtypedict(os.environ)
 
     # Take configuration from YAML file to augment/append config dict
-    config_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', 'config.yaml'), config_env)
+    config_yaml = parse_j2yaml(os.getenv('CONFIGYAML'), config_env)
 
-    # ensure we are not duplicating keys between the environment and the YAML config
-
+    # Extract obsforge specific configuration
     obsforge_dict = {}
     for key, value in config_yaml['obsforge'].items():
         if key not in config_env.keys():

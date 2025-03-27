@@ -5,7 +5,8 @@ from typing import Dict, Any
 
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
                     logit)
-#from obsforge.obsdb import ObsDatabase
+import pyobsforge.obsdb as ghrsst
+from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -32,17 +33,43 @@ class MarineObsPrep(Task):
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
+        # Initialize the GHRSST database
+        self.ghrsst_db = GhrSstDatabase(db_name="sst_obs.db",
+                                        dcom_dir=self.task_config.DCOMROOT,
+                                        obs_dir="sst")
+
     @logit(logger)
     def initialize(self) -> None:
         """
         """
-        print("initialize")
+        # Update the database with new files
+        self.ghrsst_db.ingest_files()
+
 
     @logit(logger)
     def execute(self) -> None:
         """
         """
-        print("execute")
+
+        # Loop through obs spaces
+        for provider in self.task_config.providers.ghrsst:
+            logger.info(f"========= provider: {provider}")
+            # extract the instrument and platform from the obs_space
+            obs_type, instrument, platform, proc_level = provider.split("_")
+            platform = platform.upper()
+            instrument = instrument.upper()
+            logger.info(f"Processing {platform.upper()} {instrument.upper()}")
+
+            # Query the database for valid files
+            valide_files = self.ghrsst_db.get_valid_files(
+                window_begin=self.task_config.window_begin,
+                window_end=self.task_config.window_end,
+                instrument=instrument,
+                satellite=platform,
+                obs_type="SSTsubskin"
+            )
+
+            logger.info(f"number of valide files: {len(valide_files)}")
 
     @logit(logger)
     def finalize(self) -> None:
