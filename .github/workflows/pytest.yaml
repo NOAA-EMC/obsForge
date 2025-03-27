@@ -39,3 +39,4 @@ jobs:
         run: |
           source obsdb/bin/activate
           pytest ush/python/pyobsforge/tests/ --disable-warnings -v
+          pytest scripts/tests/ --disable-warnings -v
