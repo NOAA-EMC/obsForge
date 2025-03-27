@@ -5,7 +5,6 @@ from typing import Dict, Any
 
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
                     logit)
-import pyobsforge.obsdb as ghrsst
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 
 logger = getLogger(__name__.split('.')[-1])
@@ -44,7 +43,6 @@ class MarineObsPrep(Task):
         """
         # Update the database with new files
         self.ghrsst_db.ingest_files()
-
 
     @logit(logger)
     def execute(self) -> None:
