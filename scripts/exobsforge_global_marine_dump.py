@@ -30,7 +30,7 @@ if __name__ == '__main__':
     config = AttrDict(**config_env, **obsforge_dict)
     config = AttrDict(**config, **config_yaml['marinedump'])
 
-    MarineObs = MarineObsPrep(config)
-    MarineObs.initialize()
-    MarineObs.execute()
-    MarineObs.finalize()
+    marineObs = MarineObsPrep(config)
+    marineObs.initialize()
+    marineObs.execute()
+    marineObs.finalize()
