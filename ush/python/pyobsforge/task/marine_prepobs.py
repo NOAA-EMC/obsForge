@@ -68,6 +68,7 @@ class MarineObsPrep(Task):
             )
 
             logger.info(f"number of valid files: {len(valid_files)}")
+
     @logit(logger)
     def finalize(self) -> None:
         """
