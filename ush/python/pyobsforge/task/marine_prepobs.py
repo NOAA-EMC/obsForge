@@ -67,8 +67,7 @@ class MarineObsPrep(Task):
                 obs_type="SSTsubskin"
             )
 
-            logger.info(f"number of valide files: {len(valid_files)}")
-
+            logger.info(f"number of valid files: {len(valid_files)}")
     @logit(logger)
     def finalize(self) -> None:
         """
