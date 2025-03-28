@@ -59,7 +59,7 @@ class MarineObsPrep(Task):
             logger.info(f"Processing {platform.upper()} {instrument.upper()}")
 
             # Query the database for valid files
-            valide_files = self.ghrsst_db.get_valid_files(
+            valid_files = self.ghrsst_db.get_valid_files(
                 window_begin=self.task_config.window_begin,
                 window_end=self.task_config.window_end,
                 instrument=instrument,
