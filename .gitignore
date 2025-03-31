@@ -53,3 +53,6 @@ __pycache__*/
 
 # rocoto
 *.db
+
+# Ignore pytest working directory
+scripts/tests/tests_output
