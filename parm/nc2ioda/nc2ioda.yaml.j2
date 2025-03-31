@@ -1,6 +1,6 @@
 provider: {{ provider }}
-window begin: {{ window_begin }}
-window end: {{ window_end }}
+window begin: {{ window_begin | to_isotime }}
+window end: {{ window_end | to_isotime }}
 {% if binning_stride is defined%}
 binning:
   stride: {{ binning_stride }}

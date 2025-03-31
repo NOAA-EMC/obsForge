@@ -1,14 +1,14 @@
 obsforge:
-  PSLOT: test_realtime
+  PSLOT: realtimeobs_testing
   HOMEobsforge: /work2/noaa/da/gvernier/prs/obsForge
-  SDATE: 202503140000
-  EDATE: 202503170000
-  COMROOT: /work2/noaa/da/gvernier/prs/obsForge/real_dcom_test/COMROOT
+  SDATE: 202503141800
+  EDATE: 202503150000
+  COMROOT: /work2/noaa/da/gvernier/prs/obsForge/realtimeobs_testing/COMROOT
   DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
-  DATAROOT: /work2/noaa/da/gvernier/prs/obsForge/real_dcom_test/RUNDIRS
+  DATAROOT: /work2/noaa/da/gvernier/prs/obsForge/realtimeobs_testing/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
-  QUEUE: batch
+  QUEUE: debug
   PARTITION: hercules
   KEEPDATA: NO
   assim_freq: 6
@@ -22,15 +22,15 @@ aoddump:
 marinedump:
   providers:
     ghrsst:
-      - sst_viirs_n21_l3u
-      - sst_viirs_n20_l3u
-      - sst_viirs_npp_l3u
-      - sst_avhrrf_ma_l3u
-      - sst_avhrrf_mb_l3u
+#      - sst_viirs_n21_l3u
+#      - sst_viirs_n20_l3u
+#      - sst_viirs_npp_l3u
+#      - sst_avhrrf_ma_l3u
+#      - sst_avhrrf_mb_l3u
       - sst_avhrrf_mc_l3u
-      - sst_ahi_h08_l3c
-      - sst_abi_g17_l3c
-      - sst_abi_g16_l3c
+#      - sst_ahi_h08_l3c
+#      - sst_abi_g17_l3c
+#      - sst_abi_g16_l3c
   WALLTIME_MARINE_DUMP: '00:30:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=1:tpp=1'
   MEMORY_MARINE_DUMP: 96GB

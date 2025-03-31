@@ -32,7 +32,7 @@ class MarineObsPrep(Task):
 
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
-        #print(self.task_config)
+        print(self.task_config)
 
         # Initialize the GHRSST database
         self.ghrsst_db = GhrSstDatabase(db_name="sst_obs.db",
@@ -50,7 +50,6 @@ class MarineObsPrep(Task):
     def execute(self) -> None:
         """
         """
-
         for provider, obs_spaces in self.task_config.providers.items():
             logger.info(f"========= provider: {provider}")
             for obs_space in obs_spaces:
@@ -96,16 +95,15 @@ class MarineObsPrep(Task):
                                'input_files': input_files,
                                'output_file': output_file}
                     jinja_template = join(self.task_config['HOMEobsforge'], "parm", "nc2ioda", "nc2ioda.yaml.j2")
-                    print(join(self.task_config['HOMEobsforge'], "parm", "nc2ioda", "nc2ioda.yaml.j2"))
                     yaml_config = Jinja(jinja_template, context).render
-                    nc2ioda_yaml = f"{obs_space}/{obs_space}_nc2ioda.yaml"
+                    nc2ioda_yaml = join(self.task_config['DATA'], obs_space, f"{obs_space}_nc2ioda.yaml")
                     with open(nc2ioda_yaml, "w") as fho:
                         fho.write(yaml_config)
 
                     # Run the ioda converter
                     nc2ioda_exe = join(self.task_config['HOMEobsforge'], 'build', 'bin', 'obsforge_obsprovider2ioda.x')
-                    result = subprocess.run([nc2ioda_exe, basename(nc2ioda_yaml)],
-                                            cwd=obs_space,
+                    result = subprocess.run([nc2ioda_exe, nc2ioda_yaml],
+                                            cwd=self.task_config['DATA'],
                                             capture_output=True,
                                             text=True)
 
@@ -121,4 +119,4 @@ class MarineObsPrep(Task):
     def finalize(self) -> None:
         """
         """
-        print("finalize")
+        logger.info(f"finalize")

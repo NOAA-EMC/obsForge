@@ -53,4 +53,4 @@ export PYTHONPATH
 ulimit -S -s "${ulimit_s}"
 unset ulimit_s
 
-#set_trace
+set_trace
