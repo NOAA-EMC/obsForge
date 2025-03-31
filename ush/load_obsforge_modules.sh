@@ -24,7 +24,7 @@ case "${MACHINE_ID}" in
     if [[ "${MACHINE_ID}" == "wcoss2" ]]; then
       export LMOD_TMOD_FIND_FIRST=yes
       # TODO: Add path to ObsForge libraries and cray-mpich as temporary patches
-      # TODO: Remove LD_LIBRARY_PATH lines as soon as permanent solutions are available	
+      # TODO: Remove LD_LIBRARY_PATH lines as soon as permanent solutions are available
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HOMEobsforge}/build/lib"
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/8.1.19/ofi/intel/19.0/lib"
     fi
@@ -35,14 +35,14 @@ case "${MACHINE_ID}" in
     ;;
   ("jet" | "s4" | "acorn")
     echo WARNING: OBSFORGE NOT SUPPORTED ON THIS PLATFORM
-    ;;  
+    ;;
   *)
     echo "WARNING: UNKNOWN PLATFORM"
     ;;
 esac
 
-module list
-pip list
+#module list
+#pip list
 
 # Add wxflow to PYTHONPATH
 wxflowPATH="${HOMEobsforge}/ush/python"
@@ -53,4 +53,4 @@ export PYTHONPATH
 ulimit -S -s "${ulimit_s}"
 unset ulimit_s
 
-set_trace
+#set_trace

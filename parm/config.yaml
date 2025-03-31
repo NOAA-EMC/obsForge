@@ -1,24 +1,36 @@
 obsforge:
-  PSLOT: obsforge
-  HOMEobsforge: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/
-  SDATE: 202503160000
+  PSLOT: test_realtime
+  HOMEobsforge: /work2/noaa/da/gvernier/prs/obsForge
+  SDATE: 202503140000
   EDATE: 202503170000
-  COMROOT: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/
-  DCOMROOT: /scratch2/NCEPDEV/stmp1/Cory.R.Martin/dcom
-  DATAROOT: /scratch1/NCEPDEV/stmp2/Cory.R.Martin/RUNDIRS
+  COMROOT: /work2/noaa/da/gvernier/prs/obsForge/real_dcom_test/COMROOT
+  DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
+  DATAROOT: /work2/noaa/da/gvernier/prs/obsForge/real_dcom_test/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: batch
-  PARTITION: hera
+  PARTITION: hercules
   KEEPDATA: NO
   assim_freq: 6
+
 aoddump:
   platforms: ['npp', 'n20', 'n21']
-  WALLTIME_AOD_DUMP: '00:30:00'
-  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
-  MEMORY_AOD_DUMP: 96GB
+  WALLTIME_DUMP: '00:30:00'
+  TASK_GEOM_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_DUMP: 96GB
+
 marinedump:
-  platforms: ['npp', 'n20', 'n21']
-  WALLTIME_AOD_DUMP: '00:30:00'
-  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
-  MEMORY_AOD_DUMP: 96GB
+  providers:
+    ghrsst:
+      - sst_viirs_n21_l3u
+      - sst_viirs_n20_l3u
+      - sst_viirs_npp_l3u
+      - sst_avhrrf_ma_l3u
+      - sst_avhrrf_mb_l3u
+      - sst_avhrrf_mc_l3u
+      - sst_ahi_h08_l3c
+      - sst_abi_g17_l3c
+      - sst_abi_g16_l3c
+  WALLTIME_DUMP: '00:30:00'
+  TASK_GEOM_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_DUMP: 96GB
