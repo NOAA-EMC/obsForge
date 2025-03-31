@@ -15,9 +15,9 @@ obsforge:
 
 aoddump:
   platforms: ['npp', 'n20', 'n21']
-  WALLTIME_DUMP: '00:30:00'
-  TASK_GEOM_DUMP: '1:ppn=1:tpp=1'
-  MEMORY_DUMP: 96GB
+  WALLTIME_AOD_DUMP: '00:30:00'
+  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_AOD_DUMP: 96GB
 
 marinedump:
   providers:
@@ -31,6 +31,6 @@ marinedump:
       - sst_ahi_h08_l3c
       - sst_abi_g17_l3c
       - sst_abi_g16_l3c
-  WALLTIME_DUMP: '00:30:00'
-  TASK_GEOM_DUMP: '1:ppn=1:tpp=1'
-  MEMORY_DUMP: 96GB
+  WALLTIME_MARINE_DUMP: '00:30:00'
+  TASK_GEOM_MARINE_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_MARINE_DUMP: 96GB
