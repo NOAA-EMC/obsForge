@@ -52,7 +52,15 @@ class MarineObsPrep(Task):
         """
         for provider, obs_spaces in self.task_config.providers.items():
             logger.info(f"========= provider: {provider}")
-            for obs_space in obs_spaces:
+
+            # Get the obs space QC configuration
+            bounds_min = obs_spaces["qc config"]["min"]
+            bounds_max = obs_spaces["qc config"]["max"]
+            binning_stride = obs_spaces["qc config"]["stride"]
+            binning_min_number_of_obs = obs_spaces["qc config"]["min number of obs"]
+
+            # Process each obs space
+            for obs_space in obs_spaces["list"]:
                 logger.info(f"========= obs_space: {obs_space}")
                 # extract the instrument and platform from the obs_space
                 obs_type, instrument, platform, proc_level = obs_space.split("_")
@@ -88,10 +96,10 @@ class MarineObsPrep(Task):
                     context = {'provider': provider.upper(),
                                'window_begin': self.task_config.window_begin,
                                'window_end': self.task_config.window_end,
-                               'bounds_min': -2,
-                               'bounds_max': 45,
-                               'binning_stride': 15,
-                               'binning_min_number_of_obs': 10,
+                               'bounds_min': bounds_min,
+                               'bounds_max': bounds_max,
+                               'binning_stride': binning_stride,
+                               'binning_min_number_of_obs': binning_min_number_of_obs,
                                'input_files': input_files,
                                'output_file': output_file}
                     jinja_template = join(self.task_config['HOMEobsforge'], "parm", "nc2ioda", "nc2ioda.yaml.j2")
