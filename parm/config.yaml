@@ -22,15 +22,15 @@ aoddump:
 marinedump:
   providers:
     ghrsst:
-#      - sst_viirs_n21_l3u
-#      - sst_viirs_n20_l3u
-#      - sst_viirs_npp_l3u
-#      - sst_avhrrf_ma_l3u
-#      - sst_avhrrf_mb_l3u
+      - sst_viirs_n21_l3u
+      - sst_viirs_n20_l3u
+      - sst_viirs_npp_l3u
+      - sst_avhrrf_ma_l3u
+      - sst_avhrrf_mb_l3u
       - sst_avhrrf_mc_l3u
-#      - sst_ahi_h08_l3c
-#      - sst_abi_g17_l3c
-#      - sst_abi_g16_l3c
+      - sst_ahi_h08_l3c
+      - sst_abi_g17_l3c
+      - sst_abi_g16_l3c
   WALLTIME_MARINE_DUMP: '00:30:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=1:tpp=1'
   MEMORY_MARINE_DUMP: 96GB

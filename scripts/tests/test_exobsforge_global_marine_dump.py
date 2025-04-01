@@ -57,13 +57,15 @@ def test_run_exobsforge_script(script_env):
     env = script_env
 
     # Prepare a mocked dcom directory
-    create_dcom(output_root="./dcom",
+    create_dcom(output_root=os.getenv("DCOMROOT"),
                 dcom_tree_file=Path(__file__).parent / "dcom_tree.txt")
 
     # Run the script using subprocess
+    exec = Path(__file__).parent.parent / "exobsforge_global_marine_dump.py"
+    cwd = Path(__file__).parent / "tests_output/RUNDIRS/obsforge"
     result = subprocess.run(
-        ["python3", Path(__file__).parent.parent / "exobsforge_global_marine_dump.py"],
-        cwd=Path(__file__).parent / "tests_output/RUNDIRS/obsforge",
+        ["python3", exec],
+        cwd=cwd,
         env=env,
         capture_output=True,
         text=True
