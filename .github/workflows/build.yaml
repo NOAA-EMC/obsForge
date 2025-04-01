@@ -43,6 +43,14 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace jcsda/docker-gnu-openmpi-dev:latest /bin/bash -c "
 
+            echo '===== Preparing for pytest =====' &&
+            apt-get update &&
+            apt-get install -y libsqlite3-dev &&
+            cd /workspace &&
+            python3 -m venv ~/obsforge &&
+            source ~/obsforge/bin/activate &&
+            pip install -r requirements.txt &&
+
             echo '===== Building C++ code =====' &&
             mkdir -p build &&
             cd build &&
@@ -52,12 +60,6 @@ jobs:
             echo '===== Running C++ tests (ctest) =====' &&
             cd obsforge-utils &&
             ctest -j\$(nproc) --output-on-failure &&
-
-            echo '===== Preparing for pytest =====' &&
-            cd /workspace &&
-            python3 -m venv ~/obsforge &&
-            source ~/obsforge/bin/activate &&
-            pip install -r requirements.txt &&
 
             echo '===== Running pytest =====' &&
             pytest tests/scripts/ --disable-warnings -v"
