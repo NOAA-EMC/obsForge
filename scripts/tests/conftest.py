@@ -9,6 +9,7 @@ comroot = os.path.join(test_dir, 'COMROOT')
 dcomroot = os.path.join(test_dir, 'dcom')
 dataroot = os.path.join(test_dir, 'RUNDIRS')
 
+
 @pytest.fixture(scope="session", autouse=True)
 def set_env_vars():
     os.environ["HOMEobsforge"] = home_obsforge

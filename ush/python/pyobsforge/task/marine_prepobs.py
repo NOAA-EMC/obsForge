@@ -119,4 +119,4 @@ class MarineObsPrep(Task):
     def finalize(self) -> None:
         """
         """
-        logger.info(f"finalize")
+        logger.info("finalize")
