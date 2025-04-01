@@ -97,7 +97,7 @@ class MarineObsPrep(Task):
                           binning_min_number_of_obs: int) -> None:
         if provider == "ghrsst":
             return self.process_ghrsst(provider, obs_space, instrument, platform,
-                                bounds_min, bounds_max, binning_stride, binning_min_number_of_obs)
+                                       bounds_min, bounds_max, binning_stride, binning_min_number_of_obs)
         else:
             logger.error(f"Provider {provider} not supported")
 
@@ -167,9 +167,9 @@ class MarineObsPrep(Task):
             nc2ioda_exe = join(self.task_config['HOMEobsforge'], 'build', 'bin', 'obsforge_obsprovider2ioda.x')
             try:
                 result = subprocess.run([nc2ioda_exe, nc2ioda_yaml],
-                                         cwd=self.task_config['DATA'],
-                                         capture_output=True,
-                                         text=True)
+                                        cwd=self.task_config['DATA'],
+                                        capture_output=True,
+                                        text=True)
                 # Print the standard output
                 print("Standard Output:")
                 print(result.stdout)
@@ -181,7 +181,6 @@ class MarineObsPrep(Task):
             except subprocess.CalledProcessError as e:
                 logger.warning(f"ioda converter failed with error {e}, \
                 return code {e.returncode}")
-
 
     @logit(logger)
     def finalize(self) -> None:
