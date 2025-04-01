@@ -35,3 +35,9 @@ export HOMEobsforge=<path to obsForge>
 export PYTHONPATH="${PYTHONPATH}:${HOMEobsforge}/sorc/wxflow/src:${HOMEobsforge}/ush/python"
 setup_xml.py --config config.yaml  --template obsforge_rocoto_template.xml.j2 --output obsforge.xml
 ```
+
+load rocoto
+```
+module use /apps/ops/test/nco/modulefiles/core
+module load rocoto
+```
