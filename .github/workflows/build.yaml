@@ -62,6 +62,7 @@ jobs:
             ctest -j\$(nproc) --output-on-failure &&
 
             echo '===== Running pytest =====' &&
-            pytest tests/scripts/ --disable-warnings -v"
+            cd /workspace &&
+            pytest scripts/tests --disable-warnings -v"
 
 
