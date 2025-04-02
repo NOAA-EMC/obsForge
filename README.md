@@ -31,8 +31,7 @@ ctest -R test_obsforge_util
 
 # Workflow usage
 ```console
-export HOMEobsforge=<path to obsForge>
-export PYTHONPATH="${PYTHONPATH}:${HOMEobsforge}/sorc/wxflow/src:${HOMEobsforge}/ush/python"
+source ush/of_setup.sh
 setup_xml.py --config config.yaml  --template obsforge_rocoto_template.xml.j2 --output obsforge.xml
 ```
 

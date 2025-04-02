@@ -4,7 +4,7 @@ from logging import getLogger
 from typing import Dict, Any
 import subprocess
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit, FileHandler, Jinja)
+                    logit, FileHandler, Jinja, save_as_yaml)
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from os.path import basename, join
 from multiprocessing import Process
@@ -33,7 +33,6 @@ class MarineObsPrep(Task):
 
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
-        print(self.task_config)
 
         # Initialize the GHRSST database
         self.ghrsst_db = GhrSstDatabase(db_name="sst_obs.db",
@@ -160,8 +159,7 @@ class MarineObsPrep(Task):
             jinja_template = join(self.task_config['HOMEobsforge'], "parm", "nc2ioda", "nc2ioda.yaml.j2")
             yaml_config = Jinja(jinja_template, context).render
             nc2ioda_yaml = join(self.task_config['DATA'], obs_space, f"{obs_space}_nc2ioda.yaml")
-            with open(nc2ioda_yaml, "w") as fho:
-                fho.write(yaml_config)
+            save_as_yaml(yaml_config, nc2ioda_yaml)
 
             # Run the ioda converter
             nc2ioda_exe = join(self.task_config['HOMEobsforge'], 'build', 'bin', 'obsforge_obsprovider2ioda.x')
@@ -170,13 +168,11 @@ class MarineObsPrep(Task):
                                         cwd=self.task_config['DATA'],
                                         capture_output=True,
                                         text=True)
-                # Print the standard output
-                print("Standard Output:")
-                print(result.stdout)
-
-                # Optionally, print the standard error
-                print("Standard Error:")
-                print(result.stderr)
+                logger.info(f"Standard Output: \n{result.stdout}")
+                # TODO (G): Figure out what to do with failure.
+                #           Ignore failures for now and just issue a warning
+                if result.returncode != 0:
+                    logger.error(f"Standard Error: \n{result.stderr}")
                 return 0
             except subprocess.CalledProcessError as e:
                 logger.warning(f"ioda converter failed with error {e}, \
