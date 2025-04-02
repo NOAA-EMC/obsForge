@@ -39,5 +39,5 @@ marinedump:
         min number of obs: 10
 
   WALLTIME_MARINE_DUMP: '00:30:00'
-  TASK_GEOM_MARINE_DUMP: '1:ppn=1:tpp=1'
+  TASK_GEOM_MARINE_DUMP: '1:ppn=40:tpp=2'
   MEMORY_MARINE_DUMP: 96GB
