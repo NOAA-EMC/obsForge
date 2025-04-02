@@ -6,9 +6,11 @@ binning:
   stride: {{ binning_stride }}
   min number of obs: {{ binning_min_number_of_obs }}
 {% endif %}
+{% if bounds_min is defined and bounds_max is defined %}
 bounds:
   min: {{ bounds_min }}
   max: {{ bounds_max }}
+{% endif %}
 output file: {{ output_file }}
 {% if ocean_basin is defined %}
 ocean basin: {{ ocean_basin }}
