@@ -14,3 +14,13 @@ output file: {{ output_file }}
 ocean basin: {{ ocean_basin }}
 {% endif %}
 input files: {{ input_files }}
+
+# Used in JRR_AOD
+{% if provider == "VIIRSAOD"%}
+variable: aerosolOpticalDepth
+thinning:
+  threshold: {{ thinning_threshold }}
+channel: 4
+preqc: 2
+{% endif %}
+

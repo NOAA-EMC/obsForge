@@ -9,8 +9,8 @@ def script_env(tmp_path):
     # Set environment vars expected by the script
     env = os.environ.copy()
     env["cyc"] = "0"
-    env["current_cycle"] = "20250301500"
-    env["PDY"] = "20250315"
+    env["current_cycle"] = "20250301600"
+    env["PDY"] = "20250316"
     env["RUN"] = "gdas"
     return env
 
@@ -60,24 +60,31 @@ def test_run_exobsforge_script(script_env):
     create_dcom(output_root=os.getenv("DCOMROOT"),
                 dcom_tree_file=Path(__file__).parent / "dcom_tree.txt")
 
-    # Run the script using subprocess
-    exec = Path(__file__).parent.parent / "exobsforge_global_marine_dump.py"
-    cwd = Path(__file__).parent / "tests_output/RUNDIRS/obsforge"
-    result = subprocess.run(
-        ["python3", exec],
-        cwd=cwd,
-        env=env,
-        capture_output=True,
-        text=True
-    )
+    # List of scripts to run
+    scripts = [
+        "exobsforge_global_marine_dump.py",
+        "exobsforge_global_aod_dump.py"
+    ]
 
-    # Print the standard output
-    print("Standard Output:")
-    print(result.stdout)
+    for script_name in scripts:
+        # Run each script using subprocess
+        exec = Path(__file__).parent.parent / script_name
+        cwd = Path(__file__).parent / "tests_output/RUNDIRS/obsforge"
+        result = subprocess.run(
+            ["python3", exec],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True
+        )
 
-    # Optionally, print the standard error
-    print("Standard Error:")
-    print(result.stderr)
+        # Print the standard output
+        print(f"Standard Output for {script_name}:")
+        print(result.stdout)
 
-    # Basic assertions
-    assert result.returncode == 0
+        # Optionally, print the standard error
+        print(f"Standard Error for {script_name}:")
+        print(result.stderr)
+
+        # Basic assertions
+        assert result.returncode == 0

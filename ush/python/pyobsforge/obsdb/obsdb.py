@@ -1,6 +1,11 @@
+from logging import getLogger
 import sqlite3
 from datetime import datetime, timedelta
 from wxflow.sqlitedb import SQLiteDB
+from wxflow import FileHandler
+from os.path import basename, join
+
+logger = getLogger(__name__.split('.')[-1])
 
 
 class BaseDatabase(SQLiteDB):
@@ -57,6 +62,7 @@ class BaseDatabase(SQLiteDB):
     def get_valid_files(self,
                         window_begin: datetime,
                         window_end: datetime,
+                        dst_dir: str,
                         instrument: str = None,
                         satellite: str = None,
                         obs_type: str = None,
@@ -106,4 +112,16 @@ class BaseDatabase(SQLiteDB):
 
             valid_files.append(filename)
 
-        return valid_files
+        # Copy files to the destination directory
+        dst_files = []
+        if len(valid_files) > 0:
+            src_dst_obs_list = []  # list of [src_file, dst_file]
+            for src_file in valid_files:
+                dst_file = join(dst_dir, f"{basename(src_file)}")
+                dst_files.append(dst_file)
+                logger.info(f"copying {src_file} to {dst_file}")
+                src_dst_obs_list.append([src_file, dst_file])
+            FileHandler({'mkdir': [dst_dir]}).sync()
+            FileHandler({'copy': src_dst_obs_list}).sync()
+
+        return dst_files

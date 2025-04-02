@@ -2,12 +2,11 @@
 
 from logging import getLogger
 from typing import Dict, Any
-import subprocess
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit, FileHandler, Jinja, save_as_yaml)
+                    logit)
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
-from os.path import basename, join
 from multiprocessing import Process
+from pyobsforge.task.run_nc2ioda import run_nc2ioda
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -125,26 +124,16 @@ class MarineObsPrep(Task):
             binning_min_number_of_obs (int): Minimum number of observations required for binning.
         """
         # Query the database for valid files
-        valid_files = self.ghrsst_db.get_valid_files(window_begin=self.task_config.window_begin,
+        input_files = self.ghrsst_db.get_valid_files(window_begin=self.task_config.window_begin,
                                                      window_end=self.task_config.window_end,
+                                                     dst_dir=obs_space,
                                                      instrument=instrument,
                                                      satellite=platform,
                                                      obs_type="SSTsubskin")
-        logger.info(f"number of valid files: {len(valid_files)}")
+        logger.info(f"number of valid files: {len(input_files)}")
 
         # Process the observations if the obs space is not empty
-        if len(valid_files) > 0:
-            # Copy the valid files to the RUNDIR
-            src_dst_obs_list = []  # list of [src_file, dst_file]
-            input_files = []       # list of dst_files used as input to the ioda converter
-            for src_file in valid_files:
-                dst_file = f"{obs_space}/{basename(src_file)}"
-                input_files.append(dst_file)
-                logger.info(f"copying {src_file} to {dst_file}")
-                src_dst_obs_list.append([src_file, dst_file])
-            FileHandler({'mkdir': [obs_space]}).sync()
-            FileHandler({'copy': src_dst_obs_list}).sync()
-
+        if len(input_files) > 0:
             # Configure the ioda converter
             output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
             context = {'provider': provider.upper(),
@@ -156,27 +145,8 @@ class MarineObsPrep(Task):
                        'binning_min_number_of_obs': binning_min_number_of_obs,
                        'input_files': input_files,
                        'output_file': output_file}
-            jinja_template = join(self.task_config['HOMEobsforge'], "parm", "nc2ioda", "nc2ioda.yaml.j2")
-            yaml_config = Jinja(jinja_template, context).render
-            nc2ioda_yaml = join(self.task_config['DATA'], obs_space, f"{obs_space}_nc2ioda.yaml")
-            save_as_yaml(yaml_config, nc2ioda_yaml)
-
-            # Run the ioda converter
-            nc2ioda_exe = join(self.task_config['HOMEobsforge'], 'build', 'bin', 'obsforge_obsprovider2ioda.x')
-            try:
-                result = subprocess.run([nc2ioda_exe, nc2ioda_yaml],
-                                        cwd=self.task_config['DATA'],
-                                        capture_output=True,
-                                        text=True)
-                logger.info(f"Standard Output: \n{result.stdout}")
-                # TODO (G): Figure out what to do with failure.
-                #           Ignore failures for now and just issue a warning
-                if result.returncode != 0:
-                    logger.error(f"Standard Error: \n{result.stderr}")
-                return 0
-            except subprocess.CalledProcessError as e:
-                logger.warning(f"ioda converter failed with error {e}, \
-                return code {e.returncode}")
+            result = run_nc2ioda(self.task_config, obs_space, context)
+            logger.info(f"run_nc2ioda result: {result}")
 
     @logit(logger)
     def finalize(self) -> None:

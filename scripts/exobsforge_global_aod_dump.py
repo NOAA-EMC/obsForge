@@ -27,7 +27,7 @@ if __name__ == '__main__':
     config = AttrDict(**config_env, **obsforge_dict)
     config = AttrDict(**config, **config_yaml['aoddump'])
 
-    AeroObs = AerosolObsPrep(config)
-    AeroObs.initialize()
-    AeroObs.execute()
-    AeroObs.finalize()
+    aeroObs = AerosolObsPrep(config)
+    aeroObs.initialize()
+    aeroObs.execute()
+    aeroObs.finalize()

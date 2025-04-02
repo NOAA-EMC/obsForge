@@ -14,7 +14,11 @@ obsforge:
   assim_freq: 6
 
 aoddump:
+  provider: VIIRSAOD
   platforms: ['npp', 'n20', 'n21']
+  thinning_threshold: 0
+  channel: 4
+  preqc: 2
   WALLTIME_AOD_DUMP: '00:30:00'
   TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
   MEMORY_AOD_DUMP: 96GB
