@@ -100,10 +100,11 @@ def test_get_valid_files(db):
     da_cycle = "20250316120000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=1)
-
+    dst_dir = 'sst'
     # Test for AVHRRF_MB
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      instrument="AVHRRF",
                                      satellite="MB",
                                      obs_type="SSTsubskin")
@@ -117,6 +118,7 @@ def test_get_valid_files(db):
     # Test for VIIRS_NPP
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      instrument="VIIRS",
                                      satellite="NPP",
                                      obs_type="SSTsubskin")
@@ -131,6 +133,7 @@ def test_get_valid_files(db):
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      instrument="VIIRS",
                                      satellite="N20",
                                      obs_type="SSTsubskin")
@@ -143,6 +146,7 @@ def test_get_valid_files(db):
 #    # Test for VIIRS_N21
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      instrument="VIIRS",
                                      satellite="N21",
                                      obs_type="SSTsubskin")
@@ -158,10 +162,12 @@ def test_get_valid_files_receipt(db):
     da_cycle = "20250316120000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=1)
+    dst_dir = 'sst'
 
     # Test for AVHRRF_MB
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      instrument="AVHRRF",
                                      satellite="MB",
                                      obs_type="SSTsubskin",

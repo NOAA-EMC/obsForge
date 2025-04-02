@@ -129,9 +129,10 @@ def test_get_valid_files(db):
     da_cycle = "20250316120000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-
+    dst_dir = 'jrr_aod'
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      satellite="n21")
 
     assert any("202503161000" in f for f in valid_files)
@@ -148,9 +149,10 @@ def test_get_valid_files_receipt(db):
     da_cycle = "20250316120000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-
+    dst_dir = 'jrr_aod'
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
+                                     dst_dir=dst_dir,
                                      satellite="n21",
                                      check_receipt='gfs')
 
