@@ -35,8 +35,8 @@ class AerosolObsPrep(Task):
 
         # Initialize the JRR_AOD database
         self.jrr_aod_db = JrrAodDatabase(db_name="jrr_aod_obs.db",
-                                        dcom_dir=self.task_config.DCOMROOT,
-                                        obs_dir="jrr_aod")
+                                         dcom_dir=self.task_config.DCOMROOT,
+                                         obs_dir="jrr_aod")
 
     @logit(logger)
     def initialize(self) -> None:

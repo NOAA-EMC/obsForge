@@ -2,8 +2,7 @@
 
 from logging import getLogger
 from typing import Dict, Any
-from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit)
+from wxflow import AttrDict, Task, add_to_datetime, to_timedelta, logit
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from multiprocessing import Process
 from pyobsforge.task.run_nc2ioda import run_nc2ioda

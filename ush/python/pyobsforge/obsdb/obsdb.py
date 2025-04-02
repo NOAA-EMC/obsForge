@@ -68,16 +68,19 @@ class BaseDatabase(SQLiteDB):
                         obs_type: str = None,
                         check_receipt: str = "none") -> list:
         """
-        Retrieve a list of observation files within a specified time window, possibly filtered by instrument,
-        satellite, and observation type. The check_receipt parameter can be 'gdas', 'gfs', or 'none'.
+        Retrieve and copy to dst_dir a list of observation files within a specified time window, possibly filtered by instrument,
+        satellite, and observation type. The check_receipt parameter can be 'gdas', 'gfs', or 'none'. If 'gdas' or
+        'gfs' is specified, files are further filtered based on their receipt time to ensure they meet the
+        required delay criteria.
 
         :param window_begin: Start of the time window (datetime object).
         :param window_end: End of the time window (datetime object).
+        :param dst_dir: Destination directory where valid files will be copied.
         :param instrument: (Optional) Filter by instrument name.
         :param satellite: (Optional) Filter by satellite name.
         :param obs_type: (Optional) Filter by observation type.
         :param check_receipt: (Optional) Specify receipt time check ('gdas', 'gfs', or 'none').
-        :return: List of valid observation file names.
+        :return: List of valid observation file paths in the destination directory.
         """
 
         query = """

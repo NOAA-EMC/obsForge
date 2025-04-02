@@ -5,6 +5,7 @@ from os.path import join
 
 logger = getLogger(__name__.split('.')[-1])
 
+
 def run_nc2ioda(task_config: dict, obs_space: str, context: dict) -> int:
     """
     Executes the nc2ioda conversion process using a Jinja2 template and a YAML configuration.
