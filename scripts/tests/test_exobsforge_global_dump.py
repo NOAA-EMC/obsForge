@@ -78,11 +78,8 @@ def test_run_exobsforge_script(script_env):
             text=True
         )
 
-        # Print the standard output
         print(f"Standard Output for {script_name}:")
         print(result.stdout)
-
-        # Optionally, print the standard error
         print(f"Standard Error for {script_name}:")
         print(result.stderr)
 
