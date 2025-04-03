@@ -6,6 +6,8 @@ from wxflow import AttrDict, Task, add_to_datetime, to_timedelta, logit, FileHan
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from multiprocessing import Process
 from pyobsforge.task.run_nc2ioda import run_nc2ioda
+from os.path import join
+
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -24,8 +26,7 @@ class MarineObsPrep(Task):
             {
                 'window_begin': _window_begin,
                 'window_end': _window_end,
-                'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
-                'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z."
+                'PREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
             }
         )
 
@@ -151,6 +152,8 @@ class MarineObsPrep(Task):
             logger.info(f"run_nc2ioda result: {result}")
 
             # Append the output file to the list of processed ioda files
+            logger.info(f"==================== Appending {output_file} to ghrsst_ioda_files")
+            logger.info(f"---------------------------------ghrsst_ioda_files: {self.ghrsst_ioda_files}")
             self.ghrsst_ioda_files.append(output_file)
 
     @logit(logger)
@@ -170,4 +173,7 @@ class MarineObsPrep(Task):
 
         logger.info("Copying ioda files to destination COMROOT directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
+
+        comout = join(self.task_config['COMROOT'], f"{self.task_config['RUN']}.{self.task_config['PDY']}{self.task_config['cyc']:02d}")
+        FileHandler({'mkdir': [comout]}).sync()
         FileHandler({'copy': src_dst_obs_list}).sync()
