@@ -2,7 +2,7 @@
 
 from logging import getLogger
 from typing import Dict, Any
-from wxflow import AttrDict, Task, add_to_datetime, to_timedelta, logit
+from wxflow import AttrDict, Task, add_to_datetime, to_timedelta, logit, FileHandler
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from multiprocessing import Process
 from pyobsforge.task.run_nc2ioda import run_nc2ioda
@@ -36,6 +36,9 @@ class MarineObsPrep(Task):
         self.ghrsst_db = GhrSstDatabase(db_name="sst_obs.db",
                                         dcom_dir=self.task_config.DCOMROOT,
                                         obs_dir="sst")
+
+        # Initialize the list of processed ioda files
+        self.ghrsst_ioda_files = []
 
     @logit(logger)
     def initialize(self) -> None:
@@ -147,8 +150,19 @@ class MarineObsPrep(Task):
             result = run_nc2ioda(self.task_config, obs_space, context)
             logger.info(f"run_nc2ioda result: {result}")
 
+            # Append the output file to the list of processed ioda files
+            self.ghrsst_ioda_files.append(output_file)
+
     @logit(logger)
     def finalize(self) -> None:
         """
         """
+        # Copy the processed ioda files to the destination directory
+        src_dst_obs_list = []  # list of [src_file, dst_file]
+        for ioda_file in self.ghrsst_ioda_files:
+            src_file = join(self.task_config['DATA'], ioda_file)
+            dst_file = join(self.task_config['COMROOT'], ioda_file)
+            src_dst_obs_list.append([src_file, dst_file])
+
+        FileHandler({'copy': src_dst_obs_list}).sync()
         logger.info("finalize")
