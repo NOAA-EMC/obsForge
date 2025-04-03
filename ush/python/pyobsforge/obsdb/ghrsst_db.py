@@ -57,7 +57,7 @@ class GhrSstDatabase(BaseDatabase):
 
     def ingest_files(self):
         """Scan the directory for new observation files and insert them into the database."""
-        obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
+        obs_files = glob.glob(os.path.join(self.base_dir, "*-OSPO-L3U_GHRSST-*.nc"))
         print(f"Found {len(obs_files)} new files to ingest")
         for file in obs_files:
             parsed_data = self.parse_filename(file)
