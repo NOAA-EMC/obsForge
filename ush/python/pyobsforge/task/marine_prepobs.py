@@ -158,11 +158,16 @@ class MarineObsPrep(Task):
         """
         """
         # Copy the processed ioda files to the destination directory
+        logger.info("Copying ioda files to destination COMROOT directory")
+        logger.info(f"COMROOT: {self.task_config['COMROOT']}")
+        logger.info(f"DATA: {self.task_config['DATA']}")
+        logger.info(f"GHRSST ioda files: {self.ghrsst_ioda_files}")
         src_dst_obs_list = []  # list of [src_file, dst_file]
         for ioda_file in self.ghrsst_ioda_files:
             src_file = join(self.task_config['DATA'], ioda_file)
             dst_file = join(self.task_config['COMROOT'], ioda_file)
             src_dst_obs_list.append([src_file, dst_file])
 
+        logger.info("Copying ioda files to destination COMROOT directory")
+        logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
         FileHandler({'copy': src_dst_obs_list}).sync()
-        logger.info("finalize")
