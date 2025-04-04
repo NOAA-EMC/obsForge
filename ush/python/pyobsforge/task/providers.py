@@ -1,5 +1,6 @@
 from logging import getLogger
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
+from pyobsforge.obsdb.rads_db import RADSDatabase
 from typing import Any
 from dataclasses import dataclass
 from wxflow import AttrDict
@@ -17,12 +18,25 @@ class QCConfig:
 
     @classmethod
     def from_dict(cls, config: dict) -> "QCConfig":
-        return cls(
-            bounds_min=config["min"],
-            bounds_max=config["max"],
-            binning_stride=config["stride"],
-            binning_min_number_of_obs=config["min number of obs"]
+        # Initialize with default values
+        instance = cls(
+            bounds_min=0.0,
+            bounds_max=0.0,
+            binning_stride=0.0,
+            binning_min_number_of_obs=0
         )
+
+        # Only set attributes for keys that are defined in config
+        if "min" in config:
+            instance.bounds_min = config["min"]
+        if "max" in config:
+            instance.bounds_max = config["max"]
+        if "stride" in config:
+            instance.binning_stride = config["stride"]
+        if "min number of obs" in config:
+            instance.binning_min_number_of_obs = config["min number of obs"]
+
+        return instance
 
 class ProviderConfig:
     def __init__(self, qc_config: QCConfig, db: Any):  # Replace `Any` with a more specific type if desired
@@ -34,12 +48,12 @@ class ProviderConfig:
         qc_raw = task_config.providers[provider_name]["qc config"]
         qc = QCConfig.from_dict(qc_raw)
 
+        print(f"@@@@@@@@@@@@@@@@@@@@@@@@ provider: {provider_name}")
+
         if provider_name == "ghrsst":
-            db = GhrSstDatabase(
-                db_name=f"{provider_name}.db",
-                dcom_dir=task_config.DCOMROOT,
-                obs_dir="sst"
-            )
+            db = GhrSstDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="sst")
+        elif provider_name == "rads":
+            db = RADSDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wgrdbul/adt")
         else:
             raise NotImplementedError(f"DB setup for provider {provider_name} not yet implemented")
 
@@ -58,12 +72,6 @@ class ProviderConfig:
         """
         Process a single observation space by querying the database for valid files,
         copying them to the appropriate directory, and running the ioda converter.
-
-        Args:
-            provider (str): The data provider name.
-            obs_space (str): The observation space identifier.
-            instrument (str): The instrument used for the observations.
-            platform (str): The satellite platform name.
         """
         # Query the database for valid files
         input_files = self.db.get_valid_files(window_begin=window_begin,
@@ -80,12 +88,18 @@ class ProviderConfig:
             context = {'provider': provider.upper(),
                        'window_begin': window_begin,
                        'window_end': window_end,
-                       'bounds_min': self.qc_config.bounds_min,
-                       'bounds_max': self.qc_config.bounds_max,
-                       'binning_stride': self.qc_config.binning_stride,
-                       'binning_min_number_of_obs': self.qc_config.binning_min_number_of_obs,
                        'input_files': input_files,
                        'output_file': output_file}
+
+            # Only add QC config attributes if they exist
+            if hasattr(self.qc_config, 'bounds_min'):
+                context['bounds_min'] = self.qc_config.bounds_min
+            if hasattr(self.qc_config, 'bounds_max'):
+                context['bounds_max'] = self.qc_config.bounds_max
+            if hasattr(self.qc_config, 'binning_stride'):
+                context['binning_stride'] = self.qc_config.binning_stride
+            if hasattr(self.qc_config, 'binning_min_number_of_obs'):
+                context['binning_min_number_of_obs'] = self.qc_config.binning_min_number_of_obs
             result = run_nc2ioda(task_config, obs_space, context)
             logger.info(f"run_nc2ioda result: {result}")
         else:

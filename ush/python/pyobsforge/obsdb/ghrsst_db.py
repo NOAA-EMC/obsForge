@@ -57,8 +57,14 @@ class GhrSstDatabase(BaseDatabase):
 
     def ingest_files(self):
         """Scan the directory for new observation files and insert them into the database."""
-        obs_files = glob.glob(os.path.join(self.base_dir, "*-OSPO-L3U_GHRSST-*.nc"))
+        ospo_files = glob.glob(os.path.join(self.base_dir, "*-OSPO-L3?_GHRSST-*.nc"))
+        star_files = glob.glob(os.path.join(self.base_dir, "*-STAR-L3?_GHRSST-*.nc"))
+        obs_files = ospo_files + star_files
         print(f"Found {len(obs_files)} new files to ingest")
+
+        # Counter for successful ingestions
+        ingested_count = 0
+
         for file in obs_files:
             parsed_data = self.parse_filename(file)
             if parsed_data:
@@ -66,8 +72,12 @@ class GhrSstDatabase(BaseDatabase):
                     INSERT INTO obs_files (filename, obs_time, receipt_time, instrument, satellite, obs_type)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """
-                self.insert_record(query, parsed_data)
-
+                try:
+                    self.insert_record(query, parsed_data)
+                    ingested_count += 1
+                except Exception as e:
+                    print(f"Failed to insert record for {file}: {e}")
+        print(f"################################ Successfully ingested {ingested_count} files into the database.")
 
 # Example Usage
 if __name__ == "__main__":

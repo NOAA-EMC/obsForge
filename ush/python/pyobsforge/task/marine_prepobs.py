@@ -6,7 +6,7 @@ from wxflow import AttrDict, Task, add_to_datetime, to_timedelta, logit, FileHan
 from pyobsforge.task.providers import ProviderConfig
 from multiprocessing import Process, Manager
 from os.path import join
-
+from datetime import timedelta
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -34,6 +34,7 @@ class MarineObsPrep(Task):
 
         # Initialize the Providers
         self.ghrsst = ProviderConfig.from_task_config("ghrsst", self.task_config)
+        self.rads = ProviderConfig.from_task_config("rads", self.task_config)
 
         # Initialize the list of processed ioda files
         self.ioda_files = []
@@ -44,6 +45,7 @@ class MarineObsPrep(Task):
         """
         # Update the database with new files
         self.ghrsst.db.ingest_files()
+        self.rads.db.ingest_files()
 
     @logit(logger)
     def execute(self) -> None:
@@ -58,14 +60,10 @@ class MarineObsPrep(Task):
                 logger.info(f"========= provider: {provider}")
                 for obs_space in obs_spaces["list"]:
                     logger.info(f"========= obs_space: {obs_space}")
-                    obs_type, instrument, platform, proc_level = obs_space.split("_")
-                    platform = platform.upper()
-                    instrument = instrument.upper()
-                    logger.info(f"Processing {platform.upper()} {instrument.upper()}")
 
                     # Start a new process
                     process = Process(target=self.process_obs_space,
-                                      args=(provider, obs_space, instrument, platform, shared_ioda_files))
+                                      args=(provider, obs_space, shared_ioda_files))
                     process.start()
                     processes.append(process)
 
@@ -81,11 +79,16 @@ class MarineObsPrep(Task):
     def process_obs_space(self,
                           provider: str,
                           obs_space: str,
-                          instrument: str,
-                          platform: str,
                           shared_ioda_files) -> None:
+        output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
+        print(f"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& output_file: {output_file}")
         if provider == "ghrsst":
-            output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
+            parts = obs_space.split("_")
+            instrument = parts[1].upper()
+            platform = parts[2].upper()
+            print(f"+++++++++++ instrument: {instrument}")
+            print(f"+++++++++++ platform: {platform}")
+            # Process the observation space
             result = self.ghrsst.process_obs_space(provider, obs_space, instrument, platform,
                                                    obs_type="SSTsubskin",
                                                    output_file=output_file,
@@ -93,6 +96,24 @@ class MarineObsPrep(Task):
                                                    window_end=self.task_config.window_end,
                                                    task_config=self.task_config)
             # If file was created successfully, add to the shared list
+            if result and output_file:
+                shared_ioda_files.append(output_file)
+                logger.info(f"Appended {output_file} to shared_ioda_files")
+            return result
+        if provider == "rads":
+            platform = obs_space.split("_")[2]
+            instrument = None
+            # TODO(G): Get the window size from the config
+            window_begin = self.task_config.window_begin - timedelta(hours=72)
+            window_end = self.task_config.window_begin + timedelta(hours=72)
+            result = self.rads.process_obs_space(provider, obs_space, instrument, platform,
+                                                 obs_type="",
+                                                 output_file=output_file,
+                                                 window_begin=window_begin,
+                                                 window_end=window_end,
+                                                 task_config=self.task_config)
+
+            # If the ioda file was created successfully, add to the shared list
             if result and output_file:
                 shared_ioda_files.append(output_file)
                 logger.info(f"Appended {output_file} to shared_ioda_files")

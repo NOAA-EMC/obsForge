@@ -89,7 +89,9 @@ class BaseDatabase(SQLiteDB):
         """
         minutes_behind_realtime = {'gdas': 160, 'gfs': 20}
         params = [window_begin, window_end]
-
+        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ instrument: {instrument}")
+        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ satellite: {satellite}")
+        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ obs_type: {obs_type}")
         if instrument:
             query += " AND instrument = ?"
             params.append(instrument)
@@ -108,8 +110,6 @@ class BaseDatabase(SQLiteDB):
                 query = "SELECT receipt_time FROM obs_files WHERE filename = ?"
                 receipt_time = self.execute_query(query, (filename,))[0][0]
                 receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S.%f")
-                print("receipt time, window end:", receipt_time, window_end)
-                print("Types - receipt_time:", type(receipt_time), "window_end:", type(window_end))
                 if receipt_time <= window_end - timedelta(minutes=minutes_behind_realtime[check_receipt]):
                     continue
 
@@ -122,7 +122,6 @@ class BaseDatabase(SQLiteDB):
             for src_file in valid_files:
                 dst_file = join(dst_dir, f"{basename(src_file)}")
                 dst_files.append(dst_file)
-                logger.info(f"copying {src_file} to {dst_file}")
                 src_dst_obs_list.append([src_file, dst_file])
             FileHandler({'mkdir': [dst_dir]}).sync()
             FileHandler({'copy': src_dst_obs_list}).sync()
