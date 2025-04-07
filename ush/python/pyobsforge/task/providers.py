@@ -15,6 +15,7 @@ class QCConfig:
     bounds_max: float
     binning_stride: float
     binning_min_number_of_obs: int
+    error_ratio: float
 
     @classmethod
     def from_dict(cls, config: dict) -> "QCConfig":
@@ -23,7 +24,8 @@ class QCConfig:
             bounds_min=0.0,
             bounds_max=0.0,
             binning_stride=0.0,
-            binning_min_number_of_obs=0
+            binning_min_number_of_obs=0,
+            error_ratio=0.0
         )
 
         # Only set attributes for keys that are defined in config
@@ -35,6 +37,8 @@ class QCConfig:
             instance.binning_stride = config["stride"]
         if "min number of obs" in config:
             instance.binning_min_number_of_obs = config["min number of obs"]
+        if "error ratio" in config:
+            instance.error_ratio = config["error ratio"]
 
         return instance
 
@@ -59,20 +63,36 @@ class ProviderConfig:
 
         return cls(qc_config=qc, db=db)
 
-    def process_obs_space(self,
-                          provider: str,
-                          obs_space: str,
-                          instrument: str,
-                          platform: str,
-                          obs_type: str,
-                          output_file: str,
-                          window_begin,
-                          window_end,
-                          task_config) -> None:
+    def process_obs_space(self, **kwargs) -> None:
         """
         Process a single observation space by querying the database for valid files,
         copying them to the appropriate directory, and running the ioda converter.
+
+        Args:
+            **kwargs: Keyword arguments including:
+                provider: Provider name
+                obs_space: Observation space name
+                instrument: Instrument name
+                platform: Platform name
+                obs_type: Observation type
+                output_file: Output file path
+                window_begin: Beginning of time window
+                window_end: End of time window
+                task_config: Task configuration
+                error_ratio: Optional error ratio parameter
         """
+        # Extract parameters from kwargs
+        provider = kwargs.get('provider')
+        obs_space = kwargs.get('obs_space')
+        instrument = kwargs.get('instrument')
+        platform = kwargs.get('platform')
+        obs_type = kwargs.get('obs_type')
+        output_file = kwargs.get('output_file')
+        window_begin = kwargs.get('window_begin')
+        window_end = kwargs.get('window_end')
+        task_config = kwargs.get('task_config')
+        error_ratio = kwargs.get('error_ratio')
+
         # Query the database for valid files
         input_files = self.db.get_valid_files(window_begin=window_begin,
                                               window_end=window_end,
@@ -94,6 +114,8 @@ class ProviderConfig:
             # Only add QC config attributes if they exist
             if hasattr(self.qc_config, 'bounds_min'):
                 context['bounds_min'] = self.qc_config.bounds_min
+            if hasattr(self.qc_config, 'error_ratio'):
+                context['error_ratio'] = self.qc_config.error_ratio
             if hasattr(self.qc_config, 'bounds_max'):
                 context['bounds_max'] = self.qc_config.bounds_max
             if hasattr(self.qc_config, 'binning_stride'):

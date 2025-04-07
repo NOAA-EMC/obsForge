@@ -89,12 +89,18 @@ class MarineObsPrep(Task):
             print(f"+++++++++++ instrument: {instrument}")
             print(f"+++++++++++ platform: {platform}")
             # Process the observation space
-            result = self.ghrsst.process_obs_space(provider, obs_space, instrument, platform,
-                                                   obs_type="SSTsubskin",
-                                                   output_file=output_file,
-                                                   window_begin=self.task_config.window_begin,
-                                                   window_end=self.task_config.window_end,
-                                                   task_config=self.task_config)
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'instrument': instrument,
+                'platform': platform,
+                'obs_type': "SSTsubskin",
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.ghrsst.process_obs_space(**kwargs)
             # If file was created successfully, add to the shared list
             if result and output_file:
                 shared_ioda_files.append(output_file)
@@ -106,12 +112,18 @@ class MarineObsPrep(Task):
             # TODO(G): Get the window size from the config
             window_begin = self.task_config.window_begin - timedelta(hours=72)
             window_end = self.task_config.window_begin + timedelta(hours=72)
-            result = self.rads.process_obs_space(provider, obs_space, instrument, platform,
-                                                 obs_type="",
-                                                 output_file=output_file,
-                                                 window_begin=window_begin,
-                                                 window_end=window_end,
-                                                 task_config=self.task_config)
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'instrument': instrument,
+                'platform': platform,
+                'obs_type': "",
+                'output_file': output_file,
+                'window_begin': window_begin,
+                'window_end': window_end,
+                'task_config': self.task_config
+            }
+            result = self.rads.process_obs_space(**kwargs)
 
             # If the ioda file was created successfully, add to the shared list
             if result and output_file:

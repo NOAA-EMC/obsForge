@@ -35,7 +35,8 @@ source ush/of_setup.sh
 setup_xml.py --config config.yaml  --template obsforge_rocoto_template.xml.j2 --output obsforge.xml
 ```
 
-load rocoto
+#### Note:
+To load `rocoto` on WCOSS2:
 ```
 module use /apps/ops/test/nco/modulefiles/core
 module load rocoto

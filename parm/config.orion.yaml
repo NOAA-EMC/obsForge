@@ -54,6 +54,7 @@ marinedump:
       qc config:
         min: -2.0
         max: 3.0
+        error ratio: 1.0
 
   WALLTIME_MARINE_DUMP: '00:10:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=20:tpp=2'

@@ -1,21 +1,32 @@
 provider: {{ provider }}
 window begin: {{ window_begin | to_isotime }}
 window end: {{ window_end | to_isotime }}
+output file: {{ output_file }}
+
+# Superobing configuration
 {% if binning_stride is defined%}
 binning:
   stride: {{ binning_stride }}
   min number of obs: {{ binning_min_number_of_obs }}
 {% endif %}
+
+# Bounds for rudimentary QC
 {% if bounds_min is defined and bounds_max is defined %}
 bounds:
   min: {{ bounds_min }}
   max: {{ bounds_max }}
 {% endif %}
-output file: {{ output_file }}
+
+# Ocean basin flags
 {% if ocean_basin is defined %}
 ocean basin: {{ ocean_basin }}
 {% endif %}
 input files: {{ input_files }}
+
+# Error adjustment for re-dated observations
+{% if error_ratio is defined %}
+error_ratio: {{ error_ratio }}
+{% endif %}
 
 # Used in JRR_AOD
 {% if provider == "VIIRSAOD"%}
