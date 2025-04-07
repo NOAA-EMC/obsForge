@@ -1,13 +1,13 @@
 import os
 import glob
-from datetime import datetime, timedelta
+from datetime import datetime
 from pyobsforge.obsdb import BaseDatabase
 
 
 class GhrSstDatabase(BaseDatabase):
     """Class to manage an observation file database for data assimilation."""
 
-    def __init__(self, db_name="obs_files.db",
+    def __init__(self, db_name="ghrsst.db",
                  dcom_dir="/lfs/h1/ops/prod/dcom/",
                  obs_dir="sst"):
         base_dir = os.path.join(dcom_dir, '*', obs_dir)
@@ -78,30 +78,3 @@ class GhrSstDatabase(BaseDatabase):
                 except Exception as e:
                     print(f"Failed to insert record for {file}: {e}")
         print(f"################################ Successfully ingested {ingested_count} files into the database.")
-
-# Example Usage
-if __name__ == "__main__":
-    db = GhrSstDatabase(db_name="sst_obs.db",
-                        dcom_dir="/home/gvernier/Volumes/hera-s1/runs/realtimeobs/lfs/h1/ops/prod/dcom/",
-                        obs_dir="sst")
-
-    # Check for new files
-    db.ingest_files()
-
-    # Query files for a given DA cycle
-    da_cycle = "20250316000000"
-    window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
-    window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-
-    valid_files = db.get_valid_files(window_begin=window_begin,
-                                     window_end=window_end,
-                                     instrument="VIIRS",
-                                     satellite="NPP",
-                                     obs_type="SSTsubskin")
-
-    print(f"Found {len(valid_files)} valid files for DA cycle {da_cycle}")
-    for valid_file in valid_files:
-        if os.path.exists(valid_file):
-            print(f"Valid file: {valid_file}")
-        else:
-            print(f"File does not exist: {valid_file}")

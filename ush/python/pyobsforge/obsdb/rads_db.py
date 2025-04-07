@@ -7,7 +7,7 @@ from pyobsforge.obsdb import BaseDatabase
 class RADSDatabase(BaseDatabase):
     """Class to manage an observation file database for data assimilation."""
 
-    def __init__(self, db_name="obs_files.db",
+    def __init__(self, db_name="rads.db",
                  dcom_dir="/lfs/h1/ops/prod/dcom/",
                  obs_dir="sst"):
         base_dir = os.path.join(dcom_dir, '*', obs_dir)
