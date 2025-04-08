@@ -27,8 +27,6 @@ cd build
 ctest -R test_obsforge_util
 ```
 
-
-
 # Workflow usage
 ```console
 source ush/of_setup.sh

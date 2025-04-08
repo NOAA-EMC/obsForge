@@ -1,5 +1,5 @@
 obsforge:
-  PSLOT: realtimeobs_testing
+  PSLOT: obsforge
   HOMEobsforge: /work/noaa/da/gvernier/runs/obsForge
   SDATE: 202503141800
   EDATE: 202503150000
@@ -27,20 +27,20 @@ marinedump:
   providers:
     ghrsst:
       list:
-        #- sst_viirs_n21_l3u
-        #- sst_viirs_n20_l3u
-        #- sst_viirs_npp_l3u
-        #- sst_avhrrf_ma_l3u
-        #- sst_avhrrf_mb_l3u
+        - sst_viirs_n21_l3u
+        - sst_viirs_n20_l3u
+        - sst_viirs_npp_l3u
+        - sst_avhrrf_ma_l3u
+        - sst_avhrrf_mb_l3u
         - sst_avhrrf_mc_l3u
-        #- sst_ahi_h08_l3c
-        #- sst_abi_g17_l3c
-        #- sst_abi_g16_l3c
+        - sst_ahi_h08_l3c
+        - sst_abi_g17_l3c
+        - sst_abi_g16_l3c
       qc config:
         min: -2.0
         max: 45.0
-        stride: 15
-        min number of obs: 10
+        stride: 40 #15
+        min number of obs: 1  #10
     rads:
       list:
         - rads_adt_3a

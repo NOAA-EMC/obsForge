@@ -7,6 +7,8 @@ from pyobsforge.task.providers import ProviderConfig
 from multiprocessing import Process, Manager
 from os.path import join
 from datetime import timedelta
+import glob
+from os.path import basename
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -37,6 +39,8 @@ class MarineObsPrep(Task):
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
 
         # Initialize the list of processed ioda files
+        # TODO: Does not work. This should be a list of gathered ioda files that are created
+        #       across all processes
         self.ioda_files = []
 
     @logit(logger)
@@ -81,13 +85,13 @@ class MarineObsPrep(Task):
                           obs_space: str,
                           shared_ioda_files) -> None:
         output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
-        print(f"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& output_file: {output_file}")
+
+        # Process GHRSST
         if provider == "ghrsst":
             parts = obs_space.split("_")
             instrument = parts[1].upper()
             platform = parts[2].upper()
-            print(f"+++++++++++ instrument: {instrument}")
-            print(f"+++++++++++ platform: {platform}")
+
             # Process the observation space
             kwargs = {
                 'provider': provider,
@@ -101,11 +105,9 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.ghrsst.process_obs_space(**kwargs)
-            # If file was created successfully, add to the shared list
-            if result and output_file:
-                shared_ioda_files.append(output_file)
-                logger.info(f"Appended {output_file} to shared_ioda_files")
             return result
+
+        # Process RADS
         if provider == "rads":
             platform = obs_space.split("_")[2]
             instrument = None
@@ -124,11 +126,6 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.rads.process_obs_space(**kwargs)
-
-            # If the ioda file was created successfully, add to the shared list
-            if result and output_file:
-                shared_ioda_files.append(output_file)
-                logger.info(f"Appended {output_file} to shared_ioda_files")
             return result
         else:
             logger.error(f"Provider {provider} not supported")
@@ -139,20 +136,32 @@ class MarineObsPrep(Task):
         """
         # Copy the processed ioda files to the destination directory
         logger.info("Copying ioda files to destination COMROOT directory")
-        logger.info(f"COMROOT: {self.task_config['COMROOT']}")
-        logger.info(f"DATA: {self.task_config['DATA']}")
-        logger.info(f"GHRSST ioda files: {self.ioda_files}")
+        yyyymmdd = self.task_config['PDY'].strftime('%Y%m%d')
+
+        comout = join(self.task_config['COMROOT'],
+                      self.task_config['PSLOT'],
+                      f"{self.task_config['RUN']}.{yyyymmdd}",
+                      f"{self.task_config['cyc']:02d}",
+                      'ocean')
+
+        # Loop through the observation types
+        obs_types = ['sst', 'adt', 'icec', 'sss']
         src_dst_obs_list = []  # list of [src_file, dst_file]
-        for ioda_file in self.ioda_files:
-            src_file = join(self.task_config['DATA'], ioda_file)
-            dst_file = join(self.task_config['COMROOT'], ioda_file)
-            src_dst_obs_list.append([src_file, dst_file])
+        for obs_type in obs_types:
+            # Create the destination directory
+            comout_tmp = join(comout, obs_type)
+            FileHandler({'mkdir': [comout_tmp]}).sync()
+
+            # Glob the ioda files
+            ioda_files = glob.glob(join(self.task_config['DATA'],
+                                        f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
+            for ioda_file in ioda_files:
+                logger.info(f"ioda_file: {ioda_file}")
+                src_file = ioda_file
+                dst_file = join(comout_tmp, basename(ioda_file))
+                src_dst_obs_list.append([src_file, dst_file])
 
         logger.info("Copying ioda files to destination COMROOT directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
-        yyyymmdd = self.task_config['PDY'].strftime('%Y%m%d')
-        comout = join(self.task_config['COMROOT'],
-                      f"{self.task_config['RUN']}.{yyyymmdd}{self.task_config['cyc']:02d}")
-        FileHandler({'mkdir': [comout]}).sync()
         FileHandler({'copy': src_dst_obs_list}).sync()
