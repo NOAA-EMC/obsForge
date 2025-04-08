@@ -79,7 +79,6 @@ class ProviderConfig:
                 window_begin: Beginning of time window
                 window_end: End of time window
                 task_config: Task configuration
-                error_ratio: Optional error ratio parameter
         """
         # Extract parameters from kwargs
         provider = kwargs.get('provider')
@@ -91,7 +90,6 @@ class ProviderConfig:
         window_begin = kwargs.get('window_begin')
         window_end = kwargs.get('window_end')
         task_config = kwargs.get('task_config')
-        error_ratio = kwargs.get('error_ratio')
 
         # Query the database for valid files
         input_files = self.db.get_valid_files(window_begin=window_begin,
