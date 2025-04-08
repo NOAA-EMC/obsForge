@@ -89,9 +89,7 @@ class BaseDatabase(SQLiteDB):
         """
         minutes_behind_realtime = {'gdas': 160, 'gfs': 20}
         params = [window_begin, window_end]
-        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ instrument: {instrument}")
-        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ satellite: {satellite}")
-        print(f" ~~~~~~~~~~~~~~~~~~~~~~~~~~ obs_type: {obs_type}")
+
         if instrument:
             query += " AND instrument = ?"
             params.append(instrument)

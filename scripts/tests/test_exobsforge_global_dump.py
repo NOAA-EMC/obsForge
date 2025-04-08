@@ -63,7 +63,7 @@ def test_run_exobsforge_script(script_env):
     # List of scripts to run
     scripts = [
         "exobsforge_global_marine_dump.py",
-        #"exobsforge_global_aod_dump.py"
+        "exobsforge_global_aod_dump.py"
     ]
 
     for script_name in scripts:

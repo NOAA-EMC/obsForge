@@ -39,8 +39,8 @@ marinedump:
       qc config:
         min: -2.0
         max: 45.0
-        stride: 40 #15
-        min number of obs: 1  #10
+        stride: 15
+        min number of obs: 10
     rads:
       list:
         - rads_adt_3a
