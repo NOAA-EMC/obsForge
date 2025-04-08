@@ -42,6 +42,7 @@ class QCConfig:
 
         return instance
 
+
 class ProviderConfig:
     def __init__(self, qc_config: QCConfig, db: Any):  # Replace `Any` with a more specific type if desired
         self.qc_config = qc_config

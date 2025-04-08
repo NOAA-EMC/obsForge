@@ -41,7 +41,7 @@ class RADSDatabase(BaseDatabase):
 
     def parse_filename(self, filename):
         """Extract metadata from filenames matching the expected pattern."""
-        parts = os.path.basename(filename).replace('.','_').split('_')
+        parts = os.path.basename(filename).replace('.', '_').split('_')
         if len(parts) == 5 and parts[0] == 'rads' and parts[1] == 'adt' and parts[3].isdigit():
             obs_time = datetime.strptime(parts[3], "%Y%j") + timedelta(hours=12)
             satellite = parts[2]
