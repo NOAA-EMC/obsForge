@@ -1,11 +1,11 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /work/noaa/da/gvernier/runs/obsForge
+  HOMEobsforge: /work2/noaa/da/mchoi3/temp/obsForge
   SDATE: 202503141800
   EDATE: 202503150000
-  COMROOT: /work/noaa/da/gvernier/runs/test_obsforge/COMROOT
+  COMROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/COMROOT
   DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
-  DATAROOT: /work/noaa/da/gvernier/runs/test_obsforge/RUNDIRS
+  DATAROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
@@ -55,7 +55,7 @@ marinedump:
         min: -2.0
         max: 3.0
         error ratio: 1.0
-    rads:
+    amsr2:
       list:
         - AMSR2-SEAICE-NH
         - AMSR2-SEAICE-SH
