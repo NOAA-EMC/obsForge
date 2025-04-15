@@ -37,6 +37,7 @@ class MarineObsPrep(Task):
         # Initialize the Providers
         self.ghrsst = ProviderConfig.from_task_config("ghrsst", self.task_config)
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
+        self.amsr2 = ProviderConfig.from_task_config("amsr2", self.task_config)
 
         # Initialize the list of processed ioda files
         # TODO: Does not work. This should be a list of gathered ioda files that are created
@@ -50,6 +51,7 @@ class MarineObsPrep(Task):
         # Update the database with new files
         self.ghrsst.db.ingest_files()
         self.rads.db.ingest_files()
+        self.amsr2.db.ingest_files()
 
     @logit(logger)
     def execute(self) -> None:
@@ -126,6 +128,27 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.rads.process_obs_space(**kwargs)
+            return result
+
+        # Process AMSR2
+        if provider == "amsr2":
+            parts = obs_space.split("_")
+            instrument = parts[1].upper()
+            platform = parts[2].upper()
+
+            # Process the observation space
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'instrument': instrument,
+                'platform': platform,
+                'obs_type': "SEAICE",
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.amsr2.process_obs_space(**kwargs)
             return result
         else:
             logger.error(f"Provider {provider} not supported")

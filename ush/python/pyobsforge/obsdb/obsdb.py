@@ -107,7 +107,10 @@ class BaseDatabase(SQLiteDB):
             if check_receipt in ["gdas", "gfs"]:
                 query = "SELECT receipt_time FROM obs_files WHERE filename = ?"
                 receipt_time = self.execute_query(query, (filename,))[0][0]
-                receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S.%f")
+                try:
+                    receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S.%f")
+                except ValueError:
+                    receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S")  # Try parsing without microseconds if it fails
                 if receipt_time <= window_end - timedelta(minutes=minutes_behind_realtime[check_receipt]):
                     continue
 
