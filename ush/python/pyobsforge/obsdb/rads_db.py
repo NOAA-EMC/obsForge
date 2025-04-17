@@ -9,7 +9,7 @@ class RADSDatabase(BaseDatabase):
 
     def __init__(self, db_name="rads.db",
                  dcom_dir="/lfs/h1/ops/prod/dcom/",
-                 obs_dir="sst"):
+                 obs_dir="wgrdbul/adt"):
         base_dir = os.path.join(dcom_dir, '*', obs_dir)
         super().__init__(db_name, base_dir)
 
