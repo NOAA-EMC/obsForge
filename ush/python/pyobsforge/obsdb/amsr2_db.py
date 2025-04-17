@@ -39,16 +39,6 @@ class Amsr2Database(BaseDatabase):
         """
         self.execute_query(query)
 
-#    def parse_filename(self, filename):
-#        """Extract metadata from AMSR2 SEAICE filenames."""
-#        # Pattern: AMSR2-SEAICE-NH_v2r2_GW1_s202503160338250_e202503160514230_c202503160545510.nc
-#        basename = os.path.basename(filename)
-#        parts = basename.split('_')
-#        try:
-#            if len(parts) >= 4 and parts[0] == "AMSR2-SEAICE-?H":
-#                satellite = parts[2]
-#                obs_time = datetime.strptime(parts[3][1:13], "%Y%m%d%H%M")
-#                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
     def parse_filename(self, filename):
         basename = os.path.basename(filename)
         parts = basename.split('_')
