@@ -43,10 +43,16 @@ class Amsr2Database(BaseDatabase):
         basename = os.path.basename(filename)
         parts = basename.split('_')
         try:
-            if len(parts) >= 5 and parts[0].startswith("AMSR2-SEAICE"):
-                satellite = parts[2]  # e.g., "GW1"
-                obs_time = datetime.strptime(parts[3][1:15], "%Y%m%d%H%M%S")  # e.g., s202503160653240
-                receipt_time_str = parts[5][1:15]  # e.g., c202503160902250
+            if len(parts) >= 6 and parts[0].startswith("AMSR2-SEAICE"):
+                satellite = parts[2]  # "GW1"
+                obs_time_str = parts[3][1:15]  # s202503160653240
+                receipt_time_str = parts[5][1:15]  # c202503160902250
+                # obs_type = parts[0].split('-')[2]  # "SH", "NH"
+                if len(obs_time_str) == 15:
+                    obs_time = datetime.strptime(obs_time_str, "%Y%m%d%H%M%S%f")
+                else:
+                    obs_time = datetime.strptime(obs_time_str, "%Y%m%d%H%M%S")
+
 
                 if len(receipt_time_str) == 14:
                     receipt_time_str += "000000"  # add microseconds if missing
@@ -62,6 +68,7 @@ class Amsr2Database(BaseDatabase):
         """Scan the directory for new observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
         print(f"Found {len(obs_files)} new files to ingest")
+        print(f"[DEBUG] Files found: {obs_files}")
 
         # Counter for successful ingestions
         ingested_count = 0

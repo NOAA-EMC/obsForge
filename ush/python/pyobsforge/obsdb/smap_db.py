@@ -39,33 +39,15 @@ class SmapDatabase(BaseDatabase):
         """
         self.execute_query(query)
 
-#    def parse_filename(self, filename):
-        # pattern: SMAP_L2B_SSS_NRT_54047_A_20250315T011742.h5
-#        basename = os.path.basename(filename)
-#        parts = basename.split('_')
-#        try:
-#            if basename.startswith("SMAP_L2B_SSSi_NRT"):
-#                satellite = "SMAP"
-#                datetime_part = parts[-1].split('.')[0]  # Get '20250315T011742' without '.h5'
-#                obs_time = datetime.strptime(datetime_part, "%Y%m%dT%H%M%S")
-
-                # Use file creation time
-#                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
-
-#                return filename, obs_time, receipt_time, satellite
-#        except ValueError as e:
-#            print(f"[DEBUG] Error parsing filename {filename}: {e}")
-#            return None
     def parse_filename(self, filename):
+        # patten: SMAP_L2B_SSS_NRT_54047_A_20250315T011742.h5
         basename = os.path.basename(filename)
         parts = basename.split('_')
         try:
             if basename.startswith("SMAP_L2B_SSS_NRT") and len(parts) >= 7:
                 satellite = "SMAP"
-                timestamp_with_ext = parts[6]  # e.g., "20250316T001612.h5"
-                timestamp_str = os.path.splitext(timestamp_with_ext)[0]  # remove .h5
-#                obs_time_dt = datetime.strptime(timestamp_str, "%Y%m%dT%H%M%S")
-#                obs_time = obs_time_dt.strftime("%Y%m%d%H%M%S")
+                timestamp_with_ext = parts[6]
+                timestamp_str = os.path.splitext(timestamp_with_ext)[0]
                 obs_time = datetime.strptime(timestamp_str, "%Y%m%dT%H%M%S")
                 receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
                 return filename, obs_time, receipt_time, satellite

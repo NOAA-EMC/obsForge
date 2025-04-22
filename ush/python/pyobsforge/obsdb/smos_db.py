@@ -40,12 +40,13 @@ class SmosDatabase(BaseDatabase):
         self.execute_query(query)
 
     def parse_filename(self, filename):
+        # patten: SM_OPER_MIR_OSUDP2_20250315T001156_20250315T010515_700_001_1.nc
         basename = os.path.basename(filename)
         parts = basename.split('_')
         try:
             if basename.startswith("SM_OPER_MIR_OSUDP") and len(parts) >= 6:
                 satellite = "SMOS"
-                start_time_str = parts[4]  # e.g., "20250316T002309"
+                start_time_str = parts[4]
                 obs_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
                 receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
                 return filename, obs_time, receipt_time, satellite

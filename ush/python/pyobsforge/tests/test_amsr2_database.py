@@ -22,13 +22,37 @@ def temp_obs_dir():
 
     # Create mock NetCDF files
     filenames = [
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503160020240_e202503160159220_c202503160230450.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503160159240_e202503160338230_c202503160410050.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503160338250_e202503160514230_c202503160545510.nc",
         "AMSR2-SEAICE-NH_v2r2_GW1_s202503160514240_e202503160653220_c202503160725420.nc",
         "AMSR2-SEAICE-NH_v2r2_GW1_s202503160653240_e202503160829230_c202503160902250.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503160829250_e202503161008230_c202503161121060.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503161008240_e202503161147220_c202503161300120.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503161147230_e202503161326230_c202503161357200.nc",
         "AMSR2-SEAICE-NH_v2r2_GW1_s202503161326240_e202503161502220_c202503161540340.nc",
-        "invalid_file.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503161502240_e202503161641220_c202503161715510.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503161641230_e202503161820230_c202503161856520.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503161820240_e202503162002220_c202503162039030.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503162002240_e202503162144230_c202503162217280.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503162144250_e202503162323220_c202503162358480.nc",
+        "AMSR2-SEAICE-NH_v2r2_GW1_s202503162323240_e202503170102220_c202503170137120.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503160020240_e202503160159220_c202503160230450.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503160159240_e202503160338230_c202503160410050.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503160338250_e202503160514230_c202503160545510.nc",
         "AMSR2-SEAICE-SH_v2r2_GW1_s202503160514240_e202503160653220_c202503160725420.nc",
         "AMSR2-SEAICE-SH_v2r2_GW1_s202503160653240_e202503160829230_c202503160902250.nc",
-        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161326240_e202503161502220_c202503161540340.nc"
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503160829250_e202503161008230_c202503161121060.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161008240_e202503161147220_c202503161300120.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161147230_e202503161326230_c202503161357200.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161326240_e202503161502220_c202503161540340.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161502240_e202503161641220_c202503161715510.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161641230_e202503161820230_c202503161856520.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503161820240_e202503162002220_c202503162039030.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503162002240_e202503162144230_c202503162217280.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503162144250_e202503162323220_c202503162358480.nc",
+        "AMSR2-SEAICE-SH_v2r2_GW1_s202503162323240_e202503170102220_c202503170137120.nc",
+        "invalid_file.nc"
     ]
     for fname in filenames:
         fname_tmp = os.path.join(sub_dir, fname)
@@ -88,7 +112,7 @@ def test_ingest_files(db):
     cursor.execute("SELECT COUNT(*) FROM obs_files")
     count = cursor.fetchone()[0]
     conn.close()
-    assert count == 6, "Should ingest 3 valid AMSR2 files"
+    assert count == 30, "Should ingest 8 valid AMSR2 files"
 
 
 def test_get_valid_files(db):
@@ -97,7 +121,7 @@ def test_get_valid_files(db):
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
     dst_dir = 'seaice'
-    # Test for AVHRRF_MB
+    # Test for AMSR2 ICEC
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
@@ -109,7 +133,7 @@ def test_get_valid_files(db):
     assert any("202503160514" in f for f in valid_files)
     assert any("202503160653" in f for f in valid_files)
     assert all("202503161326" not in f for f in valid_files)
-    assert len(valid_files) == 4
+    assert len(valid_files) == 8
 
 
 def test_get_valid_files_receipt(db):
@@ -119,7 +143,7 @@ def test_get_valid_files_receipt(db):
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
     dst_dir = 'seaice'
 
-    # Test for AVHRRF_MB
+    # Test for AMSR2 ICEC
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
@@ -128,5 +152,9 @@ def test_get_valid_files_receipt(db):
      #                                obs_type="SEAICE",
                                      check_receipt='gfs')
 
+    print("Valid files found:", len(valid_files))
+    for f in valid_files:
+        print(" -", f)
+
     # TODO (G): Giving up for now on trying to mock the receipt time, will revisit later
-    assert len(valid_files) == 2
+    assert len(valid_files) == 4

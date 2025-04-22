@@ -93,7 +93,6 @@ def test_parse_valid_filename(db):
     assert parsed[0] == fname
     assert parsed[1] == datetime(2025, 3, 16, 6, 13, 18)  # Start time
     assert parsed[2] == creation_time
-    # assert parsed[2] == datetime(2025, 3, 16, 9, 2, 25)
     assert parsed[3] == "SMOS"   
 
 
@@ -118,7 +117,7 @@ def test_get_valid_files(db):
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
     dst_dir = 'sss'
-    # Test for AVHRRF_MB
+    # Test for SMOS SSS
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
@@ -126,7 +125,7 @@ def test_get_valid_files(db):
 
     print("Valid files in window:", valid_files)
 
-    # Files at 10:00 and 12:00 are within +/- 3h of 00:00
+    # Files at 03:00 and 09:00 are within +/- 3h of 06:00
     assert any("20250316T0523" in f for f in valid_files)
     assert any("20250316T0613" in f for f in valid_files)
     assert all("20250316T1023" not in f for f in valid_files)
@@ -140,7 +139,7 @@ def test_get_valid_files_receipt(db):
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
     dst_dir = 'sss'
 
-    # Test for AVHRRF_MB
+    # Test for SMOS SSS
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,

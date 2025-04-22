@@ -141,7 +141,7 @@ class MarineObsPrep(Task):
                 'obs_space': obs_space,
                 # AMSR2 does not need 'instrument' in the database query 'instrument': instrument,
                 'platform': f"{platform}_{hemisphere}",  # e.g., "GW1_NH"
-                'obs_type': "seaice",
+                # 'obs_type': "seaice",
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
