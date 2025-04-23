@@ -93,9 +93,8 @@ def test_parse_valid_filename(db):
     assert parsed[0] == fname
     assert parsed[1] == datetime(2025, 3, 16, 6, 13, 18)  # Start time
     assert parsed[2] == creation_time
-    assert parsed[3] == "SMOS"   
-
-
+    assert parsed[3] == "SMOS"
+    
 def test_parse_invalid_filename(db):
     assert db.parse_filename("junk.nc") is None
     assert db.parse_filename("SM_OPER_MIR_OSUDP2_invalid.nc") is None
