@@ -134,7 +134,6 @@ class MarineObsPrep(Task):
         if provider == "amsr2":
             parts = obs_space.split("_")
             platform = parts[1].upper()
-            hemisphere = parts[2].upper()
             kwargs = {
                 'provider': provider,
                 'obs_space': obs_space,
