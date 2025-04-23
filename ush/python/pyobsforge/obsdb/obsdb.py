@@ -30,7 +30,7 @@ class BaseDatabase(SQLiteDB):
         """Return the database connection."""
         return self.connection
 
-    def parse_filename(self, filename):
+    def parse_filename(self):
         """Parse a filename and extract relevant metadata. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement parse_filename method")
 
@@ -63,14 +63,26 @@ class BaseDatabase(SQLiteDB):
                         window_begin: datetime,
                         window_end: datetime,
                         dst_dir: str,
-                        satellite: str = None,
                         instrument: str = None,
+                        satellite: str = None,
                         obs_type: str = None,
                         check_receipt: str = "none") -> list:
         """
-        Retrieve and copy to dst_dir a list of valid observation files within a specified time window.
-        Optionally filter by satellite, instrument, obs_type, and receipt time.
+        Retrieve and copy to dst_dir a list of observation files within a specified time window, possibly filtered by instrument,
+        satellite, and observation type. The check_receipt parameter can be 'gdas', 'gfs', or 'none'. If 'gdas' or
+        'gfs' is specified, files are further filtered based on their receipt time to ensure they meet the
+        required delay criteria.
+
+        :param window_begin: Start of the time window (datetime object).
+        :param window_end: End of the time window (datetime object).
+        :param dst_dir: Destination directory where valid files will be copied.
+        :param instrument: (Optional) Filter by instrument name.
+        :param satellite: (Optional) Filter by satellite name.
+        :param obs_type: (Optional) Filter by observation type.
+        :param check_receipt: (Optional) Specify receipt time check ('gdas', 'gfs', or 'none').
+        :return: List of valid observation file paths in the destination directory.
         """
+
         query = """
         SELECT filename FROM obs_files
         WHERE obs_time BETWEEN ? AND ?
@@ -78,55 +90,41 @@ class BaseDatabase(SQLiteDB):
         minutes_behind_realtime = {'gdas': 160, 'gfs': 20}
         params = [window_begin, window_end]
 
-        # Optionally filter by satellite if provided
-        if satellite:
-            query += " AND satellite = ?"
-            params.append(satellite)
-
-        # Optionally filter by instrument if available and provided
         if instrument:
             query += " AND instrument = ?"
             params.append(instrument)
-
-        # Optionally filter by obs_type if available and provided
+        if satellite:
+            query += " AND satellite = ?"
+            params.append(satellite)
         if obs_type:
             query += " AND obs_type = ?"
             params.append(obs_type)
 
-        # Execute query to get relevant files
         results = self.execute_query(query, tuple(params))
         valid_files = []
-
         for row in results:
             filename = row[0]
-
-            # Optional receipt time filtering based on check_receipt parameter
             if check_receipt in ["gdas", "gfs"]:
                 query = "SELECT receipt_time FROM obs_files WHERE filename = ?"
                 receipt_time = self.execute_query(query, (filename,))[0][0]
                 try:
                     receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S.%f")
                 except ValueError:
-                    receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S")  # Try parsing without microseconds if it fails
-
-                # Filter based on receipt time threshold
+                    receipt_time = datetime.strptime(receipt_time, "%Y-%m-%d %H:%M:%S")
                 if receipt_time <= window_end - timedelta(minutes=minutes_behind_realtime[check_receipt]):
                     continue
 
             valid_files.append(filename)
 
-        # Copy valid files to the destination directory
+        # Copy files to the destination directory
         dst_files = []
         if len(valid_files) > 0:
-            src_dst_obs_list = []  # List of [src_file, dst_file]
+            src_dst_obs_list = []  # list of [src_file, dst_file]
             for src_file in valid_files:
                 dst_file = join(dst_dir, f"{basename(src_file)}")
                 dst_files.append(dst_file)
                 src_dst_obs_list.append([src_file, dst_file])
-            
-            # Ensure the destination directory exists
             FileHandler({'mkdir': [dst_dir]}).sync()
             FileHandler({'copy': src_dst_obs_list}).sync()
 
         return dst_files
-

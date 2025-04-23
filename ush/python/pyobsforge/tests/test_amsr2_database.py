@@ -90,14 +90,14 @@ def test_parse_valid_filename(db):
     fname = "AMSR2-SEAICE-NH_v2r2_GW1_s202503160653240_e202503160829230_c202503160902250.nc"
     fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
-    creation_time = datetime.fromtimestamp(os.path.getctime(fname))
-    
+
     assert parsed is not None
     assert parsed[0] == fname
-    assert parsed[1] == datetime(2025, 3, 16, 6, 53, 24)  # Start time
-    # assert parsed[2] == creation_time
+    assert parsed[1] == datetime(2025, 3, 16, 6, 53, 24)
     assert parsed[2] == datetime(2025, 3, 16, 9, 2, 25)
-    assert parsed[3] == "GW1"   
+    assert parsed[3] == "AMSR2"
+    assert parsed[4] == "GW1"
+    assert parsed[5] == "SEAICE"
 
 
 def test_parse_invalid_filename(db):
@@ -112,7 +112,7 @@ def test_ingest_files(db):
     cursor.execute("SELECT COUNT(*) FROM obs_files")
     count = cursor.fetchone()[0]
     conn.close()
-    assert count == 30, "Should ingest 8 valid AMSR2 files"
+    assert count == 30, "Should ingest 30 valid AMSR2 files"
 
 
 def test_get_valid_files(db):
@@ -125,14 +125,19 @@ def test_get_valid_files(db):
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
-    #                                 instrument="AMSR2",
-                                     satellite="GW1") #,
-    #                                 obs_type="SEAICE")
+                                     instrument="AMSR2",
+                                     satellite="GW1",
+                                     obs_type="SEAICE")
 
     # Files at 10:00 and 12:00 are within +/- 3h of 00:00
     assert any("202503160514" in f for f in valid_files)
     assert any("202503160653" in f for f in valid_files)
     assert all("202503161326" not in f for f in valid_files)
+
+    print("Valid files found:", len(valid_files))
+    for f in valid_files:
+        print(" -", f)
+ 
     assert len(valid_files) == 8
 
 
@@ -147,9 +152,9 @@ def test_get_valid_files_receipt(db):
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
-    #                                 instrument="AMSR2",
+                                     instrument="AMSR2",
                                      satellite="GW1",
-     #                                obs_type="SEAICE",
+                                     obs_type="SEAICE",
                                      check_receipt='gfs')
 
     print("Valid files found:", len(valid_files))

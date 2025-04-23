@@ -52,8 +52,8 @@ class Amsr2Database(BaseDatabase):
                 instrument = parts[0]
                 obs_type = parts[1]
                 satellite = parts[4]
-                obs_time_str = parts[5][1:16]  # s202503140032240 to '202503140032240'
-                receipt_time_str = parts[7].split('.')[0][1:16]  # c202503140245560 to '202503140245560'
+                obs_time_str = parts[5][1:16]
+                receipt_time_str = parts[7].split('.')[0][1:16]
 
                 obs_time = datetime.strptime(obs_time_str, "%Y%m%d%H%M%S%f")
                 receipt_time = datetime.strptime(receipt_time_str, "%Y%m%d%H%M%S%f")
