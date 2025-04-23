@@ -62,7 +62,6 @@ class Amsr2Database(BaseDatabase):
             print(f"[DEBUG] Error parsing filename {filename}: {e}")
             return None
 
-
     def ingest_files(self):
         """Scan the directory for new observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))

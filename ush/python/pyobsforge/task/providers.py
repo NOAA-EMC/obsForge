@@ -98,31 +98,12 @@ class ProviderConfig:
         logger.debug(f"obs_type for provider {provider}: {obs_type}")
 
         # Query the database for valid files
-        #input_files = self.db.get_valid_files(window_begin=window_begin,
-        ##                                      window_end=window_end,
-        #                                      dst_dir=obs_space,
-        #                                      instrument=instrument,
-        #                                      satellite=platform,
-        #                                      obs_type=obs_type)
-
-        # Check if this database accepts obs_type (not all do)
-        db_accepts_obs_type = provider in ("ghrsst", "rads")  # Add more if needed
-
-        # Build kwargs dynamically
-        db_kwargs = {
-            "window_begin": window_begin,
-            "window_end": window_end,
-            "dst_dir": obs_space,
-            "instrument": instrument,
-            "satellite": platform,
-        }
-
-        if db_accepts_obs_type and obs_type is not None:
-            db_kwargs["obs_type"] = obs_type
-
-        # Now run the query
-        input_files = self.db.get_valid_files(**db_kwargs)
-
+        input_files = self.db.get_valid_files(window_begin=window_begin,
+                                              window_end=window_end,
+                                              dst_dir=obs_space,
+                                              instrument=instrument,
+                                              satellite=platform,
+                                              obs_type=obs_type)
         logger.info(f"number of valid files: {len(input_files)}")
 
         # Process the observations if the obs space is not empty

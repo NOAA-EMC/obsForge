@@ -137,7 +137,6 @@ def test_get_valid_files(db):
     print("Valid files found:", len(valid_files))
     for f in valid_files:
         print(" -", f)
- 
     assert len(valid_files) == 8
 
 
