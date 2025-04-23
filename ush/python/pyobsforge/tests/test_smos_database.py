@@ -87,7 +87,7 @@ def test_parse_valid_filename(db):
     fname = "SM_OPER_MIR_OSUDP2_20250316T061318_20250316T070637_700_001_1.nc"
     fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
-    creation_time = datetime.fromtimestamp(os.path.getctime(fname)
+    creation_time = datetime.fromtimestamp(os.path.getctime(fname))
 
     assert parsed is not None
     assert parsed[0] == fname
