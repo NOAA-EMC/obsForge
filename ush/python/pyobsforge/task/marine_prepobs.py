@@ -133,15 +133,13 @@ class MarineObsPrep(Task):
         # Process AMSR2
         if provider == "amsr2":
             parts = obs_space.split("_")
-            # instrument = "AMSR2"
-            platform = parts[1].upper()     # "GW1"
-            hemisphere = parts[2].upper()    # "NH" or "SH"
+            platform = parts[1].upper()
+            hemisphere = parts[2].upper()
             kwargs = {
                 'provider': provider,
                 'obs_space': obs_space,
-                # AMSR2 does not need 'instrument' in the database query 'instrument': instrument,
-                'platform': f"{platform}_{hemisphere}",  # e.g., "GW1_NH"
-                # 'obs_type': "seaice",
+                'platform': platform,
+                'obs_type': "seaice",
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
