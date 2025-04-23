@@ -50,7 +50,7 @@ def temp_obs_dir():
         "SMAP_L2B_SSS_NRT_54074_A_20250316T213615.h5",
         "SMAP_L2B_SSS_NRT_54074_D_20250316T213615.h5",
         "SMAP_L2B_SSS_NRT_54075_A_20250316T231442.h5"
-            ]
+    ]
     for fname in filenames:
         fname_tmp = os.path.join(sub_dir, fname)
         with open(fname_tmp, "w") as f:
@@ -88,10 +88,10 @@ def test_parse_valid_filename(db):
     fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
     creation_time = datetime.fromtimestamp(os.path.getctime(fname))
-    
+
     assert parsed is not None
     assert parsed[0] == fname
-    assert parsed[1] == datetime(2025, 3, 16, 6, 50, 4)  # Start time
+    assert parsed[1] == datetime(2025, 3, 16, 6, 50, 4)
     assert parsed[2] == creation_time
     assert parsed[3] == "SMAP"   
 

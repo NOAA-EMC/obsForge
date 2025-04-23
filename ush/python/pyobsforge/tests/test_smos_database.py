@@ -50,7 +50,7 @@ def temp_obs_dir():
         "SM_OPER_MIR_OSUDP2_20250316T211359_20250316T220719_700_001_1.nc",
         "SM_OPER_MIR_OSUDP2_20250316T220407_20250316T225721_700_001_1.nc",
         "SM_OPER_MIR_OSUDP2_20250316T225404_20250316T234724_700_001_1.nc"
-            ]
+    ]
     for fname in filenames:
         fname_tmp = os.path.join(sub_dir, fname)
         with open(fname_tmp, "w") as f:
@@ -87,8 +87,8 @@ def test_parse_valid_filename(db):
     fname = "SM_OPER_MIR_OSUDP2_20250316T061318_20250316T070637_700_001_1.nc"
     fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
-    creation_time = datetime.fromtimestamp(os.path.getctime(fname))
-    
+    creation_time = datetime.fromtimestamp(os.path.getctime(fname)
+
     assert parsed is not None
     assert parsed[0] == fname
     assert parsed[1] == datetime(2025, 3, 16, 6, 13, 18)  # Start time
