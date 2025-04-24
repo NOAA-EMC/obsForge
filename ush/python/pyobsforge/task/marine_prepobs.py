@@ -144,7 +144,7 @@ class MarineObsPrep(Task):
                 'window_end': self.task_config.window_end,
                 'task_config': self.task_config
             }
-            result = self.amsr2.process_obs_space(**kwargs)
+            result = self.nesdis_amsr2.process_obs_space(**kwargs)
             return result
         else:
             logger.error(f"Provider {provider} not supported")
