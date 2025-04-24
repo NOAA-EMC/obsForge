@@ -63,8 +63,6 @@ class NesdisAmsr2Database(BaseDatabase):
     def ingest_files(self):
         """Scan the directory for new observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
-        print(f"[INFO] Found {len(obs_files)} new files to ingest")
-        print(f"[INFO] Files found: {obs_files}")
 
         # Counter for successful ingestions
         ingested_count = 0

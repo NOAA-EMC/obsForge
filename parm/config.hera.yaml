@@ -57,7 +57,7 @@ marinedump:
         error ratio: 1.0
     nesdis_amsr2:
       list:
-        - seaice_gw1
+        - seaice_amsr2_gw1_l2
       qc config:
         min: 0.0
         max: 1.0

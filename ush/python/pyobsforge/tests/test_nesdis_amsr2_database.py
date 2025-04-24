@@ -67,7 +67,7 @@ def temp_obs_dir():
 @pytest.fixture
 def db(temp_obs_dir):
     """Initialize test database."""
-    db_path = os.path.join(temp_obs_dir, "amsr2_test.db")
+    db_path = os.path.join(temp_obs_dir, "nesdis_amsr2_test.db")
     database = NesdisAmsr2Database(
         db_name=db_path,
         dcom_dir=temp_obs_dir,
