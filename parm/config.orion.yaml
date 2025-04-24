@@ -55,7 +55,7 @@ marinedump:
         min: -2.0
         max: 3.0
         error ratio: 1.0
-    amsr2:
+    nesdis_amsr2:
       list:
         - seaice_gw1_nh
         - seaice_gw1_sh
