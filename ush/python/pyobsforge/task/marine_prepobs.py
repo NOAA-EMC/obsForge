@@ -135,10 +135,10 @@ class MarineObsPrep(Task):
             parts = obs_space.split("_")
             platform = parts[1].upper()
             kwargs = {
-                'provider': provider,
+                'provider': "amsr2",
                 'obs_space': obs_space,
                 'platform': platform,
-                'obs_type': "seaice",
+                'obs_type': "SEAICE",
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
