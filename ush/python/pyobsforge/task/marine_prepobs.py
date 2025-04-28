@@ -136,12 +136,12 @@ class MarineObsPrep(Task):
             if obs_space.startswith("icec_amsr2_"):
                 platform = "GW1"
                 instrument = "AMSR2"
-                obs_type = "SEAICE"
+                # obs_type = "SEAICE"
                 satellite = "GW1"
             else:
                 platform = parts[1].upper()
                 instrument = "AMSR2"
-                obs_type = "SEAICE"
+                # obs_type = "SEAICE"
                 satellite = "GW1"
             kwargs = {
                 'provider': "amsr2",
@@ -149,7 +149,7 @@ class MarineObsPrep(Task):
                 'platform': platform,
                 'instrument': instrument,
                 'satellite': satellite,
-                'obs_type': obs_type,
+                'obs_type': obs_space,
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
