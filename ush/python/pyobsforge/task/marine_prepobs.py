@@ -130,15 +130,26 @@ class MarineObsPrep(Task):
             result = self.rads.process_obs_space(**kwargs)
             return result
 
-        # Process AMSR2
+        # Process NESDIS_AMSR2
         if provider == "nesdis_amsr2":
             parts = obs_space.split("_")
-            platform = parts[1].upper()
+            if obs_space.startswith("icec_amsr2_"):
+                platform = "GW1"
+                instrument = "AMSR2"
+                obs_type = "SEAICE"
+                satellite = "GW1"
+            else:
+                platform = parts[1].upper()
+                instrument = "AMSR2"
+                obs_type = "SEAICE"
+                satellite = "GW1"
             kwargs = {
                 'provider': "amsr2",
                 'obs_space': obs_space,
                 'platform': platform,
-                'obs_type': "SEAICE",
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
@@ -167,13 +178,26 @@ class MarineObsPrep(Task):
         obs_types = ['sst', 'adt', 'icec', 'sss']
         src_dst_obs_list = []  # list of [src_file, dst_file]
         for obs_type in obs_types:
-            # Create the destination directory
-            comout_tmp = join(comout, obs_type)
-            FileHandler({'mkdir': [comout_tmp]}).sync()
+            if obs_type == 'icec':
+                # Special handling for icec
+                comout_tmp = join(comout, 'icec')
+                FileHandler({'mkdir': [comout_tmp]}).sync()
 
-            # Glob the ioda files
-            ioda_files = glob.glob(join(self.task_config['DATA'],
-                                        f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
+                # Find BOTH north and south files
+                ioda_files = []
+                ioda_files += glob.glob(join(self.task_config['DATA'],
+                                             f"{self.task_config['PREFIX']}*icec_amsr2_north*.nc"))
+                ioda_files += glob.glob(join(self.task_config['DATA'],
+                                             f"{self.task_config['PREFIX']}*icec_amsr2_south*.nc"))
+            else:
+                # Standard handling for other obs types
+                # Create the destination directory
+                comout_tmp = join(comout, obs_type)
+                FileHandler({'mkdir': [comout_tmp]}).sync()
+
+                # Glob the ioda files
+                ioda_files = glob.glob(join(self.task_config['DATA'],
+                                            f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
             for ioda_file in ioda_files:
                 logger.info(f"ioda_file: {ioda_file}")
                 src_file = ioda_file

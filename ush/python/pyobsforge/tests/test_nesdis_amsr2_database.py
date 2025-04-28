@@ -98,7 +98,8 @@ def test_parse_valid_filename(db):
     assert parsed[2] == creation_time
     assert parsed[3] == "AMSR2"
     assert parsed[4] == "GW1"
-    assert parsed[5] == "SEAICE"
+    # assert parsed[5] == "SEAICE"
+    assert parsed[5] == "icec_amsr2_north"
 
 
 def test_parse_invalid_filename(db):
@@ -121,14 +122,23 @@ def test_get_valid_files(db):
     da_cycle = "20250316060000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-    dst_dir = 'seaice'
+    dst_dir = 'icec'
     # Test for AMSR2 ICEC
-    valid_files = db.get_valid_files(window_begin=window_begin,
-                                     window_end=window_end,
-                                     dst_dir=dst_dir,
-                                     instrument="AMSR2",
-                                     satellite="GW1",
-                                     obs_type="SEAICE")
+    valid_files_north = db.get_valid_files(window_begin=window_begin,
+                                           window_end=window_end,
+                                           dst_dir=dst_dir,
+                                           instrument="AMSR2",
+                                           satellite="GW1",
+                                           obs_type="icec_amsr2_north")
+
+    valid_files_south = db.get_valid_files(window_begin=window_begin,
+                                           window_end=window_end,
+                                           dst_dir=dst_dir,
+                                           instrument="AMSR2",
+                                           satellite="GW1",
+                                           obs_type="icec_amsr2_south")
+
+    valid_files = valid_files_north + valid_files_south
 
     # Files at 10:00 and 12:00 are within +/- 3h of 00:00
     assert any("202503160514" in f for f in valid_files)
@@ -146,16 +156,26 @@ def test_get_valid_files_receipt(db):
     da_cycle = "20250316060000"
     window_begin = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") - timedelta(hours=3)
     window_end = datetime.strptime(da_cycle, "%Y%m%d%H%M%S") + timedelta(hours=3)
-    dst_dir = 'seaice'
+    dst_dir = 'icec'
 
     # Test for AMSR2 ICEC
-    valid_files = db.get_valid_files(window_begin=window_begin,
-                                     window_end=window_end,
-                                     dst_dir=dst_dir,
-                                     instrument="AMSR2",
-                                     satellite="GW1",
-                                     obs_type="SEAICE",
-                                     check_receipt='gfs')
+    valid_files_north = db.get_valid_files(window_begin=window_begin,
+                                           window_end=window_end,
+                                           dst_dir=dst_dir,
+                                           instrument="AMSR2",
+                                           satellite="GW1",
+                                           obs_type="icec_amsr2_north",
+                                           check_receipt='gfs')
+
+    valid_files_south = db.get_valid_files(window_begin=window_begin,
+                                           window_end=window_end,
+                                           dst_dir=dst_dir,
+                                           instrument="AMSR2",
+                                           satellite="GW1",
+                                           obs_type="icec_amsr2_south",
+                                           check_receipt='gfs')
+
+    valid_files = valid_files_north + valid_files_south
 
     print("Valid files found:", len(valid_files))
     for f in valid_files:
