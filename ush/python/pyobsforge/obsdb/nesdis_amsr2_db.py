@@ -53,10 +53,9 @@ class NesdisAmsr2Database(BaseDatabase):
                 # Extract hemisphere from the first hyphen-separated segment
                 name_parts = parts[0].split('-')
                 instrument = name_parts[0]
-                raw_obs_type = name_parts[1]
                 hemisphere = name_parts[2].lower()
 
-                 # Determine obs_type
+                # Determine obs_type
                 if hemisphere == 'nh':
                     obs_type = 'icec_amsr2_north'
                 elif hemisphere == 'sh':

@@ -149,7 +149,7 @@ class MarineObsPrep(Task):
                 'platform': platform,
                 'instrument': instrument,
                 'satellite': satellite,
-                'obs_type': obs_space,
+                'obs_type': obs_type,
                 'output_file': output_file,
                 'window_begin': self.task_config.window_begin,
                 'window_end': self.task_config.window_end,
