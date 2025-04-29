@@ -165,7 +165,7 @@ def test_get_valid_files_receipt(db):
                                            instrument="AMSR2",
                                            satellite="GW1",
                                            obs_type="icec_amsr2_north",
-                                           check_receipt='gfs')
+                                           check_receipt="gfs")
 
     valid_files_south = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
@@ -173,7 +173,7 @@ def test_get_valid_files_receipt(db):
                                            instrument="AMSR2",
                                            satellite="GW1",
                                            obs_type="icec_amsr2_south",
-                                           check_receipt='gfs')
+                                           check_receipt="gfs")
 
     valid_files = valid_files_north + valid_files_south
 

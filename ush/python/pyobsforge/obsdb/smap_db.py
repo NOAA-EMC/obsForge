@@ -34,7 +34,8 @@ class SmapDatabase(BaseDatabase):
             filename TEXT UNIQUE,
             obs_time TIMESTAMP,
             receipt_time TIMESTAMP,
-            satellite TEXT
+            satellite TEXT,
+            obs_type TEXT
         )
         """
         self.execute_query(query)
@@ -51,11 +52,12 @@ class SmapDatabase(BaseDatabase):
 
         try:
             satellite = "SMAP"
+            obs_type = "sss_smap_l2"
             timestamp_with_ext = parts[6]
             timestamp_str = os.path.splitext(timestamp_with_ext)[0]
             obs_time = datetime.strptime(timestamp_str, "%Y%m%dT%H%M%S")
             receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
-            return filename, obs_time, receipt_time, satellite
+            return filename, obs_time, receipt_time, satellite, obs_type
 
         except Exception as e:
             print(f"[DEBUG] Error parsing filename {filename}: {e}")
@@ -73,8 +75,8 @@ class SmapDatabase(BaseDatabase):
             parsed_data = self.parse_filename(file)
             if parsed_data:
                 query = """
-                    INSERT INTO obs_files (filename, obs_time, receipt_time, satellite)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO obs_files (filename, obs_time, receipt_time, satellite, obs_type)
+                    VALUES (?, ?, ?, ?, ?)
                 """
                 try:
                     self.insert_record(query, parsed_data)

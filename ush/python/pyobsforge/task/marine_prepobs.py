@@ -38,6 +38,8 @@ class MarineObsPrep(Task):
         self.ghrsst = ProviderConfig.from_task_config("ghrsst", self.task_config)
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
         self.nesdis_amsr2 = ProviderConfig.from_task_config("nesdis_amsr2", self.task_config)
+        self.smap = ProviderConfig.from_task_config("smap", self.task_config)
+        self.smos = ProviderConfig.from_task_config("smos", self.task_config)
 
         # Initialize the list of processed ioda files
         # TODO: Does not work. This should be a list of gathered ioda files that are created
@@ -52,6 +54,8 @@ class MarineObsPrep(Task):
         self.ghrsst.db.ingest_files()
         self.rads.db.ingest_files()
         self.nesdis_amsr2.db.ingest_files()
+        self.smap.db.ingest_files()
+        self.smos.db.ingest_files()
 
     @logit(logger)
     def execute(self) -> None:
@@ -132,17 +136,10 @@ class MarineObsPrep(Task):
 
         # Process NESDIS_AMSR2
         if provider == "nesdis_amsr2":
-            parts = obs_space.split("_")
-            if obs_space.startswith("icec_amsr2_"):
-                platform = "GW1"
-                instrument = "AMSR2"
-                # obs_type = "SEAICE"
-                satellite = "GW1"
-            else:
-                platform = parts[1].upper()
-                instrument = "AMSR2"
-                # obs_type = "SEAICE"
-                satellite = "GW1"
+            # Only handling "icec_amsr2_" cases
+            platform = "GW1"
+            instrument = "AMSR2"
+            satellite = "GW1"
             kwargs = {
                 'provider': "amsr2",
                 'obs_space': obs_space,
@@ -156,6 +153,46 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.nesdis_amsr2.process_obs_space(**kwargs)
+            return result
+
+        # Process SMAP
+        if provider == "smap":
+            platform = None
+            satellite = "SMAP"
+            instrument = None
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.smap.process_obs_space(**kwargs)
+            return result
+
+        # Process SMOS SSS
+        if provider == "smos":
+            platform = None
+            satellite = "SMOS"
+            instrument = None
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.smos.process_obs_space(**kwargs)
             return result
         else:
             logger.error(f"Provider {provider} not supported")
@@ -178,26 +215,13 @@ class MarineObsPrep(Task):
         obs_types = ['sst', 'adt', 'icec', 'sss']
         src_dst_obs_list = []  # list of [src_file, dst_file]
         for obs_type in obs_types:
-            if obs_type == 'icec':
-                # Special handling for icec
-                comout_tmp = join(comout, 'icec')
-                FileHandler({'mkdir': [comout_tmp]}).sync()
+            # Create the destination directory
+            comout_tmp = join(comout, obs_type)
+            FileHandler({'mkdir': [comout_tmp]}).sync()
 
-                # Find BOTH north and south files
-                ioda_files = []
-                ioda_files += glob.glob(join(self.task_config['DATA'],
-                                             f"{self.task_config['PREFIX']}*icec_amsr2_north*.nc"))
-                ioda_files += glob.glob(join(self.task_config['DATA'],
-                                             f"{self.task_config['PREFIX']}*icec_amsr2_south*.nc"))
-            else:
-                # Standard handling for other obs types
-                # Create the destination directory
-                comout_tmp = join(comout, obs_type)
-                FileHandler({'mkdir': [comout_tmp]}).sync()
-
-                # Glob the ioda files
-                ioda_files = glob.glob(join(self.task_config['DATA'],
-                                            f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
+            # Glob the ioda files
+            ioda_files = glob.glob(join(self.task_config['DATA'],
+                                        f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
             for ioda_file in ioda_files:
                 logger.info(f"ioda_file: {ioda_file}")
                 src_file = ioda_file

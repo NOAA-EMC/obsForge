@@ -64,7 +64,13 @@ marinedump:
         max: 1.0
     smap:
       list:
-        - sss_smap
+        - sss_smap_l2
+      qc config:
+        min: 0.1
+        max: 40.0
+    smos:
+      list:
+        - sss_smos_l2
       qc config:
         min: 0.1
         max: 40.0

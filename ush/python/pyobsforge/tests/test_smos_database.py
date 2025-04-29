@@ -94,6 +94,7 @@ def test_parse_valid_filename(db):
     assert parsed[1] == datetime(2025, 3, 16, 6, 13, 18)  # Start time
     assert parsed[2] == creation_time
     assert parsed[3] == "SMOS"
+    assert parsed[4] == "sss_smos_l2"
 
 
 def test_parse_invalid_filename(db):
@@ -121,6 +122,7 @@ def test_get_valid_files(db):
     valid_files = db.get_valid_files(window_begin=window_begin,
                                      window_end=window_end,
                                      dst_dir=dst_dir,
+                                     obs_type="sss_smos_l2",
                                      satellite="SMOS")
 
     print("Valid files in window:", valid_files)
@@ -144,6 +146,7 @@ def test_get_valid_files_receipt(db):
                                      window_end=window_end,
                                      dst_dir=dst_dir,
                                      satellite="SMOS",
+                                     obs_type="sss_smos_l2",
                                      check_receipt='gfs')
 
     # TODO (G): Giving up for now on trying to mock the receipt time, will revisit later

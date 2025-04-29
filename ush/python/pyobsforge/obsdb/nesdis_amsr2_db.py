@@ -61,10 +61,10 @@ class NesdisAmsr2Database(BaseDatabase):
             hemisphere = name_parts[2].lower()
 
             # Determine obs_type
-            if hemisphere == 'nh':
-                obs_type = 'icec_amsr2_north'
-            elif hemisphere == 'sh':
-                obs_type = 'icec_amsr2_south'
+            if hemisphere == "nh":
+                obs_type = "icec_amsr2_north"
+            elif hemisphere == "sh":
+                obs_type = "icec_amsr2_south"
             else:
                 print(f"[DEBUG] Unrecognized hemisphere in filename: {filename}")
                 return None

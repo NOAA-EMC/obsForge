@@ -2,6 +2,8 @@ from logging import getLogger
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from pyobsforge.obsdb.rads_db import RADSDatabase
 from pyobsforge.obsdb.nesdis_amsr2_db import NesdisAmsr2Database
+from pyobsforge.obsdb.smap_db import SmapDatabase
+from pyobsforge.obsdb.smos_db import SmosDatabase
 from typing import Any
 from dataclasses import dataclass
 from wxflow import AttrDict
@@ -62,6 +64,10 @@ class ProviderConfig:
             db = RADSDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wgrdbul/adt")
         elif provider_name == "nesdis_amsr2":
             db = NesdisAmsr2Database(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="seaice/pda")
+        elif provider_name == "smap":
+            db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMAP")
+        elif provider_name == "smos":
+            db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMOS")
         else:
             raise NotImplementedError(f"DB setup for provider {provider_name} not yet implemented")
 
