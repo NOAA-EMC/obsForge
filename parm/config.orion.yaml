@@ -15,7 +15,7 @@ obsforge:
 
 aoddump:
   provider: VIIRSAOD
-  platforms: ['npp', 'n20', 'n21']
+  platforms: ['npp', 'j01', 'n21']
   thinning_threshold: 0
   channel: 4
   preqc: 2
