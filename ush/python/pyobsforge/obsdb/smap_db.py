@@ -61,24 +61,6 @@ class SmapDatabase(BaseDatabase):
             print(f"[DEBUG] Error parsing filename {filename}: {e}")
             return None
 
-
-    def parse_filename(self, filename):
-        # patten: SMAP_L2B_SSS_NRT_54047_A_20250315T011742.h5
-        basename = os.path.basename(filename)
-        parts = basename.split('_')
-        try:
-            if basename.startswith("SMAP_L2B_SSS_NRT") and len(parts) >= 7:
-                satellite = "SMAP"
-                timestamp_with_ext = parts[6]
-                timestamp_str = os.path.splitext(timestamp_with_ext)[0]
-                obs_time = datetime.strptime(timestamp_str, "%Y%m%dT%H%M%S")
-                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
-                return filename, obs_time, receipt_time, satellite
-
-        except ValueError as e:
-            print(f"[DEBUG] Error parsing filename {filename}: {e}")
-            return None
-
     def ingest_files(self):
         """Scan the directory for new observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.h5"))
