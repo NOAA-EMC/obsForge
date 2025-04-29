@@ -62,6 +62,12 @@ marinedump:
       qc config:
         min: 0.0
         max: 1.0
+    smap:
+      list:
+        - sss_smap
+      qc config:
+        min: 0.1
+        max: 40.0
 
   WALLTIME_MARINE_DUMP: '00:10:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=20:tpp=2'

@@ -40,18 +40,24 @@ class SmosDatabase(BaseDatabase):
         self.execute_query(query)
 
     def parse_filename(self, filename):
-        # patten: SM_OPER_MIR_OSUDP2_20250315T001156_20250315T010515_700_001_1.nc
+        # Extract metadata from filenames matching the SMOS OSUDP2 pattern.
+        # Pattern: SM_OPER_MIR_OSUDP2_20250315T001156_20250315T010515_700_001_1.nc
         basename = os.path.basename(filename)
         parts = basename.split('_')
-        try:
-            if basename.startswith("SM_OPER_MIR_OSUDP") and len(parts) >= 6:
-                satellite = "SMOS"
-                start_time_str = parts[4]
-                obs_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
-                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
-                return filename, obs_time, receipt_time, satellite
 
-        except ValueError as e:
+        # Pre-check: Must match expected prefix and structure
+        if not basename.startswith("SM_OPER_MIR_OSUDP") or len(parts) < 6:
+            print(f"[DEBUG] Skipping non-SMOS OSUDP2 file: {filename}")
+            return None
+
+        try:
+            satellite = "SMOS"
+            start_time_str = parts[4]
+            obs_time = datetime.strptime(start_time_str, "%Y%m%dT%H%M%S")
+            receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+            return filename, obs_time, receipt_time, satellite
+
+        except Exception as e:
             print(f"[DEBUG] Error parsing filename {filename}: {e}")
             return None
 

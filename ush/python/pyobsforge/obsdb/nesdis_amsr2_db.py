@@ -44,31 +44,36 @@ class NesdisAmsr2Database(BaseDatabase):
         self.execute_query(query)
 
     def parse_filename(self, filename):
-        # Example filename:
-        # AMSR2-SEAICE-NH_v2r2_GW1_s202503140032240_e202503140211220_c202503140245560.nc
+        """Extract metadata from filenames matching the AMSR2-SEAICE pattern."""
+        # Make sure the filename matches the expected pattern
+        # Pattern: AMSR2-SEAICE-NH_v2r2_GW1_s202503140032240_e202503140211220_c202503140245560.nc
         parts = os.path.basename(filename).split('_')
-        # parts = os.path.basename(filename).replace('_', '-').split('-')
+
+        # Pre-check: Must be an AMSR2-SEAICE file
+        if not parts[0].startswith("AMSR2-SEAICE"):
+            print(f"[DEBUG] Skipping non AMSR2-SEAICE file: {filename}")
+            return None
+
         try:
-            if parts[0].startswith("AMSR2-SEAICE"):
-                # Extract hemisphere from the first hyphen-separated segment
-                name_parts = parts[0].split('-')
-                instrument = name_parts[0]
-                hemisphere = name_parts[2].lower()
+            # Extract hemisphere from the first hyphen-separated segment
+            name_parts = parts[0].split('-')
+            instrument = name_parts[0]
+            hemisphere = name_parts[2].lower()
 
-                # Determine obs_type
-                if hemisphere == 'nh':
-                    obs_type = 'icec_amsr2_north'
-                elif hemisphere == 'sh':
-                    obs_type = 'icec_amsr2_south'
-                else:
-                    raise ValueError(f"Unrecognized hemisphere in filename: {filename}")
+            # Determine obs_type
+            if hemisphere == 'nh':
+                obs_type = 'icec_amsr2_north'
+            elif hemisphere == 'sh':
+                obs_type = 'icec_amsr2_south'
+            else:
+                print(f"[DEBUG] Unrecognized hemisphere in filename: {filename}")
+                return None
 
-                satellite = parts[2]
-                obs_time_str = parts[3][1:16]  # sYYYYMMDDHHMMSSf
-                obs_time = datetime.strptime(obs_time_str, "%Y%m%d%H%M%S%f")
-                receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+            satellite = parts[2]
+            obs_time = datetime.strptime(parts[3][1:16], "%Y%m%d%H%M%S%f")
+            receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+            return filename, obs_time, receipt_time, instrument, satellite, obs_type
 
-                return filename, obs_time, receipt_time, instrument, satellite, obs_type
         except Exception as e:
             print(f"[DEBUG] Error parsing filename {filename}: {e}")
             return None

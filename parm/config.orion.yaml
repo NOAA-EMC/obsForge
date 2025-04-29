@@ -9,7 +9,7 @@ obsforge:
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: hercules
+  PARTITION: orion
   KEEPDATA: NO
   assim_freq: 6
 
@@ -57,7 +57,8 @@ marinedump:
         error ratio: 1.0
     nesdis_amsr2:
       list:
-        - seaice_amsr2_gw1_l2
+        - icec_amsr2_north
+        - icec_amsr2_south
       qc config:
         min: 0.0
         max: 1.0

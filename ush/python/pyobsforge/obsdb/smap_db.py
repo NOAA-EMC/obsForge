@@ -40,6 +40,29 @@ class SmapDatabase(BaseDatabase):
         self.execute_query(query)
 
     def parse_filename(self, filename):
+        # Pattern: SMAP_L2B_SSS_NRT_54047_A_20250315T011742.h5
+        basename = os.path.basename(filename)
+        parts = basename.split('_')
+
+        # Pre-check: Must match SMAP_L2B_SSS_NRT structure
+        if not basename.startswith("SMAP_L2B_SSS_NRT") or len(parts) < 7:
+            print(f"[DEBUG] Skipping non-SMAP_L2B_SSS_NRT file: {filename}")
+            return None
+
+        try:
+            satellite = "SMAP"
+            timestamp_with_ext = parts[6]
+            timestamp_str = os.path.splitext(timestamp_with_ext)[0]
+            obs_time = datetime.strptime(timestamp_str, "%Y%m%dT%H%M%S")
+            receipt_time = datetime.fromtimestamp(os.path.getctime(filename))
+            return filename, obs_time, receipt_time, satellite
+
+        except Exception as e:
+            print(f"[DEBUG] Error parsing filename {filename}: {e}")
+            return None
+
+
+    def parse_filename(self, filename):
         # patten: SMAP_L2B_SSS_NRT_54047_A_20250315T011742.h5
         basename = os.path.basename(filename)
         parts = basename.split('_')
