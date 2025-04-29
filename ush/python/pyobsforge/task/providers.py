@@ -67,7 +67,7 @@ class ProviderConfig:
         elif provider_name == "smap":
             db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMAP")
         elif provider_name == "smos":
-            db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMOS")
+            db = SmosDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMOS")
         else:
             raise NotImplementedError(f"DB setup for provider {provider_name} not yet implemented")
 
