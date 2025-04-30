@@ -62,7 +62,8 @@ class AerosolObsPrep(Task):
             if len(input_files) > 0:
                 print(f"number of valid files: {len(input_files)}")
                 obs_space = 'jrr_aod'
-                output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.viirs_{platform}_aod.tm00.nc"
+                platform_out = 'n20' if platform == 'j01' else platform
+                output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.viirs_{platform_out}_aod.tm00.nc"
                 context = {'provider': 'VIIRSAOD',
                            'window_begin': self.task_config.window_begin,
                            'window_end': self.task_config.window_end,

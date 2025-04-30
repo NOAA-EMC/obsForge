@@ -1,5 +1,6 @@
 import os
 import glob
+from pathlib import Path
 from datetime import datetime, timedelta
 from pyobsforge.obsdb import BaseDatabase
 
@@ -54,16 +55,22 @@ class JrrAodDatabase(BaseDatabase):
 
     def ingest_files(self):
         """Scan the directory for new JRR-AOD observation files and insert them into the database."""
-        obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
+        #obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
+        expanded_dirs = glob.glob(self.base_dir)
+        obs_files = []
+        for directory in expanded_dirs:
+            obs_files.extend(list(Path(directory).rglob("JRR-AOD_v3r2_*.nc")))
         print(f"Found {len(obs_files)} new files to ingest")
+        #self.connect()
         for file in obs_files:
-            parsed_data = self.parse_filename(file)
+            parsed_data = self.parse_filename(str(file))
             if parsed_data:
                 query = """
                     INSERT INTO obs_files (filename, obs_time, receipt_time, satellite)
                     VALUES (?, ?, ?, ?)
                 """
                 self.insert_record(query, parsed_data)
+        #self.disconnect()
 
 
 if __name__ == "__main__":
