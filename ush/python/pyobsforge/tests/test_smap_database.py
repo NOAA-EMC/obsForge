@@ -94,7 +94,7 @@ def test_parse_valid_filename(db):
     assert parsed[1] == datetime(2025, 3, 16, 6, 50, 4)
     assert parsed[2] == creation_time
     assert parsed[3] == "SMAP"
-    assert parsed[4] == "sss_smap"
+    assert parsed[4] == "sss_smap_l2"
 
 
 def test_parse_invalid_filename(db):
