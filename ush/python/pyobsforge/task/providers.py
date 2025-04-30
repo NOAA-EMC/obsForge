@@ -101,8 +101,6 @@ class ProviderConfig:
         window_end = kwargs.get('window_end')
         task_config = kwargs.get('task_config')
 
-        logger.debug(f"obs_type for provider {provider}: {obs_type}")
-
         # Query the database for valid files
         input_files = self.db.get_valid_files(window_begin=window_begin,
                                               window_end=window_end,
