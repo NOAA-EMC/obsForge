@@ -148,7 +148,7 @@ def test_parse_valid_filename(db):
     assert parsed[0] == fname
     assert parsed[1] == datetime(2025, 4, 30, 8, 58, 32)
     assert parsed[2] == creation_time
-    assert parsed[3] == "NPR"
+    assert parsed[3] == "MIRS"
     assert parsed[4] == "n21"
     assert parsed[5] == "icec_atms_n21_l2"
 
@@ -189,35 +189,35 @@ def test_get_valid_files(db):
     valid_files_ma1 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="ma1",
                                            obs_type="icec_amsu_ma1_l2")
 
     valid_files_n20 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="n20",
                                            obs_type="icec_atms_n20_l2")
 
     valid_files_n21 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="n21",
                                            obs_type="icec_atms_n21_l2")
 
     valid_files_npp = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="npp",
                                            obs_type="icec_atms_npp_l2")
 
     valid_files_gpm = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="gpm",
                                            obs_type="icec_gmi_gpm_l2")
 
@@ -252,7 +252,7 @@ def test_get_valid_files_receipt(db):
     valid_files_ma1 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="ma1",
                                            obs_type="icec_amsu_ma1_l2",
                                            check_receipt="gfs")
@@ -260,7 +260,7 @@ def test_get_valid_files_receipt(db):
     valid_files_n20 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="n20",
                                            obs_type="icec_atms_n20_l2",
                                            check_receipt="gfs")
@@ -268,7 +268,7 @@ def test_get_valid_files_receipt(db):
     valid_files_n21 = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="n21",
                                            obs_type="icec_atms_n21_l2",
                                            check_receipt="gfs")
@@ -276,7 +276,7 @@ def test_get_valid_files_receipt(db):
     valid_files_npp = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="npp",
                                            obs_type="icec_atms_npp_l2",
                                            check_receipt="gfs")
@@ -284,7 +284,7 @@ def test_get_valid_files_receipt(db):
     valid_files_gpm = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
-                                           instrument="NPR",
+                                           instrument="MIRS",
                                            satellite="gpm",
                                            obs_type="icec_gmi_gpm_l2",
                                            check_receipt="gfs")

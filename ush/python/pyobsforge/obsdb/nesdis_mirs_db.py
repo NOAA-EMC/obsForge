@@ -58,7 +58,7 @@ class NesdisMirsDatabase(BaseDatabase):
                 print(f"[DEBUG] Unexpected filename format: {fname}")
                 return None
 
-            instrument = parts[0].split("-")[0]
+            instrument = parts[0].split("-")[1]
             satellite = parts[2]
             obs_type = {
                 "ma1": "icec_amsu_ma1_l2",
