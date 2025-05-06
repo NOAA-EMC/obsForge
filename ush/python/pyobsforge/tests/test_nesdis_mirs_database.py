@@ -62,14 +62,14 @@ def temp_obs_dir():
         "NPR-MIRS-IMG_v11r9_gpm_s202504300903270_e202504300908250_c202504300935120.nc",
         "NPR-MIRS-IMG_v11r9_gpm_s202504300908270_e202504300913250_c202504300936130.nc",
         "NPR-MIRS-IMG_v11r9_gpm_s202504300913270_e202504300918250_c202504300940510.nc"
-#        "invalid_file.nc"
+        "invalid_file.nc"
     ]
 
     # Create valid files in correct subdirs
     for fname in filenames:
         try:
             # Extract satellite identifier from filename
-            sat = fname.split("_")[2]  # e.g., 'ma1', 'n20', 'npp'
+            sat = fname.split("_")[2]
             folder = sat_folder_map.get(sat)
 
             if folder is None:
