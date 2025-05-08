@@ -54,9 +54,6 @@ class ProviderConfig:
 
     @classmethod
     def from_task_config(cls, provider_name: str, task_config: AttrDict) -> "ProviderConfig":
-
-        print(f"All provider keys: {list(task_config.providers.keys())}")
-
         qc_raw = task_config.providers[provider_name]["qc config"]
         qc = QCConfig.from_dict(qc_raw)
 
@@ -76,7 +73,7 @@ class ProviderConfig:
                 "seaice_atms_snpp",
                 "seaice_mirs"
             ]
-            db = NesdisMirsDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir=obs_dirs)
+            db = NesdisMirsDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dirs=obs_dirs)
         elif provider_name == "smap":
             db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMAP")
         elif provider_name == "smos":

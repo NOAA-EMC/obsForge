@@ -1,15 +1,15 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
-  SDATE: 202503141800
-  EDATE: 202503150000
-  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/COMROOT
-  DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
-  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/RUNDIRS
+  HOMEobsforge: /work2/noaa/da/mchoi3/temp/obsForge
+  SDATE: 202504281800
+  EDATE: 202504300000
+  COMROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/COMROOT
+  DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
+  DATAROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: hera
+  PARTITION: orion
   KEEPDATA: NO
   assim_freq: 6
 
@@ -50,7 +50,9 @@ marinedump:
         - rads_adt_j2
         - rads_adt_j3
         - rads_adt_sa
-        - rads_adt_sw
+        - rads_adt_sw        
+        - rads_adt_3a
+        - rads_adt_3b
       qc config:
         min: -2.0
         max: 3.0
@@ -59,6 +61,16 @@ marinedump:
       list:
         - icec_amsr2_north
         - icec_amsr2_south
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_mirs:
+      list:
+        - icec_amsu_ma1_l2
+        - icec_atms_n20_l2
+        - icec_atms_n21_l2
+        - icec_atms_npp_l2
+        - icec_gmi_gpm_l2
       qc config:
         min: 0.0
         max: 1.0
