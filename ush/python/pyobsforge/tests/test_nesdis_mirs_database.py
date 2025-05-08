@@ -222,9 +222,11 @@ def test_get_valid_files(db):
                                          obs_type="icec_gmi_gpm_l2")
 
     valid_files = (
-        valid_files_ma1 + valid_files_n20 +
-        valid_files_n21 + valid_files_npp +
-        valid_files_gpm
+        valid_files_ma1
+        + valid_files_n20
+        + valid_files_n21
+        + valid_files_npp
+        + valid_files_gpm
     )
 
     # Files at 10:00 and 12:00 are within +/- 3h of 00:00
@@ -290,9 +292,11 @@ def test_get_valid_files_receipt(db):
                                          check_receipt="gfs")
 
     valid_files = (
-        valid_files_ma1 + valid_files_n20 +
-        valid_files_n21 + valid_files_npp +
-        valid_files_gpm
+        valid_files_ma1
+        + valid_files_n20
+        + valid_files_n21
+        + valid_files_npp
+        + valid_files_gpm
     )
 
     print("Valid files found:", len(valid_files))
