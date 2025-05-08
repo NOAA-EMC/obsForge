@@ -1,6 +1,6 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: //scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
+  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
   SDATE: 202504281800
   EDATE: 202504300000
   COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/COMROOT
