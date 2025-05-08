@@ -85,7 +85,7 @@ class NesdisMirsDatabase(BaseDatabase):
         for base in self.base_dir:
             matched = glob.glob(os.path.join(base, "*.nc"))
             obs_files.extend(matched)
-    
+
         ingested_count = 0
         for file in obs_files:
             parsed_data = self.parse_filename(file)

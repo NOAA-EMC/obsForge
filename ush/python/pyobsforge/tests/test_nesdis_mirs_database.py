@@ -136,7 +136,7 @@ def test_parse_valid_filename(db):
         if matches:
             found_files.extend(matches)
 
-    assert found_files, f"{target_name} not found in any db.base_dir paths"
+    assert found_files, f"{fname} not found in any db.base_dir paths"
     fname = found_files[0]
 
     # Parse filename
@@ -187,39 +187,39 @@ def test_get_valid_files(db):
     dst_dir = 'icec'
     # Test for MIRS ICEC
     valid_files_ma1 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="ma1",
-                                           obs_type="icec_amsu_ma1_l2")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="ma1",
+                                         obs_type="icec_amsu_ma1_l2")
 
     valid_files_n20 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="n20",
-                                           obs_type="icec_atms_n20_l2")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="n20",
+                                         obs_type="icec_atms_n20_l2")
 
     valid_files_n21 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="n21",
-                                           obs_type="icec_atms_n21_l2")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="n21",
+                                         obs_type="icec_atms_n21_l2")
 
     valid_files_npp = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="npp",
-                                           obs_type="icec_atms_npp_l2")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="npp",
+                                         obs_type="icec_atms_npp_l2")
 
     valid_files_gpm = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="gpm",
-                                           obs_type="icec_gmi_gpm_l2")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="gpm",
+                                         obs_type="icec_gmi_gpm_l2")
 
     valid_files = (
         valid_files_ma1 + valid_files_n20 +
@@ -250,44 +250,44 @@ def test_get_valid_files_receipt(db):
 
     # Test for MIRS ICEC
     valid_files_ma1 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="ma1",
-                                           obs_type="icec_amsu_ma1_l2",
-                                           check_receipt="gfs")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="ma1",
+                                         obs_type="icec_amsu_ma1_l2",
+                                         check_receipt="gfs")
 
     valid_files_n20 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="n20",
-                                           obs_type="icec_atms_n20_l2",
-                                           check_receipt="gfs")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="n20",
+                                         obs_type="icec_atms_n20_l2",
+                                         check_receipt="gfs")
 
     valid_files_n21 = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="n21",
-                                           obs_type="icec_atms_n21_l2",
-                                           check_receipt="gfs")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="n21",
+                                         obs_type="icec_atms_n21_l2",
+                                         check_receipt="gfs")
 
     valid_files_npp = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="npp",
-                                           obs_type="icec_atms_npp_l2",
-                                           check_receipt="gfs")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="npp",
+                                         obs_type="icec_atms_npp_l2",
+                                         check_receipt="gfs")
 
     valid_files_gpm = db.get_valid_files(window_begin=window_begin,
-                                           window_end=window_end,
-                                           dst_dir=dst_dir,
-                                           instrument="MIRS",
-                                           satellite="gpm",
-                                           obs_type="icec_gmi_gpm_l2",
-                                           check_receipt="gfs")
+                                         window_end=window_end,
+                                         dst_dir=dst_dir,
+                                         instrument="MIRS",
+                                         satellite="gpm",
+                                         obs_type="icec_gmi_gpm_l2",
+                                         check_receipt="gfs")
 
     valid_files = (
         valid_files_ma1 + valid_files_n20 +
