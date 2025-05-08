@@ -2,6 +2,7 @@ from logging import getLogger
 from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from pyobsforge.obsdb.rads_db import RADSDatabase
 from pyobsforge.obsdb.nesdis_amsr2_db import NesdisAmsr2Database
+from pyobsforge.obsdb.nesdis_mirs_db import NesdisMirsDatabase
 from pyobsforge.obsdb.smap_db import SmapDatabase
 from pyobsforge.obsdb.smos_db import SmosDatabase
 from typing import Any
@@ -53,6 +54,9 @@ class ProviderConfig:
 
     @classmethod
     def from_task_config(cls, provider_name: str, task_config: AttrDict) -> "ProviderConfig":
+
+        print(f"All provider keys: {list(task_config.providers.keys())}")
+
         qc_raw = task_config.providers[provider_name]["qc config"]
         qc = QCConfig.from_dict(qc_raw)
 
@@ -64,6 +68,15 @@ class ProviderConfig:
             db = RADSDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wgrdbul/adt")
         elif provider_name == "nesdis_amsr2":
             db = NesdisAmsr2Database(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="seaice/pda")
+        elif provider_name == "nesdis_mirs":
+            obs_dirs = [
+                "seaice_amsu",
+                "seaice_atms_j1",
+                "seaice_atms_j2",
+                "seaice_atms_snpp",
+                "seaice_mirs"
+            ]
+            db = NesdisMirsDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir=obs_dirs)
         elif provider_name == "smap":
             db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMAP")
         elif provider_name == "smos":
