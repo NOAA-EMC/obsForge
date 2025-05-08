@@ -38,7 +38,7 @@ class MarineObsPrep(Task):
         self.ghrsst = ProviderConfig.from_task_config("ghrsst", self.task_config)
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
         self.nesdis_amsr2 = ProviderConfig.from_task_config("nesdis_amsr2", self.task_config)
-        self.nesdis_mirs = ProviderConfig.from_task_config("nesdis_mirs", self.task_config.marinedump)
+        self.nesdis_mirs = ProviderConfig.from_task_config("nesdis_mirs", self.task_config)
         self.smap = ProviderConfig.from_task_config("smap", self.task_config)
         self.smos = ProviderConfig.from_task_config("smos", self.task_config)
 
