@@ -70,7 +70,7 @@ marinedump:
         - icec_atms_n20_l2
         - icec_atms_n21_l2
         - icec_atms_npp_l2
-        - icec_gmi_gpm_l2
+#        - icec_gmi_gpm_l2
       qc config:
         min: 0.0
         max: 1.0
