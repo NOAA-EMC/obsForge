@@ -55,6 +55,35 @@ marinedump:
         min: -2.0
         max: 3.0
         error ratio: 1.0
+    nesdis_amsr2:
+      list:
+        - icec_amsr2_north
+        - icec_amsr2_south
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_mirs:
+      list:
+        - icec_amsu_ma1_l2
+        - icec_atms_n20_l2
+        - icec_atms_n21_l2
+        - icec_atms_npp_l2
+#        - icec_gmi_gpm_l2
+      qc config:
+        min: 0.0
+        max: 1.0
+    smap:
+      list:
+        - sss_smap_l2
+      qc config:
+        min: 0.1
+        max: 40.0
+    smos:
+      list:
+        - sss_smos_l2
+      qc config:
+        min: 0.1
+        max: 40.0
 
   WALLTIME_MARINE_DUMP: '00:10:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=20:tpp=2'
