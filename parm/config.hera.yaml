@@ -1,21 +1,21 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /work2/noaa/da/mchoi3/temp/obsForge
+  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
   SDATE: 202504281800
   EDATE: 202504300000
-  COMROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/COMROOT
-  DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
-  DATAROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/RUNDIRS
+  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/COMROOT
+  DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
+  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: orion
+  PARTITION: hera
   KEEPDATA: NO
   assim_freq: 6
 
 aoddump:
   provider: VIIRSAOD
-  platforms: ['npp', 'j01', 'n21']
+  platforms: ['npp', 'n20', 'n21']
   thinning_threshold: 0
   channel: 4
   preqc: 2

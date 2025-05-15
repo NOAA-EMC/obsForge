@@ -37,6 +37,10 @@ class MarineObsPrep(Task):
         # Initialize the Providers
         self.ghrsst = ProviderConfig.from_task_config("ghrsst", self.task_config)
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
+        self.nesdis_amsr2 = ProviderConfig.from_task_config("nesdis_amsr2", self.task_config)
+        self.nesdis_mirs = ProviderConfig.from_task_config("nesdis_mirs", self.task_config)
+        self.smap = ProviderConfig.from_task_config("smap", self.task_config)
+        self.smos = ProviderConfig.from_task_config("smos", self.task_config)
 
         # Initialize the list of processed ioda files
         # TODO: Does not work. This should be a list of gathered ioda files that are created
@@ -50,6 +54,10 @@ class MarineObsPrep(Task):
         # Update the database with new files
         self.ghrsst.db.ingest_files()
         self.rads.db.ingest_files()
+        self.nesdis_amsr2.db.ingest_files()
+        self.nesdis_mirs.db.ingest_files()
+        self.smap.db.ingest_files()
+        self.smos.db.ingest_files()
 
     @logit(logger)
     def execute(self) -> None:
@@ -126,6 +134,88 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.rads.process_obs_space(**kwargs)
+            return result
+
+        # Process NESDIS_AMSR2
+        if provider == "nesdis_amsr2":
+            # Only handling "icec_amsr2_" cases
+            platform = "GW1"
+            instrument = "AMSR2"
+            satellite = "GW1"
+            kwargs = {
+                'provider': "amsr2",
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.nesdis_amsr2.process_obs_space(**kwargs)
+            return result
+
+        # Process NESDIS_MIRS
+        if provider == "nesdis_mirs":
+            # Handling all mirs cases
+            platform = obs_space.split("_")[2]
+            instrument = "MIRS"
+            satellite = obs_space.split("_")[2]
+            kwargs = {
+                'provider': "mirs",
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.nesdis_mirs.process_obs_space(**kwargs)
+            return result
+
+        # Process SMAP
+        if provider == "smap":
+            platform = None
+            satellite = "SMAP"
+            instrument = None
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.smap.process_obs_space(**kwargs)
+            return result
+
+        # Process SMOS SSS
+        if provider == "smos":
+            platform = None
+            satellite = "SMOS"
+            instrument = None
+            kwargs = {
+                'provider': provider,
+                'obs_space': obs_space,
+                'platform': platform,
+                'instrument': instrument,
+                'satellite': satellite,
+                'obs_type': obs_space,
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.smos.process_obs_space(**kwargs)
             return result
         else:
             logger.error(f"Provider {provider} not supported")

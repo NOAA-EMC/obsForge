@@ -9,13 +9,13 @@ obsforge:
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: orion
+  PARTITION: hercules
   KEEPDATA: NO
   assim_freq: 6
 
 aoddump:
   provider: VIIRSAOD
-  platforms: ['npp', 'j01', 'n21']
+  platforms: ['npp', 'n20', 'n21']
   thinning_threshold: 0
   channel: 4
   preqc: 2
