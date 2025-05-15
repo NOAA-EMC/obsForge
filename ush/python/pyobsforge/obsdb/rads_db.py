@@ -62,8 +62,8 @@ class RADSDatabase(BaseDatabase):
 
         if records_to_insert:
             query = """
-                INSERT INTO obs_files (filename, obs_time, receipt_time, instrument, satellite, obs_type)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO obs_files (filename, obs_time, receipt_time, satellite)
+                    VALUES (?, ?, ?, ?)
             """
             try:
                 self.insert_records(query, records_to_insert)
