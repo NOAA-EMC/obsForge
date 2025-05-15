@@ -79,26 +79,29 @@ class NesdisMirsDatabase(BaseDatabase):
             return None
 
     def ingest_files(self):
+        """Scan the directory for new NESDIS MIRS observation files and insert them into the database."""
         obs_files = []
         for base in self.base_dir:
             matched = glob.glob(os.path.join(base, "*.nc"))
             obs_files.extend(matched)
 
-        ingested_count = 0
+        print(f"[INFO] Found {len(obs_files)} new files to ingest")
+
+        records_to_insert = []
         for file in obs_files:
             parsed_data = self.parse_filename(file)
-            if not parsed_data:
+            if parsed_data:
+                records_to_insert.append(parsed_data)
+            else:
                 print(f"[WARN] Skipped (unparseable): {os.path.basename(file)}")
-                continue
 
+        if records_to_insert:
             query = """
                 INSERT INTO obs_files (filename, obs_time, receipt_time, instrument, satellite, obs_type)
                 VALUES (?, ?, ?, ?, ?, ?)
             """
             try:
-                self.insert_record(query, parsed_data)
-                ingested_count += 1
+                self.insert_records(query, records_to_insert)
+                print(f"[INFO] Successfully ingested {len(records_to_insert)} files into the database.")
             except Exception as e:
-                print(f"[ERROR] Failed to insert {file}: {e}")
-
-        print(f"[INFO] Successfully ingested {ingested_count} files into the database.")
+                print(f"[ERROR] Failed to insert records: {e}")

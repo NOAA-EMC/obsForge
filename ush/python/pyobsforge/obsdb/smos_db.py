@@ -68,19 +68,21 @@ class SmosDatabase(BaseDatabase):
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
         print(f"Found {len(obs_files)} new files to ingest")
 
-        # Counter for successful ingestions
-        ingested_count = 0
-
+        records_to_insert = []
         for file in obs_files:
             parsed_data = self.parse_filename(file)
             if parsed_data:
-                query = """
-                    INSERT INTO obs_files (filename, obs_time, receipt_time, satellite, obs_type)
-                    VALUES (?, ?, ?, ?, ?)
-                """
-                try:
-                    self.insert_record(query, parsed_data)
-                    ingested_count += 1
-                except Exception as e:
-                    print(f"Failed to insert record for {file}: {e}")
-        print(f"################################ Successfully ingested {ingested_count} files into the database.")
+                records_to_insert.append(parsed_data)
+            else:
+                print(f"[DEBUG] Skipped (unparseable): {os.path.basename(file)}")
+
+        if records_to_insert:
+            query = """
+                INSERT INTO obs_files (filename, obs_time, receipt_time, satellite, obs_type)
+                VALUES (?, ?, ?, ?, ?)
+            """
+            try:
+                self.insert_records(query, records_to_insert)
+                print(f"################################ Successfully ingested {len(records_to_insert)} files into the database.")
+            except Exception as e:
+                print(f"[ERROR] Failed to insert records: {e}")
