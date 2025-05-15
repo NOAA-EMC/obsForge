@@ -21,7 +21,6 @@ class BaseDatabase(SQLiteDB):
         super().__init__(db_name)
         self.base_dir = base_dir
         self.create_database()
-        self.connect()
 
     def create_database(self):
         """Create the SQLite database. Must be implemented by subclasses."""
@@ -41,15 +40,32 @@ class BaseDatabase(SQLiteDB):
 
     def insert_record(self, query: str, params: tuple) -> None:
         """Insert a record into the database."""
-        #self.connect()
+        self.connect()
         cursor = self.connection.cursor()
         try:
             cursor.execute(query, params)
             self.connection.commit()
         except sqlite3.IntegrityError:
             pass  # Skip duplicates
-        #finally:
-        #    self.disconnect()
+        finally:
+            self.disconnect()
+
+    def insert_records(self, query: str, params_list: list[tuple]) -> None:
+        """
+        Insert multiple records into the database.
+
+        :param query: SQL query for inserting records.
+        :param params_list: List of tuples containing the parameters for each record.
+        """
+        self.connect()
+        cursor = self.connection.cursor()
+        try:
+            cursor.executemany(query, params_list)
+            self.connection.commit()
+        except sqlite3.IntegrityError:
+            pass  # Skip duplicates
+        finally:
+            self.disconnect()
 
     def execute_query(self, query: str, params: tuple = None) -> list:
         """Execute a query and return the results."""
