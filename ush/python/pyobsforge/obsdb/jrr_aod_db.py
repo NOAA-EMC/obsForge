@@ -56,13 +56,13 @@ class JrrAodDatabase(BaseDatabase):
         """Scan the directory for new JRR-AOD observation files and insert them into the database."""
         obs_files = glob.glob(os.path.join(self.base_dir, "*.nc"))
         print(f"Found {len(obs_files)} new files to ingest")
-        
+
         records_to_insert = []
         for file in obs_files:
             parsed_data = self.parse_filename(file)
             if parsed_data:
                 records_to_insert.append(parsed_data)
-        
+
         if records_to_insert:
             query = """
                 INSERT INTO obs_files (filename, obs_time, receipt_time, satellite)
