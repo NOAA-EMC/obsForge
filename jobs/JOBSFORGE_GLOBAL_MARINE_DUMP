@@ -15,7 +15,7 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ###############################################################
 # Run relevant script
 
-EXSCRIPT=${DUMPMARINEBUFRPY:-${HOMEobsforge}/scripts/exobsforge_global_marine_dump.py}
+EXSCRIPT=${DUMPMARINEPY:-${HOMEobsforge}/scripts/exobsforge_global_marine_dump.py}
 ${EXSCRIPT}
 status=$?
 if [[ ${status} -ne 0 ]]; then
