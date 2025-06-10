@@ -3,6 +3,7 @@ from pyobsforge.obsdb.ghrsst_db import GhrSstDatabase
 from pyobsforge.obsdb.rads_db import RADSDatabase
 from pyobsforge.obsdb.nesdis_amsr2_db import NesdisAmsr2Database
 from pyobsforge.obsdb.nesdis_mirs_db import NesdisMirsDatabase
+from pyobsforge.obsdb.nesdis_jpssrr_db import NesdisJpssrrDatabase
 from pyobsforge.obsdb.smap_db import SmapDatabase
 from pyobsforge.obsdb.smos_db import SmosDatabase
 from typing import Any
