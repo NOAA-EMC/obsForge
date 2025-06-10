@@ -75,7 +75,7 @@ class ProviderConfig:
             ]
             db = NesdisMirsDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dirs=obs_dirs)
         elif provider_name == "nesdis_jpssrr":
-            db = RADSDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wgrdbul/IST")
+            db = NesdisJpssrrDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wgrdbul/IST")
         elif provider_name == "smap":
             db = SmapDatabase(db_name=f"{provider_name}.db", dcom_dir=task_config.DCOMROOT, obs_dir="wtxtbul/satSSS/SMAP")
         elif provider_name == "smos":
