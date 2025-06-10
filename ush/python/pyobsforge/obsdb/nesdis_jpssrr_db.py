@@ -45,7 +45,7 @@ class NesdisJpssrrDatabase(BaseDatabase):
         JRR-IceConcentration_v3r3_j01_s202506010136113_e202506010137358_c202506010226221.nc
         JRR-IceConcentration_v3r3_n21_s202506010136118_e202506010137347_c202506010235083.nc
         JRR-IceConcentration_v3r3_npp_s202506010136106_e202506010137348_c202506010258132.nc
-        """        
+        """
         basename = os.path.basename(filename)
         parts = basename.split('_')
         try:
