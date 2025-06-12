@@ -74,6 +74,14 @@ marinedump:
       qc config:
         min: 0.0
         max: 1.0
+    nesdis_jpssrr:
+      list:
+        - icec_viirs_j01_l2
+        - icec_viirs_n21_l2
+        - icec_viirs_npp_l2
+      qc config:
+        min: 0.0
+        max: 1.0
     smap:
       list:
         - sss_smap_l2

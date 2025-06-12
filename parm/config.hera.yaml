@@ -1,11 +1,11 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
+  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/obsForge
   SDATE: 202506011800
   EDATE: 202506020000
-  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/COMROOT
+  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/COMROOT
   DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
-  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/RUNDIRS
+  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
