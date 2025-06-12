@@ -183,17 +183,16 @@ class MarineObsPrep(Task):
         # Process NESDIS_JPSSRR
         if provider == "nesdis_jpssrr":
             platform = obs_space.split("_")[2]
-            instrument = obs_space.split("_")[1]
-            satellite = obs_space.split("_")[2]
+            instrument = None
             kwargs = {
                 'provider': "jpssrr",
                 'obs_space': obs_space,
                 'instrument': instrument,
                 'platform': platform,
-                'obs_type': obs_space,
+                'obs_type': "",
                 'output_file': output_file,
-                'window_begin': window_begin,
-                'window_end': window_end,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
                 'task_config': self.task_config
             }
             result = self.nesdis_jpssrr.process_obs_space(**kwargs)

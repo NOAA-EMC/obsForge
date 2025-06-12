@@ -1,11 +1,11 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/obsforge/ 
-  SDATE: 202504250000
-  EDATE: 202506250000
-  COMROOT: /lfs/h2/emc/ptmp/cory.r.martin/obsforge
-  DCOMROOT: /lfs/h1/ops/prod/dcom/ 
-  DATAROOT: /lfs/h2/emc/stmp/cory.r.martin/RUNDIRS
+  HOMEobsforge: /lfs/h2/emc/da/noscrub/Mindo.Choi/obsForge/ 
+  SDATE: 202506101800
+  EDATE: 202506110000
+  COMROOT: /lfs/h2/emc/da/noscrub/Mindo.Choi/temp2/COMROOT
+  DCOMROOT: /lfs/h1/ops/prod/dcom/
+  DATAROOT: /lfs/h2/emc/da/noscrub/Mindo.Choi/temp2/RUNDIRS
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
   QUEUE: dev
@@ -75,7 +75,7 @@ marinedump:
     nesdis_jpssrr:
       list:
         - icec_viirs_j01_l2
-        - icec_viirs_n20_l2
+        - icec_viirs_n21_l2
         - icec_viirs_npp_l2
       qc config:
         min: 0.0
