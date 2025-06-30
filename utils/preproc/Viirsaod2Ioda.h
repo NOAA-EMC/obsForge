@@ -17,7 +17,7 @@
 #include "NetCDFToIodaConverter.h"
 #include "superob.h"   // NOLINT
 
-using namespace netCDF::exceptions;
+using netCDF::exceptions::NcException;
 
 namespace obsforge {
 
@@ -37,9 +37,9 @@ namespace obsforge {
         netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       } catch (const NcException &e) {
         oops::Log::warning() << "Warning: Failed to read file " << fileName << ". Skipping." << std::endl;
-	oops::Log::warning() << e.what() << std::endl;
-	obsforge::preproc::iodavars::IodaVars iodaVars(0, {}, {});
-	return iodaVars;
+        oops::Log::warning() << e.what() << std::endl;
+        obsforge::preproc::iodavars::IodaVars iodaVars(0, {}, {});
+        return iodaVars;
       }
 
       // Open the NetCDF file in read-only mode
