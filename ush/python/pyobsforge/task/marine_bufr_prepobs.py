@@ -80,7 +80,6 @@ class MarineBufrObsPrep(Task):
 
         FileHandler({'copy': bufr_files_to_copy}).sync()
 
-
     @logit(logger)
     def execute(self) -> None:
         """
@@ -125,4 +124,3 @@ class MarineBufrObsPrep(Task):
             logger.info(f"Finalized provider: {provider['ioda_filename']}")
 
         FileHandler({'copy': ioda_files_to_copy}).sync()
-    
