@@ -45,8 +45,9 @@ esac
 #pip list
 
 # Add wxflow to PYTHONPATH
+iodalibPATH="${HOMEobsforge}/build/lib/python3.10"
 wxflowPATH="${HOMEobsforge}/ush/python"
-PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${HOMEobsforge}/ush:${wxflowPATH}"
+PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${HOMEobsforge}/ush:${wxflowPATH}:${iodalibPATH}"
 export PYTHONPATH
 
 # Restore stack soft limit:

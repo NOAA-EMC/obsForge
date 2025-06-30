@@ -1,0 +1,14 @@
+data_format: {{ data_format }}
+subsets: {{ subsets }}
+source: {{ source }}
+data_type: {{ data_type }}
+cycle_type: {{ RUN }}
+cycle_datetime: "{{ current_cycle | to_YMDH }}"
+dump_directory: {{ DATA }}
+ioda_directory: {{ DATA }}
+ocean_basin: {{ ocean_basin }}
+data_description: {{ data_description}}
+data_provider: {{ data_provider }}
+dump_filename: "{{ RUN }}.{{ PDY }}/{{ cyc }}/atmos/{{ PREFIX }}{{ dump_tag }}.tm00.bufr_d"
+local_dump_filename: "{{ PDY }}{{ cyc }}-{{ PREFIX }}{{ dump_tag }}.tm00.bufr_d"
+ioda_filename: "{{RUN}}.t{{cyc}}z.{{name}}.{{ PDY }}{{ cyc }}.nc4"
