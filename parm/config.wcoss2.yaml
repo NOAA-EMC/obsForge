@@ -16,7 +16,7 @@ obsforge:
 aoddump:
   provider: VIIRSAOD
   platforms: ['npp', 'j01', 'n21'] # note j01==n20
-  thinning_threshold: 0.9991
+  thinning_threshold: 0.9931
   channel: 4
   preqc: 2
   WALLTIME_AOD_DUMP: '00:10:00'
