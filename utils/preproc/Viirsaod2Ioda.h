@@ -17,6 +17,8 @@
 #include "NetCDFToIodaConverter.h"
 #include "superob.h"   // NOLINT
 
+using namespace netCDF::exceptions;
+
 namespace obsforge {
 
   class Viirsaod2Ioda : public NetCDFToIodaConverter {
@@ -30,10 +32,19 @@ namespace obsforge {
     obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by VIIRSAOD" << std::endl;
 
+      // Try to open the NetCDF file in read-only mode. If failed, return empty iodaVars object
+      try {
+        netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
+      } catch (const NcException &e) {
+        oops::Log::warning() << "Warning: Failed to read file " << fileName << ". Skipping." << std::endl;
+	oops::Log::warning() << e.what() << std::endl;
+	obsforge::preproc::iodavars::IodaVars iodaVars(0, {}, {});
+	return iodaVars;
+      }
+
       // Open the NetCDF file in read-only mode
       netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       oops::Log::info() << "Reading... " << fileName << std::endl;
-
       // Get dimensions
       int dimRow = ncFile.getDim("Rows").getSize();
       int dimCol = ncFile.getDim("Columns").getSize();
