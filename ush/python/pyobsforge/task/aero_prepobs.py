@@ -67,7 +67,7 @@ class AerosolObsPrep(Task):
                 context = {'provider': 'VIIRSAOD',
                            'window_begin': self.task_config.window_begin,
                            'window_end': self.task_config.window_end,
-                           'thinning_threshold': 0,
+                           'thinning_threshold': self.task_config.thinning_threshold,
                            'input_files': input_files,
                            'output_file': output_file}
                 result = run_nc2ioda(self.task_config, obs_space, context)
