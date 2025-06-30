@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-  # for development purposes
+# for development purposes
 from datetime import datetime
 
 from logging import getLogger
@@ -30,7 +30,7 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMOUT': "/scratch1/NCEPDEV/da/Andrew.Eichmann/fv3gfs/obsForge/default/obsForge/COMROOT/obsforge/gfs.20250428/18/ocean/",
+                'COMOUT': f"{self.task_config.HOMEobsforge}/COMROOT/obsforge/gfs.20250428/18/ocean/",
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'PREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc}z.",
@@ -60,7 +60,6 @@ class MarineBufrObsPrep(Task):
         local_dict = AttrDict({'DATA': DATA,
                                'PDY': PDY,
                                'cyc': cyc,
-#                               'current_cycle': self.task_config.current_cycle.strftime("%Y%m%d %H:%M:%S"),
                                'current_cycle': self.task_config.current_cycle,
                                'PREFIX': PREFIX,
                                'RUN': RUN})
@@ -74,15 +73,13 @@ class MarineBufrObsPrep(Task):
             logger.info(f"Provider config for {provider}: {provider_config}")
             provider.ioda_filename = provider_config['ioda_filename']
             save_as_yaml(provider_config, f"{self.task_config.DATA}/bufr2ioda_{provider['name']}.yaml")
-            
+
             source_dump_filename = path.join(DMPDIR_BUFR, provider_config['dump_filename'])
             local_dump_filename = path.join(DATA, provider_config['local_dump_filename'])
-            bufr_files_to_copy.append([ source_dump_filename, local_dump_filename])
+            bufr_files_to_copy.append([source_dump_filename, local_dump_filename])
 
         FileHandler({'copy': bufr_files_to_copy}).sync()
 
-
-        
 
     @logit(logger)
     def execute(self) -> None:
@@ -102,7 +99,7 @@ class MarineBufrObsPrep(Task):
             bufrconverterconfig = f"{self.task_config.DATA}/bufr2ioda_{provider_name}.yaml"
 
         try:
-            subprocess.run(['python', bufrconverter, '-c', bufrconverterconfig ], check=True)
+            subprocess.run(['python', bufrconverter, '-c', bufrconverterconfig], check=True)
         except subprocess.CalledProcessError as e:
             logger.warning(f"bufr2ioda converter failed with error  >{e}<, \
                 return code {e.returncode}")
@@ -126,6 +123,6 @@ class MarineBufrObsPrep(Task):
 
             logger.info(f"Finalizing provider: {provider['name']}")
             logger.info(f"Finalized provider: {provider['ioda_filename']}")
-     
+
         FileHandler({'copy': ioda_files_to_copy}).sync()
-            
+    
