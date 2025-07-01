@@ -90,3 +90,32 @@ marinedump:
   WALLTIME_MARINE_DUMP: '00:10:00'
   TASK_GEOM_MARINE_DUMP: '1:ppn=20:tpp=2'
   MEMORY_MARINE_DUMP: 32GB
+
+
+marinebufrdump:
+
+  WALLTIME_MARINE_BUFR_DUMP: '00:10:00'
+  TASK_GEOM_MARINE_BUFR_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_MARINE_BUFR_DUMP: 32GB
+  BUFR2IODA_CONFIG_TEMP: 'bufr2ioda_template.yaml.j2'
+  DMPDIR_BUFR: /work/noaa/da/marineda/gfs-marine/data/obs/
+
+  providers:
+    - name: insitu_profile_argo
+      variables:
+        temp:
+          name: 'waterTemperature'
+          error: 0.02
+        salinity:
+          name: 'salinity'
+          error: 0.01
+      data_format: subpfl
+      subsets: SUBPFL
+      source: NCEP data tank
+      data_type: argo
+      ocean_basin: " /work2/noaa/global/role-global/fix/gdas/soca/20250519/common/RECCAP2_region_masks_all_v20221025.nc"
+      data_description: 6-hrly in situ ARGO profiles
+      data_provider: U.S. NOAA
+      dump_tag: subpfl
+
+

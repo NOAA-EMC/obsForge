@@ -21,6 +21,7 @@ class MarineBufrObsPrep(Task):
 
         # TODO: for development purposes, remove when dumpdir and all the cycles line up
         self.task_config.current_cycle = datetime(2025, 4, 6, 12, 0, 0)
+        self.task_config.current_cycle = datetime(2023, 6, 1, 0, 0, 0)
         self.task_config.RUN = "gdas"
         self.task_config.PDY = self.task_config.current_cycle.strftime("%Y%m%d")
         self.task_config.cyc = self.task_config.current_cycle.strftime("%H")
@@ -30,6 +31,7 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
+                # TODO: make this what it's supposed to be 
                 'COMOUT': f"{self.task_config.HOMEobsforge}/COMROOT/obsforge/gfs.20250428/18/ocean/",
                 'window_begin': _window_begin,
                 'window_end': _window_end,
@@ -78,7 +80,7 @@ class MarineBufrObsPrep(Task):
             local_dump_filename = path.join(DATA, provider_config['local_dump_filename'])
             bufr_files_to_copy.append([source_dump_filename, local_dump_filename])
 
-        FileHandler({'copy': bufr_files_to_copy}).sync()
+        FileHandler({'copy_opt': bufr_files_to_copy}).sync()
 
     @logit(logger)
     def execute(self) -> None:
@@ -120,7 +122,4 @@ class MarineBufrObsPrep(Task):
                 destination_ioda_filename = path.join(self.task_config.COMOUT, ioda_filename)
                 ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
-            logger.info(f"Finalizing provider: {provider['name']}")
-            logger.info(f"Finalized provider: {provider['ioda_filename']}")
-
-        FileHandler({'copy': ioda_files_to_copy}).sync()
+        FileHandler({'copy_opt': ioda_files_to_copy}).sync()
