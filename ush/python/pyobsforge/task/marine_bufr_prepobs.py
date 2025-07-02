@@ -4,7 +4,18 @@ from logging import getLogger
 from os import path
 import subprocess
 from typing import Dict, Any
-from wxflow import AttrDict, Executable, FileHandler, Task, add_to_datetime, to_timedelta, logit, parse_j2yaml, save_as_yaml
+from wxflow import (
+    AttrDict,
+    Executable,
+    FileHandler,
+    Task,
+    WorkflowException,
+    add_to_datetime,
+    to_timedelta,
+    logit,
+    parse_j2yaml,
+    save_as_yaml,
+)
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -89,12 +100,6 @@ class MarineBufrObsPrep(Task):
             bufrconverter = f"{HOMEobsforge}/utils/b2i/bufr2ioda_{provider_name}.py"
             bufrconverterconfig = f"{self.task_config.DATA}/bufr2ioda_{provider_name}.yaml"
 
-        # try:
-        #     subprocess.run(['python', bufrconverter, '-c', bufrconverterconfig], check=True)
-        # except subprocess.CalledProcessError as e:
-        #     logger.warning(f"bufr2ioda converter failed with error  >{e}<, \
-        #         return code {e.returncode}")
-
             converter = Executable('python')
             converter.add_default_arg(bufrconverter)
             converter.add_default_arg('-c')
@@ -102,11 +107,11 @@ class MarineBufrObsPrep(Task):
             try:
                 logger.debug(f"Executing {converter}")
                 converter()
-            except OSError:
-                raise OSError(f"Failed to execute {converter}")
-            except Exception:
-                raise WorkflowException(f"An error occured during execution of {converter}")
-
+            except Exception as e:
+                logger.warning(f"Converter failed for {provider_name}")
+                logger.warning(f"Execution failed for {converter}: {e}")
+                logger.debug("Exception details", exc_info=True)
+                continue  # skip to the next provider
 
     @logit(logger)
     def finalize(self) -> None:
