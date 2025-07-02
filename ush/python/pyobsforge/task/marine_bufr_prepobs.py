@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# for development purposes
-from datetime import datetime
-
 from logging import getLogger
 from os import path
 import subprocess
@@ -10,7 +7,6 @@ from typing import Dict, Any
 from wxflow import AttrDict, FileHandler, Task, add_to_datetime, to_timedelta, logit, parse_j2yaml, save_as_yaml
 
 logger = getLogger(__name__.split('.')[-1])
-
 
 class MarineBufrObsPrep(Task):
     """
@@ -26,7 +22,6 @@ class MarineBufrObsPrep(Task):
         cyc = self.task_config.current_cycle.strftime("%H")
         RUN = self.task_config.RUN
 
-
         _window_begin = add_to_datetime(self.task_config.current_cycle, -to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
         _window_end = add_to_datetime(self.task_config.current_cycle, +to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
 
@@ -41,7 +36,6 @@ class MarineBufrObsPrep(Task):
             }
         )
 
-        # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
     @logit(logger)
