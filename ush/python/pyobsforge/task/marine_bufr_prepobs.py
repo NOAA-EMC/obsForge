@@ -2,14 +2,12 @@
 
 from logging import getLogger
 from os import path
-import subprocess
 from typing import Dict, Any
 from wxflow import (
     AttrDict,
     Executable,
     FileHandler,
     Task,
-    WorkflowException,
     add_to_datetime,
     to_timedelta,
     logit,
