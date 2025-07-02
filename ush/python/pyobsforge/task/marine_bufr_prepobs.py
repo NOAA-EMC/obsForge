@@ -19,25 +19,25 @@ class MarineBufrObsPrep(Task):
     def __init__(self, config: Dict[str, Any]) -> None:
         super().__init__(config)
 
-        # TODO: for development purposes, remove when dumpdir and all the cycles line up
-        self.task_config.current_cycle = datetime(2025, 4, 6, 12, 0, 0)
-        self.task_config.current_cycle = datetime(2023, 6, 1, 0, 0, 0)
-        self.task_config.RUN = "gdas"
-        self.task_config.PDY = self.task_config.current_cycle.strftime("%Y%m%d")
-        self.task_config.cyc = self.task_config.current_cycle.strftime("%H")
+        logger.info(f"self.task_config.PDY: {self.task_config.PDY}")
+        logger.info(f"self.task_config.cyc: {self.task_config.cyc}")
+
+        yyyymmdd = self.task_config.current_cycle.strftime("%Y%m%d")
+        cyc = self.task_config.current_cycle.strftime("%H")
+        RUN = self.task_config.RUN
+
 
         _window_begin = add_to_datetime(self.task_config.current_cycle, -to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
         _window_end = add_to_datetime(self.task_config.current_cycle, +to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
 
         local_dict = AttrDict(
             {
-                # TODO: make this what it's supposed to be 
-                'COMOUT': f"{self.task_config.HOMEobsforge}/COMROOT/obsforge/gfs.20250428/18/ocean/",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cyc}/ocean/insitu",
                 'window_begin': _window_begin,
                 'window_end': _window_end,
-                'PREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc}z.",
-                'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}",
-                'DMPDIR': f"{self.task_config.DMPDIR_BUFR}/{self.task_config.RUN}.{self.task_config.PDY}/{self.task_config.cyc}/atmos"
+                'yyyymmdd': yyyymmdd,
+                'PREFIX': f"{RUN}.t{cyc}z.",
+                'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}"
             }
         )
 
@@ -52,19 +52,12 @@ class MarineBufrObsPrep(Task):
         providers = self.task_config.providers
         logger.info(f"Providers: {providers}")
 
-        DATA = self.task_config.DATA
-        DMPDIR_BUFR = self.task_config.DMPDIR_BUFR
-        RUN = self.task_config.RUN
-        PDY = self.task_config.PDY
-        cyc = self.task_config.cyc
-        PREFIX = self.task_config.PREFIX
+        DATA = self.task_config.DATAREFIX
 
-        local_dict = AttrDict({'DATA': DATA,
-                               'PDY': PDY,
-                               'cyc': cyc,
-                               'current_cycle': self.task_config.current_cycle,
-                               'PREFIX': PREFIX,
-                               'RUN': RUN})
+        keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle']
+        local_dict = AttrDict()
+        for key in keys:
+            local_dict[key] = self.task_config.get(key)
 
         bufr_files_to_copy = []
 
@@ -74,13 +67,15 @@ class MarineBufrObsPrep(Task):
             provider_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, provider)
             logger.info(f"Provider config for {provider}: {provider_config}")
             provider.ioda_filename = provider_config['ioda_filename']
-            save_as_yaml(provider_config, f"{self.task_config.DATA}/bufr2ioda_{provider['name']}.yaml")
+            save_as_yaml(provider_config, f"{DATA}/bufr2ioda_{provider['name']}.yaml")
 
-            source_dump_filename = path.join(DMPDIR_BUFR, provider_config['dump_filename'])
+            source_dump_filename = path.join(self.task_config.DMPDIR, provider_config['dump_filename'])
             local_dump_filename = path.join(DATA, provider_config['local_dump_filename'])
             bufr_files_to_copy.append([source_dump_filename, local_dump_filename])
 
         FileHandler({'copy_opt': bufr_files_to_copy}).sync()
+
+        FileHandler({'mkdir': [self.task_config.COMIN_OBSPROC]}).sync()
 
     @logit(logger)
     def execute(self) -> None:
@@ -119,7 +114,7 @@ class MarineBufrObsPrep(Task):
             ioda_filename = provider['ioda_filename']
             source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
             if path.exists(source_ioda_filename):
-                destination_ioda_filename = path.join(self.task_config.COMOUT, ioda_filename)
+                destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, ioda_filename)
                 ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
