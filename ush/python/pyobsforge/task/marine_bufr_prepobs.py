@@ -70,7 +70,7 @@ class MarineBufrObsPrep(Task):
             provider.update(local_dict)
             provider_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, provider)
             logger.info(f"Provider config for {provider}: {provider_config}")
-            provider.ioda_filename = provider_config['ioda_filename']
+            provider['ioda_filename'] = provider_config['ioda_filename']
             save_as_yaml(provider_config, f"{DATA}/bufr2ioda_{provider['name']}.yaml")
 
             source_dump_filename = path.join(self.task_config.DMPDIR, provider_config['dump_filename'])
