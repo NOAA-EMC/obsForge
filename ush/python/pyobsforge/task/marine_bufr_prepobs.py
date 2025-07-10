@@ -58,7 +58,7 @@ class MarineBufrObsPrep(Task):
 
         DATA = self.task_config.DATA
 
-        keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle']
+        keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle', 'ocean_basin']
         local_dict = AttrDict()
         for key in keys:
             local_dict[key] = self.task_config.get(key)
