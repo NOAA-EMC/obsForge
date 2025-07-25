@@ -94,7 +94,7 @@ class MarineObsPrep(Task):
                           provider: str,
                           obs_space: str,
                           shared_ioda_files) -> None:
-        output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
+        output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.nc"
 
         # Process GHRSST
         if provider == "ghrsst":
