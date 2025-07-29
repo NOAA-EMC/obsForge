@@ -144,6 +144,9 @@ class MarineObsPrep(Task):
             platform = "GW1"
             instrument = "AMSR2"
             satellite = "GW1"
+            # TODO(G,M): Get the window size from the config
+            window_begin = self.task_config.window_begin - timedelta(hours=24)
+            window_end = self.task_config.window_begin + timedelta(hours=6)
             kwargs = {
                 'provider': "amsr2",
                 'obs_space': obs_space,
@@ -152,8 +155,8 @@ class MarineObsPrep(Task):
                 'satellite': satellite,
                 'obs_type': obs_space,
                 'output_file': output_file,
-                'window_begin': self.task_config.window_begin,
-                'window_end': self.task_config.window_end,
+                'window_begin': window_begin,
+                'window_end': window_end,
                 'task_config': self.task_config
             }
             result = self.nesdis_amsr2.process_obs_space(**kwargs)
