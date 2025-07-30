@@ -14,6 +14,10 @@ list(APPEND b2i_test_input
     testinput/bufr2ioda_insitu_profile_xbtctd_2021063006.yaml.in
     testinput/bufr2ioda_insitu_surface_drifter_2019010700.yaml.in
     testinput/bufr2ioda_insitu_surface_trkob_2021063006.yaml.in
+	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_profile_rama_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_profile_ndbc_2025061900.yaml.in
 )
 
 # Define reference output files
@@ -26,6 +30,10 @@ list(APPEND b2i_test_ref
     testref/bufr2ioda_insitu_profile_xbtctd_2021063006.ref
     testref/bufr2ioda_insitu_surface_drifter_2019010700.ref
     testref/bufr2ioda_insitu_surface_trkob_2021063006.ref
+	testref/bufr2ioda_insitu_profile_ndbc_2025061900.ref
+	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
+	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
+	testref/bufr2ioda_insitu_profile_rama_2025061900.ref
 )
 
 # Set up b2i-specific test directories
@@ -106,12 +114,20 @@ endif()
 function(ADD_B2I_TEST testname testbufr)
 	# set(CONFIG_TYPE "json")
     set(CONFIG_TYPE "yaml")
-    if(testbufr STREQUAL "dbuoy")
-        set(DATE "2019010700")
+
+    if (testbufr STREQUAL "mbuoyb") 
+        set(DATE "2025061900")
         set(CYCLE "00")
     else()
-        set(DATE "2021063006")
-        set(CYCLE "06")
+        if (testbufr STREQUAL "dbuoy" 
+            OR testbufr STREQUAL "dbuoyb"
+        )   
+            set(DATE "2019010700")
+            set(CYCLE "00")
+        else()
+            set(DATE "2021063006")                                              
+            set(CYCLE "06")
+        endif()
     endif()
 
     set(TEST "bufr2ioda_insitu_${testname}")
@@ -153,6 +169,10 @@ if(GENERATE_B2I_TESTS)
     ADD_B2I_TEST("profile_glider" "subpfl")
     ADD_B2I_TEST("profile_tesac" "tesac")
     ADD_B2I_TEST("profile_tropical" "dbuoy")
+    ADD_B2I_TEST("profile_rama" "mbuoyb")
+    ADD_B2I_TEST("profile_pirata" "mbuoyb")
+    ADD_B2I_TEST("profile_taotriton" "mbuoyb")
+    ADD_B2I_TEST("profile_ndbc" "mbuoyb")
     ADD_B2I_TEST("profile_xbtctd" "xbtctd")
     ADD_B2I_TEST("surface_drifter" "dbuoy")
     ADD_B2I_TEST("surface_trkob" "trkob")
