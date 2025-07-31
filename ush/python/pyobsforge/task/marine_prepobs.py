@@ -145,7 +145,7 @@ class MarineObsPrep(Task):
             instrument = "AMSR2"
             satellite = "GW1"
             # TODO(G,M): Get the window size from the config
-            window_begin = self.task_config.window_begin - timedelta(hours=24)
+            window_begin = self.task_config.window_begin - timedelta(hours=30)
             window_end = self.task_config.window_begin + timedelta(hours=6)
             kwargs = {
                 'provider': "amsr2",
