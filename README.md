@@ -31,47 +31,54 @@ This section provides instructions for running all tests in the main obsForge re
    source obsforge_test_env/bin/activate
    pip install -r requirements.txt
    ```
+   **Note:** This virtual environment setup is essential when using JCSDA docker containers and recommended for local development to avoid dependency conflicts. It may not be necessary if you've already loaded appropriate modules on HPC systems, but it's still recommended for isolation.
 
 ### Running C++ Tests (CTest)
 
-All CTest commands should be run from the build directory:
+All CTest commands should be run from the build directory. **Note:** These commands run only obsForge-specific tests, excluding submodule tests (OOPS, IODA, etc.).
 
 ```bash
 cd build
 ```
 
-**Run all tests:**
-```bash
-ctest
-```
+**Important for HPC Users:** 
+- Some tests use MPI and cannot run on login nodes
+- Start an interactive compute node session before running tests:
+  ```bash
+  # Example for SLURM systems
+  salloc -N 1 --ntasks-per-node=4 --time=1:00:00
+  # or
+  srun --pty -N 1 --ntasks-per-node=4 --time=1:00:00 /bin/bash
+  ```
 
-**Run tests with verbose output on failure:**
+**Run obsForge-specific tests:**
 ```bash
+# Run obsforge-utils tests only
+cd obsforge-utils
 ctest --output-on-failure
 ```
 
 **Run tests in parallel (faster execution):**
 ```bash
-ctest -j$(nproc)
+cd obsforge-utils
+ctest -j$(nproc) --output-on-failure
 ```
 
 **Run specific test categories:**
 
 - BUFR to IODA converter tests:
   ```bash
-  cd obsForge
-  ctest
+  cd obsforge-utils
+  ctest -R test_b2i --output-on-failure
   ```
 
 - Non-BUFR to IODA converter tests (utility tests):
   ```bash
-  ctest -R test_obsforge_util
+  cd obsforge-utils
+  ctest -R test_obsforge_util --output-on-failure
   ```
 
-- BUFR-to-IODA specific tests:
-  ```bash
-  ctest -R test_b2i
-  ```
+**Note:** Some tests may require specific data files that are only available on certain HPC systems (WCOSS2, Hera, etc.). If tests fail due to missing data, they may need to be run on the appropriate HPC environment.
 
 ### Running Python Tests (pytest)
 
@@ -80,14 +87,16 @@ ctest -j$(nproc)
 source obsforge_test_env/bin/activate
 ```
 
-**Run all pytest tests:**
+**Run pytest tests:**
 ```bash
 # Test the pyobsforge module
 pytest ush/python/pyobsforge/tests/ --disable-warnings -v
 
-# Test the scripts
+# Test the scripts (Note: may require HPC-specific data)
 pytest scripts/tests/ --disable-warnings -v
 ```
+
+**Important:** The `scripts/tests/` tests may require specific data files that are only staged on certain HPC systems. If these tests fail due to missing data, they should be run on the appropriate HPC environment where the data is available.
 
 **Run tests with style checking:**
 ```bash
@@ -110,20 +119,26 @@ To run both CTest and pytest tests in sequence:
 
 ```bash
 # From the repository root
-cd build
+cd build/obsforge-utils
 ctest --output-on-failure -j$(nproc)
-cd ..
+cd ../..
 source obsforge_test_env/bin/activate
-pytest ush/python/pyobsforge/tests/ scripts/tests/ --disable-warnings -v
+pytest ush/python/pyobsforge/tests/ --disable-warnings -v
+# Only run scripts tests if on HPC with required data
+# pytest scripts/tests/ --disable-warnings -v
 ```
 
 ### Notes
 
 - **Submodule tests are excluded** from these instructions - they have their own testing procedures
+- **HPC considerations:** 
+  - Some tests use MPI and cannot run on login nodes
+  - Use interactive compute node sessions (`salloc` or `srun`) when on HPC systems
+  - Some tests require data files only available on specific HPC systems (WCOSS2, Hera, etc.)
 - Use `ctest --output-on-failure` to see detailed error messages when tests fail
 - Parallel execution with `-j$(nproc)` can significantly speed up test runs
-- The Python virtual environment setup is recommended to avoid dependency conflicts
-- Some tests may require specific data files or external dependencies that are downloaded automatically during the build process
+- The Python virtual environment setup is essential for JCSDA docker containers and recommended for local development to avoid dependency conflicts
+- Focus on `obsforge-utils` directory for C++ tests to avoid running all submodule tests
 
 ## Workflow Usage
 ```console
