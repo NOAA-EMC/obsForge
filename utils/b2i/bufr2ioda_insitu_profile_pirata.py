@@ -15,7 +15,7 @@ platform_description = 'PIRATA Tropical mooring profiles from mbuoyb: temperatur
 
 class PirataConfig(Bufr2iodaConfig):
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_pirata.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_pirata.{self.cycle_datetime}.nc"
 
 
 class PirataIODAVariables(MbuoybTropicalIODAVariables):

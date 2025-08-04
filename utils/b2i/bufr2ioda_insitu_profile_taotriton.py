@@ -13,7 +13,7 @@ platform_description = 'TAO/TRITON Tropical mooring profiles from mbuoyb: temper
 
 class TaotritonConfig(Bufr2iodaConfig):
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_taotriton.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_taotriton.{self.cycle_datetime}.nc"
 
 
 class TaotritonIODAVariables(MbuoybTropicalIODAVariables):

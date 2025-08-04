@@ -13,7 +13,7 @@ platform_description = 'RAMA Tropical mooring profiles from mbuoyb: temperature 
 
 class RamaConfig(Bufr2iodaConfig):
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_rama.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_rama.{self.cycle_datetime}.nc"
 
 
 class RamaIODAVariables(MbuoybTropicalIODAVariables):

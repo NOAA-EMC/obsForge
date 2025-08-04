@@ -13,7 +13,7 @@ platform_description = 'Tropical mooring profiles from dbuoy: temperature and sa
 class TropicalConfig(Bufr2iodaConfig):
 
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_tropical.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_tropical.{self.cycle_datetime}.nc"
 
 
 if __name__ == '__main__':
