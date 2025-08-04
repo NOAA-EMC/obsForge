@@ -17,7 +17,6 @@ list(APPEND b2i_test_input
 	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
 	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
 	testinput/bufr2ioda_insitu_profile_rama_2025061900.yaml.in
-	testinput/bufr2ioda_insitu_profile_ndbc_2025061900.yaml.in
 )
 
 # Define reference output files
@@ -30,7 +29,6 @@ list(APPEND b2i_test_ref
     testref/bufr2ioda_insitu_profile_xbtctd_2021063006.ref
     testref/bufr2ioda_insitu_surface_drifter_2019010700.ref
     testref/bufr2ioda_insitu_surface_trkob_2021063006.ref
-	testref/bufr2ioda_insitu_profile_ndbc_2025061900.ref
 	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
 	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
 	testref/bufr2ioda_insitu_profile_rama_2025061900.ref
@@ -109,18 +107,15 @@ CHECK_AND_SET_PATH(
     BUFR_TEST_DIR
     ${BUFR_TEST_DIR_PATH_LIST}
 )
-
-
 if (NOT BUFR_TEST_DIR_EXISTS)
     message(WARNING "BUFR test file directory not found -- bufr to ioda tests not generated.")
-    set(GENERATE_BUFR2IODA_TESTS FALSE)
+    set(GENERATE_B2I_TESTS FALSE)
 else()
     # message(STATUS "Found bufr test directory: ${BUFR_TEST_DIR}")
 
     set(OCEAN_BASIN_FILE_ORION "/work/noaa/global/glopara/fix/gdas/soca/20240802/common/RECCAP2_region_masks_all_v20221025.nc")
     set(OCEAN_BASIN_FILE_URSA "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc")
     set(OCEAN_BASIN_FILE_WCOSS2 "/lfs/h2/emc/da/noscrub/common/validation/RECCAP2_region_masks_all_v20221025.nc")
-
 
     set(OCEAN_BASIN_FILE_PATH_LIST
         ${OCEAN_BASIN_FILE_ORION}
@@ -133,10 +128,11 @@ else()
     )
     if (NOT OCEAN_BASIN_FILE_EXISTS)
         message(WARNING "Ocean basin data file not found -- bufr to ioda tests not generated.")
-        set(GENERATE_BUFR2IODA_TESTS FALSE)
+        set(GENERATE_B2I_TESTS FALSE)
     endif()
-    # message(STATUS "Found ocean basin data in ${OCEAN_BASIN_FILE}")
-    set(GENERATE_BUFR2IODA_TESTS TRUE)                                          
+
+	# message(STATUS "Found ocean basin data in ${OCEAN_BASIN_FILE}")
+    set(GENERATE_B2I_TESTS TRUE)                                          
 endif()
 
 
@@ -190,6 +186,7 @@ function(ADD_B2I_TEST testname testbufr)
     set_property(TEST test_b2i_${TEST}
                  APPEND PROPERTY 
 					ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
+	# message("Created test test_b2i_${TEST}")
 endfunction()
 
 # Add tests if prerequisites are met
@@ -202,7 +199,6 @@ if(GENERATE_B2I_TESTS)
     ADD_B2I_TEST("profile_rama" "mbuoyb")
     ADD_B2I_TEST("profile_pirata" "mbuoyb")
     ADD_B2I_TEST("profile_taotriton" "mbuoyb")
-    # ADD_B2I_TEST("profile_ndbc" "mbuoyb")
     ADD_B2I_TEST("profile_xbtctd" "xbtctd")
     ADD_B2I_TEST("surface_drifter" "dbuoy")
     ADD_B2I_TEST("surface_trkob" "trkob")
