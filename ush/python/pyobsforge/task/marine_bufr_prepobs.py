@@ -2,6 +2,7 @@
 
 from logging import getLogger
 from os import path
+from datetime import timedelta
 from typing import Dict, Any
 from wxflow import (
     AttrDict,
@@ -40,7 +41,7 @@ class MarineBufrObsPrep(Task):
                 'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cyc}/ocean/insitu",
                 'window_begin': _window_begin,
                 'window_end': _window_end,
-                'yyyymmdd': yyyymmdd,
+           #     'yyyymmdd': yyyymmdd,
                 'PREFIX': f"{RUN}.t{cyc}z.",
                 'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}"
             }
@@ -58,7 +59,8 @@ class MarineBufrObsPrep(Task):
 
         DATA = self.task_config.DATA
 
-        keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle', 'ocean_basin']
+        #keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle', 'ocean_basin']
+        keys = ['DATA', 'RUN', 'cyc', 'PREFIX', 'current_cycle', 'ocean_basin']
         local_dict = AttrDict()
         for key in keys:
             local_dict[key] = self.task_config.get(key)
@@ -66,6 +68,20 @@ class MarineBufrObsPrep(Task):
         bufr_files_to_copy = []
 
         for provider in providers:
+
+            try:
+               obs_window_back = provider['window']['back']
+               obs_window_forward = provider['window']['forward']
+            except KeyError:
+               obs_window_back = 0
+               obs_window_forward = 0
+
+            # figure out which cycles of bufr obs to convert
+            obs_cycles = []
+            for i in range(-obs_window_back, obs_window_forward + 1):
+               interval = to_timedelta(f"{self.task_config['assim_freq']}H") * i
+               obs_cycles.append(self.task_config.current_cycle + interval)
+            logger.debug(f"Window cdates {obs_cycles}")
 
             provider.update(local_dict)
             provider_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, provider)
