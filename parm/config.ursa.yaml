@@ -1,15 +1,15 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/test/obsForge
-  SDATE: 202504281800
-  EDATE: 202504300000
-  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/COMROOT
-  DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
-  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/test/test_obsForge/RUNDIRS
+  HOMEobsforge: /scratch3/NCEPDEV/da/Mindo.Choi/obsForge_06052025/obsForge
+  SDATE: 202506011800
+  EDATE: 202506020000
+  COMROOT: /scratch3/NCEPDEV/da/Mindo.Choi/obsForge_06052025/COMROOT
+  DCOMROOT: /scratch3/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
+  DATAROOT: /scratch3/NCEPDEV/da/Mindo.Choi/obsForge_06052025/RUNDIRS
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: hera
+  PARTITION: ursa
   KEEPDATA: NO
   assim_freq: 6
 
@@ -33,9 +33,8 @@ marinedump:
         - sst_avhrrf_ma_l3u
         - sst_avhrrf_mb_l3u
         - sst_avhrrf_mc_l3u
-        - sst_ahi_h08_l3c
-        - sst_abi_g17_l3c
-        - sst_abi_g16_l3c
+        - sst_ahi_h09_l3c
+        - sst_abi_g18_l3c
       qc config:
         min: -2.0
         max: 45.0
@@ -51,8 +50,6 @@ marinedump:
         - rads_adt_j3
         - rads_adt_sa
         - rads_adt_sw        
-        - rads_adt_3a
-        - rads_adt_3b
       qc config:
         min: -2.0
         max: 3.0
@@ -70,7 +67,14 @@ marinedump:
         - icec_atms_n20_l2
         - icec_atms_n21_l2
         - icec_atms_npp_l2
-#        - icec_gmi_gpm_l2
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_jpssrr:
+      list:
+        - icec_viirs_j01_l2
+        - icec_viirs_n21_l2
+        - icec_viirs_npp_l2
       qc config:
         min: 0.0
         max: 1.0
@@ -98,7 +102,7 @@ marinebufrdump:
   MEMORY_MARINE_BUFR_DUMP: 32GB
   BUFR2IODA_CONFIG_TEMP: 'bufr2ioda_template.yaml.j2'
   DMPDIR: /scratch1/NCEPDEV/da/common/
-  ocean_basin: "/scratch2/NCEPDEV/ocean/Guillaume.Vernieres/data/static/common/RECCAP2_region_masks_all_v20221025.nc"
+  ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 
   providers:

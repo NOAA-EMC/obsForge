@@ -106,32 +106,71 @@
 
         <command>{{ HOMEobsforge }}/jobs/rocoto/marinedump.sh</command>
 
-	        <jobname><cyclestr>obsforge_gdas_marine_dump_@H</cyclestr></jobname>
-		<account>{{ ACCOUNT }}</account>
-	        <queue>{{ QUEUE }}</queue>
-		<walltime>{{ WALLTIME_MARINE_DUMP }}</walltime>
-		<nodes>{{ TASK_GEOM_MARINE_DUMP }}</nodes>
-		<memory>{{ MEMORY_MARINE_DUMP }}</memory>
-		<native>-l place=vscatter:shared</native>
+	<jobname><cyclestr>obsforge_gdas_marine_dump_@H</cyclestr></jobname>
+        <account>{{ ACCOUNT }}</account>
+	<queue>{{ QUEUE }}</queue>
+	<walltime>{{ WALLTIME_MARINE_DUMP }}</walltime>
+	<nodes>{{ TASK_GEOM_MARINE_DUMP }}</nodes>
+	<memory>{{ MEMORY_MARINE_DUMP }}</memory>
+	<native>-l place=vscatter:shared</native>
 
-		<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_marine_dump_prep.log</cyclestr></join>
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_marine_dump_prep.log</cyclestr></join>
 
-	        <envar><name>RUN_ENVIR</name><value>emc</value></envar>
-		<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
-		<envar><name>NET</name><value>gdas</value></envar>
-		<envar><name>RUN</name><value>gdas</value></envar>
-		<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
-		<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
-		<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
-		<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
-		<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
-		<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
-		<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
+	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
+	<envar><name>NET</name><value>gdas</value></envar>
+	<envar><name>RUN</name><value>gdas</value></envar>
+	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
+	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
+	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
 
-		<!--<dependency>
-		        <datadep><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.updated.status.tm00.bufr_d</cyclestr></datadep>
+	<!--<dependency>
+		<datadep><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.updated.status.tm00.bufr_d</cyclestr></datadep>
 		</dependency>
-		-->
+	-->
+
+</task>
+
+<!--
+	============================================
+	Task: gfs_marine_bufr_dump
+	============================================
+-->
+<task name="gfs_marine_bufr_dump" cycledefs="gfs" maxtries="&MAXTRIES;">
+
+	<command>{{ HOMEobsforge }}/jobs/rocoto/marinebufrdump.sh</command>
+
+	<jobname><cyclestr>obsforge_gfs_marine_bufr_dump_@H</cyclestr></jobname>
+	<account>{{ ACCOUNT }}</account>
+	<queue>{{ QUEUE }}</queue>
+	<partition>{{ PARTITION }}</partition>
+	<walltime>{{ WALLTIME_MARINE_BUFR_DUMP }}</walltime>
+	<nodes>{{ TASK_GEOM_MARINE_BUFR_DUMP }}</nodes>
+	<memory>{{ MEMORY_MARINE_BUFR_DUMP }}</memory>
+	<native>--export=NONE</native>
+
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_marine_bufr_dump_prep.log</cyclestr></join>
+
+	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
+	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
+	<envar><name>NET</name><value>gfs</value></envar>
+	<envar><name>RUN</name><value>gfs</value></envar>
+	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
+	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
+	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+
+	<!--<dependency>
+		<datadep><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/gfs.@Y@m@d/@H/atmos/gfs.t@Hz.updated.status.tm00.bufr_d</cyclestr></datadep>
+	</dependency>
+	-->
 
 </task>
 
