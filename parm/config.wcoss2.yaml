@@ -33,8 +33,6 @@ marinedump:
         - sst_avhrrf_ma_l3u
         - sst_avhrrf_mb_l3u
         - sst_avhrrf_mc_l3u
-        - sst_ahi_h09_l3c
-        - sst_abi_g18_l3c
       qc config:
         min: -2.0
         max: 45.0
@@ -58,31 +56,6 @@ marinedump:
       list:
         - icec_amsr2_north
         - icec_amsr2_south
-      qc config:
-        min: 0.0
-        max: 1.0
-    nesdis_mirs:
-      list:
-        - icec_amsu_ma1_l2
-        - icec_atms_n20_l2
-        - icec_atms_n21_l2
-        - icec_atms_npp_l2
-      qc config:
-        min: 0.0
-        max: 1.0
-    nesdis_jpssrr:
-      list:
-        - icec_viirs_j01_l2
-        - icec_viirs_n21_l2
-        - icec_viirs_npp_l2
-      qc config:
-        min: 0.0
-        max: 1.0
-    nesdis_jpssrr:
-      list:
-        - icec_viirs_j01_l2
-        - icec_viirs_n21_l2
-        - icec_viirs_npp_l2
       qc config:
         min: 0.0
         max: 1.0
