@@ -57,6 +57,16 @@ marinedump:
       qc config:
         min: 0.0
         max: 1.0
+    nesdis_mirs:
+      list:
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_jpssrr:
+      list:
+      qc config:
+        min: 0.0
+        max: 1.0
     smap:
       list:
         - sss_smap_l2
