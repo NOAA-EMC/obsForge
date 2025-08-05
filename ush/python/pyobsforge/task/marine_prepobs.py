@@ -39,6 +39,7 @@ class MarineObsPrep(Task):
         self.rads = ProviderConfig.from_task_config("rads", self.task_config)
         self.nesdis_amsr2 = ProviderConfig.from_task_config("nesdis_amsr2", self.task_config)
         self.nesdis_mirs = ProviderConfig.from_task_config("nesdis_mirs", self.task_config)
+        self.nesdis_jpssrr = ProviderConfig.from_task_config("nesdis_jpssrr", self.task_config)
         self.smap = ProviderConfig.from_task_config("smap", self.task_config)
         self.smos = ProviderConfig.from_task_config("smos", self.task_config)
 
@@ -56,6 +57,7 @@ class MarineObsPrep(Task):
         self.rads.db.ingest_files()
         self.nesdis_amsr2.db.ingest_files()
         self.nesdis_mirs.db.ingest_files()
+        self.nesdis_jpssrr.db.ingest_files()
         self.smap.db.ingest_files()
         self.smos.db.ingest_files()
 
@@ -92,7 +94,7 @@ class MarineObsPrep(Task):
                           provider: str,
                           obs_space: str,
                           shared_ioda_files) -> None:
-        output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.tm00.nc"
+        output_file = f"{self.task_config['RUN']}.t{self.task_config['cyc']:02d}z.{obs_space}.nc"
 
         # Process GHRSST
         if provider == "ghrsst":
@@ -176,6 +178,24 @@ class MarineObsPrep(Task):
                 'task_config': self.task_config
             }
             result = self.nesdis_mirs.process_obs_space(**kwargs)
+            return result
+
+        # Process NESDIS_JPSSRR
+        if provider == "nesdis_jpssrr":
+            platform = obs_space.split("_")[2]
+            instrument = None
+            kwargs = {
+                'provider': "jpssrr",
+                'obs_space': obs_space,
+                'instrument': instrument,
+                'platform': platform,
+                'obs_type': "",
+                'output_file': output_file,
+                'window_begin': self.task_config.window_begin,
+                'window_end': self.task_config.window_end,
+                'task_config': self.task_config
+            }
+            result = self.nesdis_jpssrr.process_obs_space(**kwargs)
             return result
 
         # Process SMAP

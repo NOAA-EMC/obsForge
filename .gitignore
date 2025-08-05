@@ -56,3 +56,8 @@ __pycache__*/
 
 # Ignore pytest working directory
 scripts/tests/tests_output
+
+# Ignore Python virtual environments
+*_test_env/
+obsforge_test_env/
+test_env/
