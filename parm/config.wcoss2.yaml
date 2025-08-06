@@ -1,15 +1,15 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /lfs/h2/emc/da/noscrub/mindo.choi/cycle_test/obsForge 
+  HOMEobsforge: /lfs/h2/emc/da/noscrub/mindo.choi/cycle_test/obsForge
   SDATE: 202504250000
   EDATE: 202506250000
   COMROOT: /lfs/h2/emc/da/noscrub/mindo.choi/cycle_test/COMROOT
-  DCOMROOT: /lfs/h1/ops/prod/dcom/ 
+  DCOMROOT: /lfs/h1/ops/prod/dcom/
   DATAROOT: /lfs/h2/emc/da/noscrub/mindo.choi/cycle_test/RUNDIR
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
   QUEUE: dev
-  PARTITION: dev 
+  PARTITION: dev
   KEEPDATA: YES
   assim_freq: 6
 
@@ -30,6 +30,7 @@ marinedump:
         - sst_viirs_n20_l3u
         - sst_viirs_n21_l3u
         - sst_viirs_npp_l3u
+        - sst_avhrrf_ma_l3u
         - sst_avhrrf_mb_l3u
         - sst_avhrrf_mc_l3u
       qc config:
@@ -115,7 +116,7 @@ marinebufrdump:
       dump_tag: subpfl
     - name: insitu_profile_bathy
       variables:
-        temp: 
+        temp:
           name: 'waterTemperature'
           error: 0.24
       data_format: bathy
@@ -140,7 +141,7 @@ marinebufrdump:
       data_description: 6-hrly in situ GLIDER profiles
       data_provider: U.S. NOAA
       dump_tag: glider  # apparently incorrect
-    - name: insitu_profile_tesac 
+    - name: insitu_profile_tesac
       variables:
         temp:
           name: 'waterTemperature'
@@ -155,7 +156,7 @@ marinebufrdump:
       data_description: 6-hrly in situ TESAC profiles
       data_provider: U.S. NOAA
       dump_tag: tesac
-    - name: insitu_profile_tropical 
+    - name: insitu_profile_tropical
       variables:
         temp:
           name: 'waterTemperature'
@@ -170,7 +171,7 @@ marinebufrdump:
       data_description: 6-hrly in situ tropical mooring profiles
       data_provider: U.S. NOAA
       dump_tag: mbuoyb
-    - name: insitu_profile_xbtctd 
+    - name: insitu_profile_xbtctd
       variables:
         temp:
           name: 'waterTemperature'
@@ -185,7 +186,7 @@ marinebufrdump:
       data_description: 6-hrly in situ XBT/XCTD profiles
       data_provider: U.S. NOAA
       dump_tag: xbtctd
-    - name: insitu_surface_drifter 
+    - name: insitu_surface_drifter
       variables:
         temp:
           name: 'waterTemperature'
