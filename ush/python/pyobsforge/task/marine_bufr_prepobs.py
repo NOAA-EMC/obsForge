@@ -147,7 +147,7 @@ class MarineBufrObsPrep(Task):
                 converter.add_default_arg(obs_cycle_config['bufr2ioda_yaml'])
                 try:
                     logger.debug(f"Executing {converter}")
-                   converter()
+                    converter()
                 except Exception as e:
                     logger.warning(f"Converter failed for {provider_name}")
                     logger.warning(f"Execution failed for {converter}: {e}")
