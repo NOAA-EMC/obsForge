@@ -2,7 +2,6 @@
 
 from logging import getLogger
 from os import path
-from datetime import timedelta
 from typing import Dict, Any
 from wxflow import (
     AttrDict,
@@ -60,6 +59,8 @@ class MarineBufrObsPrep(Task):
 
         obs_cycle_dict = AttrDict({key: self.task_config[key] for key in ['DATA', 'DMPDIR', 'RUN', 'ocean_basin']})
         bufr_files_to_copy = []
+        RUN = self.task_config.RUN
+        cyc = self.task_config.cyc
 
         for provider in providers:
 
@@ -76,14 +77,14 @@ class MarineBufrObsPrep(Task):
                 interval = to_timedelta(f"{self.task_config['assim_freq']}H") * i
                 obs_cycles.append(self.task_config.current_cycle + interval)
 
-            keys = [ 'data_format', 'name', 'subsets', 'source', 'data_type', 'data_description', 'data_provider', 'dump_tag']
+            keys = ['data_format', 'name', 'subsets', 'source', 'data_type', 'data_description', 'data_provider', 'dump_tag']
             for key in keys:
                 obs_cycle_dict[key] = provider.get(key)
 
             obs_cycles_to_convert = []
             ioda_files_to_concat = []
             for obs_cycle in obs_cycles:
-               
+
                 obs_cycle_cyc = obs_cycle.strftime("%H")
                 obs_cycle_dict.update({
                     'obs_cycle_cyc': obs_cycle_cyc,
@@ -110,8 +111,8 @@ class MarineBufrObsPrep(Task):
                 'variable': provider['variables'][0]['name'],
                 'error ratio': 0.4,
                 'input files': ioda_files_to_concat,
-                'output file': f"{self.task_config.RUN}.t{self.task_config.cyc}z.{provider.name}.{self.task_config.yyyymmdd}{self.task_config.cyc}.concat.nc4",
-                'save file': f"{self.task_config.RUN}.t{self.task_config.cyc}z.{provider.name}.{self.task_config.yyyymmdd}{self.task_config.cyc}.nc4"
+                'output file': f"{RUN}.t{cyc}z.{provider.name}.{self.task_config.yyyymmdd}{cyc}.concat.nc4",
+                'save file': f"{RUN}.t{cyc}z.{provider.name}.{self.task_config.yyyymmdd}{cyc}.nc4"
             }
             save_as_yaml(concat_config, f"{provider.name}_concat.yaml")
             provider['concat_config'] = concat_config
@@ -128,7 +129,7 @@ class MarineBufrObsPrep(Task):
         """
         logger.info("running execute")
         HOMEobsforge = self.task_config.HOMEobsforge
-        providers = parse_yaml("providers.yaml") 
+        providers = parse_yaml("providers.yaml")
 
         for provider in providers:
             provider_name = provider['name']
@@ -140,18 +141,18 @@ class MarineBufrObsPrep(Task):
             obs_cycle_configs = provider['obs_cycles_to_convert']
             for obs_cycle_config in obs_cycle_configs:
 
-               converter = Executable('python')
-               converter.add_default_arg(bufrconverter)
-               converter.add_default_arg('-c')
-               converter.add_default_arg(obs_cycle_config['bufr2ioda_yaml'])
-               try:
-                   logger.debug(f"Executing {converter}")
+                converter = Executable('python')
+                converter.add_default_arg(bufrconverter)
+                converter.add_default_arg('-c')
+                converter.add_default_arg(obs_cycle_config['bufr2ioda_yaml'])
+                try:
+                    logger.debug(f"Executing {converter}")
                    converter()
-               except Exception as e:
-                   logger.warning(f"Converter failed for {provider_name}")
-                   logger.warning(f"Execution failed for {converter}: {e}")
-                   logger.debug("Exception details", exc_info=True)
-                   continue  # skip to the next obs_cycle_config
+                except Exception as e:
+                    logger.warning(f"Converter failed for {provider_name}")
+                    logger.warning(f"Execution failed for {converter}: {e}")
+                    logger.debug("Exception details", exc_info=True)
+                    continue  # skip to the next obs_cycle_config
 
             concater = Executable(self.task_config.OCNOBS2IODAEXEC)
             concater.add_default_arg(concat_config_file)
