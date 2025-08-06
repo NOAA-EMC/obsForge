@@ -44,6 +44,7 @@ marinedump:
         - rads_adt_3b
         - rads_adt_6a
         - rads_adt_c2
+        - rads_adt_j2
         - rads_adt_j3
         - rads_adt_sa
         - rads_adt_sw
