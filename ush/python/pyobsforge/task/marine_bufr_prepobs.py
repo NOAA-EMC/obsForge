@@ -10,9 +10,11 @@ from wxflow import (
     FileHandler,
     Task,
     add_to_datetime,
+    to_isotime,
     to_timedelta,
     logit,
     parse_j2yaml,
+    parse_yaml,
     save_as_yaml,
 )
 
@@ -32,17 +34,25 @@ class MarineBufrObsPrep(Task):
         yyyymmdd = self.task_config.current_cycle.strftime("%Y%m%d")
         cyc = self.task_config.current_cycle.strftime("%H")
         RUN = self.task_config.RUN
+        OCNOBS2IODAEXEC = path.join(self.task_config.HOMEobsforge, 'build/bin/obsforge_obsprovider2ioda.x')
 
         _window_begin = add_to_datetime(self.task_config.current_cycle, -to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
         _window_end = add_to_datetime(self.task_config.current_cycle, +to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
 
+        logger.info(f"_window_begin: {_window_begin}")
+        logger.info(f"_window_end: {_window_end}")
+
+
         local_dict = AttrDict(
             {
                 'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cyc}/ocean/insitu",
-                'window_begin': _window_begin,
-                'window_end': _window_end,
+                'window_begin': to_isotime(_window_begin),
+                'window_end': to_isotime(_window_end),
+                'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
                 'PREFIX': f"{RUN}.t{cyc}z.",
-                'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}"
+                'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}",
+#                'cyc': cyc,
+                'yyyymmdd': yyyymmdd
             }
         )
 
@@ -82,6 +92,7 @@ class MarineBufrObsPrep(Task):
                 obs_cycle_dict[key] = provider.get(key)
 
             obs_cycles_to_convert = []
+            ioda_files_to_concat = []
             for obs_cycle in obs_cycles:
                
                 obs_cycle_cyc = obs_cycle.strftime("%H")
@@ -95,8 +106,27 @@ class MarineBufrObsPrep(Task):
                     save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
                     bufr_files_to_copy.append([obs_cycle_config.dump_filename, obs_cycle_config.local_dump_filename])
                     obs_cycles_to_convert.append(obs_cycle_config)
+                    ioda_files_to_concat.append(obs_cycle_config.ioda_filename)
 
             provider['obs_cycles_to_convert'] = obs_cycles_to_convert
+
+            logger.info(f"provider: {provider}")
+            logger.info(f"thingy: {provider['variables']}")
+            # set up config for concatenation
+            concat_config = {
+                'provider': 'INSITUOBS',
+                'window begin': self.task_config['window_begin'],
+                'window end': self.task_config['window_end'],
+                'variable': provider['variables'][0]['name'],
+                'error ratio': 0.4,
+                'input files': ioda_files_to_concat,
+                'output file': f"{self.task_config.RUN}.t{self.task_config.cyc}z.{provider.name}.{self.task_config.yyyymmdd}{self.task_config.cyc}.concat.nc4",
+                'save file': f"{self.task_config.RUN}.t{self.task_config.cyc}z.{provider.name}.{self.task_config.yyyymmdd}{self.task_config.cyc}.nc4"
+            }
+            concat_config_file = provider.name + '_concat.yaml'
+            save_as_yaml(concat_config, concat_config_file)
+
+
 
         FileHandler({'copy_opt': bufr_files_to_copy}).sync()
 
@@ -117,7 +147,8 @@ class MarineBufrObsPrep(Task):
             provider_name = provider['name']
             logger.info(f"Processing provider: {provider_name}")
             bufrconverter = f"{HOMEobsforge}/utils/b2i/bufr2ioda_{provider_name}.py"
-            #bufrconverterconfig = f"{self.task_config.DATA}/bufr2ioda_{provider_name}.yaml"
+
+            concat_config_file = provider_name + '_concat.yaml'
             obs_cycle_configs = provider.obs_cycles_to_convert
             for obs_cycle_config in obs_cycle_configs:
 
@@ -134,6 +165,17 @@ class MarineBufrObsPrep(Task):
                    logger.debug("Exception details", exc_info=True)
                    continue  # skip to the next obs_cycle_config
 
+            concater = Executable(self.task_config.OCNOBS2IODAEXEC)
+            concater.add_default_arg(concat_config_file)
+            try:
+                logger.debug(f"Executing {concater}")
+                concater()
+            except Exception as e:
+                logger.warning(f"Concaterfailed for {provider_name}")
+                logger.warning(f"Execution failed for {concater}: {e}")
+                logger.debug("Exception details", exc_info=True)
+                continue  # skip to the next obs_cycle_config
+
     @logit(logger)
     def finalize(self) -> None:
         """
@@ -145,11 +187,14 @@ class MarineBufrObsPrep(Task):
         ioda_files_to_copy = []
 
         for provider in providers:
-            ioda_filename = provider['ioda_filename']
+            concat_config_file = provider.name + '_concat.yaml'
+            concat_config = parse_yaml(concat_config_file)
+#            ioda_filename = provider['ioda_filename']
+            ioda_filename = concat_config['output file']
             logger.info(f"ioda_filename: {ioda_filename}")
             source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
             if path.exists(source_ioda_filename):
-                destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, ioda_filename)
+                destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
                 ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
