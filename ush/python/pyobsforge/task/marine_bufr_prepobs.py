@@ -90,7 +90,7 @@ class MarineBufrObsPrep(Task):
                     'obs_cycle_cyc': obs_cycle_cyc,
                     'obs_cycle': obs_cycle,
                     'obs_cycle_PREFIX': f"{obs_cycle_dict['RUN']}.t{obs_cycle_cyc}z."
-                 }) 
+                    })
                 obs_cycle_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, obs_cycle_dict)
 
                 # if the bufr file exists in DMPDIR, set it up for conversion
@@ -171,7 +171,7 @@ class MarineBufrObsPrep(Task):
         """
         logger.info("running finalize")
 
-        providers = parse_yaml("providers.yaml") 
+        providers = parse_yaml("providers.yaml")
 
         ioda_files_to_copy = []
 
