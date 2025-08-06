@@ -107,23 +107,109 @@ marinebufrdump:
   MEMORY_MARINE_BUFR_DUMP: 32GB
   BUFR2IODA_CONFIG_TEMP: 'bufr2ioda_template.yaml.j2'
   DMPDIR: /work/noaa/da/marineda/gfs-marine/data/obs/
+  ocean_basin: "/work2/noaa/global/role-global/fix/gdas/soca/20250519/common/RECCAP2_region_masks_all_v20221025.nc"
 
   providers:
     - name: insitu_profile_argo
       variables:
-        temp:
-          name: 'waterTemperature'
+        - name: 'waterTemperature'
           error: 0.02
-        salinity:
-          name: 'salinity'
+        - name: 'salinity'
           error: 0.01
       data_format: subpfl
       subsets: SUBPFL
       source: NCEP data tank
       data_type: argo
-      ocean_basin: " /work2/noaa/global/role-global/fix/gdas/soca/20250519/common/RECCAP2_region_masks_all_v20221025.nc"
       data_description: 6-hrly in situ ARGO profiles
       data_provider: U.S. NOAA
       dump_tag: subpfl
-
-
+      window:
+         back: 4
+         forward: 4
+    - name: insitu_profile_bathy
+      variables:
+        - name: 'waterTemperature'
+          error: 0.24
+      data_format: bathy
+      subsets: BATHY
+      source: NCEP data tank
+      data_type: bathy
+      data_description: 6-hrly in situ Bathythermal profiles
+      data_provider: U.S. NOAA
+      dump_tag: bathy
+    - name: insitu_profile_glider
+      variables:
+        - name: 'waterTemperature'
+          error: 0.02
+        - name: 'salinity'
+          error: 0.01
+      data_format: subpfl
+      subsets: SUBPFL
+      source: NCEP data tank
+      data_type: glider
+      data_description: 6-hrly in situ GLIDER profiles
+      data_provider: U.S. NOAA
+      dump_tag: glider  # apparently incorrect
+    - name: insitu_profile_tesac 
+      variables:
+        - name: 'waterTemperature'
+          error: 0.02
+        - name: 'salinity'
+          error: 0.01
+      data_format: tesac
+      subsets: TESAC
+      source: NCEP data tank
+      data_type: tesac
+      data_description: 6-hrly in situ TESAC profiles
+      data_provider: U.S. NOAA
+      dump_tag: tesac
+    - name: insitu_profile_tropical 
+      variables:
+        - name: 'waterTemperature'
+          error: 0.02
+        - name: 'salinity'
+          error: 0.01
+      data_format: dbuoy
+      subsets: dbuoy
+      source: NCEP data tank
+      data_type: tropical
+      data_description: 6-hrly in situ tropical mooring profiles
+      data_provider: U.S. NOAA
+      dump_tag: mbuoyb
+    - name: insitu_profile_xbtctd 
+      variables:
+        - name: 'waterTemperature'
+          error: 0.12
+        - name: 'salinity'
+          error: 1.0
+      data_format: xbtctd
+      subsets: XBTCTD
+      source: NCEP data tank
+      data_type: xbtctd
+      data_description: 6-hrly in situ XBT/XCTD profiles
+      data_provider: U.S. NOAA
+      dump_tag: xbtctd
+    - name: insitu_surface_drifter 
+      variables:
+        - name: 'waterTemperature'
+          error: 0.02
+      data_format: dbuoy
+      subsets: dbuoy
+      source: NCEP data tank
+      data_type: drifter
+      data_description: 6-hrly in situ drifter profiles
+      data_provider: U.S. NOAA
+      dump_tag: dbuoy
+    - name: insitu_surface_trkob
+      variables:
+        - name: 'seaSurfaceTemperature'
+          error: 0.3
+        - name: 'seaSurfaceSalinity'
+          error: 1.0
+      data_format: trkob
+      subsets: TRACKOB
+      source: NCEP data tank
+      data_type: trackob
+      data_description: 6-hrly in situ TRACKOB surface
+      data_provider: U.S. NOAA
+      dump_tag: trkob
