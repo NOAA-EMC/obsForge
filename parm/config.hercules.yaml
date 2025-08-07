@@ -113,8 +113,10 @@ marinebufrdump:
     - name: insitu_profile_argo
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_argo
           error: 0.02
         - name: 'salinity'
+          provider_var: insitu_salt_profile_argo
           error: 0.01
       data_format: subpfl
       subsets: SUBPFL
@@ -129,6 +131,7 @@ marinebufrdump:
     - name: insitu_profile_bathy
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_bathy
           error: 0.24
       data_format: bathy
       subsets: BATHY
@@ -140,8 +143,10 @@ marinebufrdump:
     - name: insitu_profile_glider
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_glider
           error: 0.02
         - name: 'salinity'
+          provider_var: insitu_salt_profile_glider
           error: 0.01
       data_format: subpfl
       subsets: SUBPFL
@@ -153,8 +158,10 @@ marinebufrdump:
     - name: insitu_profile_tesac 
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_tesac
           error: 0.02
         - name: 'salinity'
+          provider_var: insitu_salt_profile_tesac
           error: 0.01
       data_format: tesac
       subsets: TESAC
@@ -166,8 +173,10 @@ marinebufrdump:
     - name: insitu_profile_tropical 
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_tropical
           error: 0.02
         - name: 'salinity'
+          provider_var: insitu_salt_profile_tropical
           error: 0.01
       data_format: dbuoy
       subsets: dbuoy
@@ -179,8 +188,10 @@ marinebufrdump:
     - name: insitu_profile_xbtctd 
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_profile_xbtctd
           error: 0.12
         - name: 'salinity'
+          provider_var: insitu_salt_profile_xbtctd
           error: 1.0
       data_format: xbtctd
       subsets: XBTCTD
@@ -192,6 +203,7 @@ marinebufrdump:
     - name: insitu_surface_drifter 
       variables:
         - name: 'waterTemperature'
+          provider_var: insitu_temp_surface_drifter
           error: 0.02
       data_format: dbuoy
       subsets: dbuoy
@@ -203,8 +215,10 @@ marinebufrdump:
     - name: insitu_surface_trkob
       variables:
         - name: 'seaSurfaceTemperature'
+          provider_var: insitu_sst_trkob
           error: 0.3
         - name: 'seaSurfaceSalinity'
+          provider_var: insitu_sss_trkob
           error: 1.0
       data_format: trkob
       subsets: TRACKOB
