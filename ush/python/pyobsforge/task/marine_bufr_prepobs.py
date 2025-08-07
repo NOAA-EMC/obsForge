@@ -29,7 +29,7 @@ class MarineBufrObsPrep(Task):
         logger.info(f"self.task_config.cyc: {self.task_config.cyc}")
 
         yyyymmdd = self.task_config.current_cycle.strftime("%Y%m%d")
-        cyc = self.task_config.current_cycle.strftime("%H")
+        cycstr = self.task_config.current_cycle.strftime("%H")
         RUN = self.task_config.RUN
 
         _window_begin = add_to_datetime(self.task_config.current_cycle, -to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
@@ -37,11 +37,12 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cyc}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}",
+                'cycstr': cycstr,
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'yyyymmdd': yyyymmdd,
-                'PREFIX': f"{RUN}.t{cyc}z.",
+                'PREFIX': f"{RUN}.t{cycstr}z.",
                 'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}"
             }
         )
@@ -58,7 +59,7 @@ class MarineBufrObsPrep(Task):
 
         DATA = self.task_config.DATA
 
-        keys = ['DATA', 'RUN', 'yyyymmdd', 'cyc', 'PREFIX', 'current_cycle', 'ocean_basin']
+        keys = ['DATA', 'RUN', 'yyyymmdd', 'cycstr', 'PREFIX', 'current_cycle', 'ocean_basin']
         local_dict = AttrDict()
         for key in keys:
             local_dict[key] = self.task_config.get(key)
