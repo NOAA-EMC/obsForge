@@ -102,20 +102,26 @@ class MarineBufrObsPrep(Task):
 
             provider['obs_cycles_to_convert'] = obs_cycles_to_convert
 
-            # set up config for concatenation
-            # TODO(AFE) should probably be a jinja yaml
-            concat_config = {
-                'provider': 'INSITUOBS',
-                'window begin': self.task_config['window_begin'],
-                'window end': self.task_config['window_end'],
-                'variable': provider['variables'][0]['name'],
-                'error ratio': 0.4,
-                'input files': ioda_files_to_concat,
-                'output file': f"{RUN}.t{cyc}z.{provider.name}.{self.task_config.yyyymmdd}{cyc}.concat.nc4",
-                'save file': f"{RUN}.t{cyc}z.{provider.name}.{self.task_config.yyyymmdd}{cyc}.nc4"
-            }
-            save_as_yaml(concat_config, f"{provider.name}_concat.yaml")
-            provider['concat_config'] = concat_config
+            concat_configs = []
+            for variable in provider['variables']:
+                provider_var = variable['provider_var']
+                # set up config for concatenation
+                # TODO(AFE) should probably be a jinja yaml
+                concat_config = {
+                    'provider': 'INSITUOBS',
+                    'window begin': self.task_config['window_begin'],
+                    'window end': self.task_config['window_end'],
+                    'variable': variable['name'],
+                    'error ratio': 0.4,
+                    'input files': ioda_files_to_concat,
+                    'output file': f"{RUN}.t{cyc}z.{provider_var}.{self.task_config.yyyymmdd}{cyc}.concat.nc4",
+                    'save file': f"{RUN}.t{cyc}z.{provider_var}.{self.task_config.yyyymmdd}{cyc}.nc4",
+                    'concat config file': f"{provider_var}_concat.yaml",
+                    'provider_var': provider_var
+                }
+                save_as_yaml(concat_config, concat_config['concat config file'])
+                concat_configs.append(concat_config)
+            provider['concat_configs'] = concat_configs
 
         save_as_yaml(providers, "providers.yaml")
 
@@ -137,7 +143,6 @@ class MarineBufrObsPrep(Task):
             # TODO(AFE) set this in providers
             bufrconverter = f"{HOMEobsforge}/utils/b2i/bufr2ioda_{provider_name}.py"
 
-            concat_config_file = provider_name + '_concat.yaml'
             obs_cycle_configs = provider['obs_cycles_to_convert']
             for obs_cycle_config in obs_cycle_configs:
 
@@ -154,16 +159,17 @@ class MarineBufrObsPrep(Task):
                     logger.debug("Exception details", exc_info=True)
                     continue  # skip to the next obs_cycle_config
 
-            concater = Executable(self.task_config.OCNOBS2IODAEXEC)
-            concater.add_default_arg(concat_config_file)
-            try:
-                logger.debug(f"Executing {concater}")
-                concater()
-            except Exception as e:
-                logger.warning(f"Concatenation failed for {provider_name}")
-                logger.warning(f"Execution failed for {concater}: {e}")
-                logger.debug("Exception details", exc_info=True)
-                continue  # skip to the next obs_cycle_config
+            for concat_config in provider['concat_configs']:
+                concater = Executable(self.task_config.OCNOBS2IODAEXEC)
+                concater.add_default_arg(concat_config['concat config file'])
+                try:
+                    logger.debug(f"Executing {concater}")
+                    concater()
+                except Exception as e:
+                    logger.warning(f"Concatenation failed for {concat_config['provider_var']}")
+                    logger.warning(f"Execution failed for {concater}: {e}")
+                    logger.debug("Exception details", exc_info=True)
+                    continue  # skip to the next obs_cycle_config
 
     @logit(logger)
     def finalize(self) -> None:
@@ -176,12 +182,12 @@ class MarineBufrObsPrep(Task):
         ioda_files_to_copy = []
 
         for provider in providers:
-            concat_config = provider['concat_config']
-            ioda_filename = concat_config['output file']
-            logger.info(f"ioda_filename: {ioda_filename}")
-            source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
-            if path.exists(source_ioda_filename):
-                destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
-                ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
+            for concat_config in provider['concat_configs']:
+                ioda_filename = concat_config['output file']
+                logger.info(f"ioda_filename: {ioda_filename}")
+                source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
+                if path.exists(source_ioda_filename):
+                    destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
+                    ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
