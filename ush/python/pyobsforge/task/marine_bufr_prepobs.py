@@ -119,7 +119,7 @@ class MarineBufrObsPrep(Task):
 
         save_as_yaml(providers, "providers.yaml")
 
-        # fetch available bufr files and make COMIN_OBSPROC]
+        # fetch available bufr files and make COMIN_OBSPROC
         FileHandler({'copy_opt': bufr_files_to_copy}).sync()
         FileHandler({'mkdir': [self.task_config.COMIN_OBSPROC]}).sync()
 
