@@ -160,7 +160,7 @@ class MarineBufrObsPrep(Task):
                 logger.debug(f"Executing {concater}")
                 concater()
             except Exception as e:
-                logger.warning(f"Concaterfailed for {provider_name}")
+                logger.warning(f"Concatenation failed for {provider_name}")
                 logger.warning(f"Execution failed for {concater}: {e}")
                 logger.debug("Exception details", exc_info=True)
                 continue  # skip to the next obs_cycle_config
