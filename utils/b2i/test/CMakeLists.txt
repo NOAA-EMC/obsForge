@@ -14,6 +14,9 @@ list(APPEND b2i_test_input
     testinput/bufr2ioda_insitu_profile_xbtctd_2021063006.yaml.in
     testinput/bufr2ioda_insitu_surface_drifter_2019010700.yaml.in
     testinput/bufr2ioda_insitu_surface_trkob_2021063006.yaml.in
+	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_profile_rama_2025061900.yaml.in
 )
 
 # Define reference output files
@@ -26,6 +29,9 @@ list(APPEND b2i_test_ref
     testref/bufr2ioda_insitu_profile_xbtctd_2021063006.ref
     testref/bufr2ioda_insitu_surface_drifter_2019010700.ref
     testref/bufr2ioda_insitu_surface_trkob_2021063006.ref
+	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
+	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
+	testref/bufr2ioda_insitu_profile_rama_2025061900.ref
 )
 
 # Set up b2i-specific test directories
@@ -72,46 +78,82 @@ function(CREATE_CONFIG_FILE
     file(WRITE "${test_config_out}" "${temp_content3}")
 endfunction()
 
-# Function to check paths
-function(CHECK_AND_SET_PATH PATH1 PATH2 RESULT_VAR)
-    if(EXISTS ${PATH1})
-        set(${RESULT_VAR} ${PATH1} PARENT_SCOPE)
-        set(${RESULT_VAR}_EXISTS TRUE PARENT_SCOPE)
-    elseif(EXISTS ${PATH2})
-        set(${RESULT_VAR} ${PATH2} PARENT_SCOPE)
-        set(${RESULT_VAR}_EXISTS TRUE PARENT_SCOPE)
-    else()
-        set(${RESULT_VAR} "" PARENT_SCOPE)
-        set(${RESULT_VAR}_EXISTS FALSE PARENT_SCOPE)
-    endif()
+
+function(CHECK_AND_SET_PATH RESULT_VAR PATH_LIST)
+    foreach(PATH ${PATH_LIST})
+        if(EXISTS ${PATH})
+            set(${RESULT_VAR} ${PATH} PARENT_SCOPE)
+            set(${RESULT_VAR}_EXISTS TRUE PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+
+    # If none of the paths exist
+    set(${RESULT_VAR} "" PARENT_SCOPE)
+    set(${RESULT_VAR}_EXISTS FALSE PARENT_SCOPE)
 endfunction()
+
 
 # Locate BUFR input and ocean basin files
 set(BUFR_TEST_DIR_ORION "/work/noaa/da/marineda/gfs-marine/data/obs/ci/bufr")
-set(BUFR_TEST_DIR_HERA "/scratch1/NCEPDEV/da/common/ci/bufr")
-CHECK_AND_SET_PATH(${BUFR_TEST_DIR_ORION} ${BUFR_TEST_DIR_HERA} BUFR_TEST_DIR)
-
-set(OCEAN_BASIN_FILE_ORION "/work/noaa/global/glopara/fix/gdas/soca/20240802/common/RECCAP2_region_masks_all_v20221025.nc")
-set(OCEAN_BASIN_FILE_HERA "/scratch2/NCEPDEV/ocean/Guillaume.Vernieres/data/static/common/RECCAP2_region_masks_all_v20221025.nc")
-CHECK_AND_SET_PATH(${OCEAN_BASIN_FILE_ORION} ${OCEAN_BASIN_FILE_HERA} OCEAN_BASIN_FILE)
-
-if(NOT BUFR_TEST_DIR_EXISTS OR NOT OCEAN_BASIN_FILE_EXISTS)
-    message(WARNING "Required BUFR or ocean basin files not found; skipping b2i tests.")
+set(BUFR_TEST_DIR_URSA "/scratch3/NCEPDEV/da/common/ci/bufr")
+set(BUFR_TEST_DIR_WCOSS2 "/lfs/h2/emc/da/noscrub/common/ci/bufr")
+set(BUFR_TEST_DIR_PATH_LIST
+    ${BUFR_TEST_DIR_ORION}
+    ${BUFR_TEST_DIR_URSA}
+    ${BUFR_TEST_DIR_WCOSS2}
+)
+CHECK_AND_SET_PATH(
+    BUFR_TEST_DIR
+    ${BUFR_TEST_DIR_PATH_LIST}
+)
+if (NOT BUFR_TEST_DIR_EXISTS)
+    message(WARNING "BUFR test file directory not found -- bufr to ioda tests not generated.")
     set(GENERATE_B2I_TESTS FALSE)
 else()
-    set(GENERATE_B2I_TESTS TRUE)
+    # message(STATUS "Found bufr test directory: ${BUFR_TEST_DIR}")
+
+    set(OCEAN_BASIN_FILE_ORION "/work/noaa/global/glopara/fix/gdas/soca/20240802/common/RECCAP2_region_masks_all_v20221025.nc")
+    set(OCEAN_BASIN_FILE_URSA "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc")
+    set(OCEAN_BASIN_FILE_WCOSS2 "/lfs/h2/emc/da/noscrub/common/validation/RECCAP2_region_masks_all_v20221025.nc")
+
+    set(OCEAN_BASIN_FILE_PATH_LIST
+        ${OCEAN_BASIN_FILE_ORION}
+        ${OCEAN_BASIN_FILE_URSA}
+        ${OCEAN_BASIN_FILE_WCOSS2}
+    )
+    CHECK_AND_SET_PATH(
+        OCEAN_BASIN_FILE
+        ${OCEAN_BASIN_FILE_PATH_LIST}
+    )
+    if (NOT OCEAN_BASIN_FILE_EXISTS)
+        message(WARNING "Ocean basin data file not found -- bufr to ioda tests not generated.")
+        set(GENERATE_B2I_TESTS FALSE)
+    endif()
+
+	# message(STATUS "Found ocean basin data in ${OCEAN_BASIN_FILE}")
+    set(GENERATE_B2I_TESTS TRUE)                                          
 endif()
+
 
 # Function to add b2i tests
 function(ADD_B2I_TEST testname testbufr)
 	# set(CONFIG_TYPE "json")
     set(CONFIG_TYPE "yaml")
-    if(testbufr STREQUAL "dbuoy")
-        set(DATE "2019010700")
+
+    if (testbufr STREQUAL "mbuoyb") 
+        set(DATE "2025061900")
         set(CYCLE "00")
     else()
-        set(DATE "2021063006")
-        set(CYCLE "06")
+        if (testbufr STREQUAL "dbuoy" 
+            OR testbufr STREQUAL "dbuoyb"
+        )   
+            set(DATE "2019010700")
+            set(CYCLE "00")
+        else()
+            set(DATE "2021063006")                                              
+            set(CYCLE "06")
+        endif()
     endif()
 
     set(TEST "bufr2ioda_insitu_${testname}")
@@ -144,6 +186,7 @@ function(ADD_B2I_TEST testname testbufr)
     set_property(TEST test_b2i_${TEST}
                  APPEND PROPERTY 
 					ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
+	# message("Created test test_b2i_${TEST}")
 endfunction()
 
 # Add tests if prerequisites are met
@@ -153,6 +196,9 @@ if(GENERATE_B2I_TESTS)
     ADD_B2I_TEST("profile_glider" "subpfl")
     ADD_B2I_TEST("profile_tesac" "tesac")
     ADD_B2I_TEST("profile_tropical" "dbuoy")
+    ADD_B2I_TEST("profile_rama" "mbuoyb")
+    ADD_B2I_TEST("profile_pirata" "mbuoyb")
+    ADD_B2I_TEST("profile_taotriton" "mbuoyb")
     ADD_B2I_TEST("profile_xbtctd" "xbtctd")
     ADD_B2I_TEST("surface_drifter" "dbuoy")
     ADD_B2I_TEST("surface_trkob" "trkob")

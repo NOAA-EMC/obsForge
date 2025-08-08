@@ -4,28 +4,39 @@ import sys
 from b2iconverter.util import parse_arguments
 from b2iconverter.bufr2ioda_config import Bufr2iodaConfig
 from b2iconverter.bufr2ioda_converter import Bufr2ioda_Converter
-from tropical_ioda_variables import TropicalIODAVariables
+from mbuoyb_tropical_ioda_variables import MbuoybTropicalIODAVariables
+from wmo_codes import *
+
+import numpy as np
 
 
-platform_description = 'Tropical mooring profiles from dbuoy: temperature and salinity'
+platform_description = 'PIRATA Tropical mooring profiles from mbuoyb: temperature and salinity'
 
 
-class TropicalConfig(Bufr2iodaConfig):
-
+class PirataConfig(Bufr2iodaConfig):
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_tropical.{self.cycle_datetime}.nc"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_profile_pirata.{self.cycle_datetime}.nc"
+
+
+class PirataIODAVariables(MbuoybTropicalIODAVariables):
+    def filter(self):
+        super().filter()
+        mask = [True if int(rpid) in PIRATA else False for rpid in self.metadata.stationID]
+        self.metadata.filter(mask)
+        self.temp = self.temp[mask]
+        self.saln = self.saln[mask]
 
 
 if __name__ == '__main__':
 
     script_name, config_file, log_file, test_file = parse_arguments()
 
-    bufr2ioda_config = TropicalConfig(
+    bufr2ioda_config = PirataConfig(
         script_name,
         config_file,
         platform_description)
 
-    ioda_vars = TropicalIODAVariables()
+    ioda_vars = PirataIODAVariables()
     ioda_vars.set_temperature_var_name("waterTemperature")
     ioda_vars.set_temperature_error(0.02)
     ioda_vars.set_salinity_var_name("salinity")
