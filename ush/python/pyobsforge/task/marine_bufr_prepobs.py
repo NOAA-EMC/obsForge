@@ -28,7 +28,8 @@ class MarineBufrObsPrep(Task):
         super().__init__(config)
 
         yyyymmdd = self.task_config.current_cycle.strftime("%Y%m%d")
-        cyc = self.task_config.cyc
+        cycstr = self.task_config.current_cycle.strftime("%H")
+
         RUN = self.task_config.RUN
         OCNOBS2IODAEXEC = path.join(self.task_config.HOMEobsforge, 'build/bin/obsforge_obsprovider2ioda.x')
 
@@ -37,11 +38,11 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cyc}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
-                'PREFIX': f"{RUN}.t{cyc}z.",
+                'PREFIX': f"{RUN}.t{cycstr}z.",
                 'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}",
                 'yyyymmdd': yyyymmdd
             }
