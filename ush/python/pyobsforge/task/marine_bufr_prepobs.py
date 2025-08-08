@@ -38,12 +38,13 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
                 'PREFIX': f"{RUN}.t{cycstr}z.",
                 'bufr2ioda_config_temp': f"{self.task_config.HOMEobsforge}/parm/{self.task_config.BUFR2IODA_CONFIG_TEMP}",
+                'cycstr': cycstr,
                 'yyyymmdd': yyyymmdd
             }
         )
@@ -61,7 +62,7 @@ class MarineBufrObsPrep(Task):
         obs_cycle_dict = AttrDict({key: self.task_config[key] for key in ['DATA', 'DMPDIR', 'RUN', 'ocean_basin']})
         bufr_files_to_copy = []
         RUN = self.task_config.RUN
-        cyc = self.task_config.cyc
+        cycstr = self.task_config.cycstr
 
         for provider in providers:
 
@@ -115,8 +116,8 @@ class MarineBufrObsPrep(Task):
                     'variable': variable['name'],
                     'error ratio': 0.4,
                     'input files': ioda_files_to_concat,
-                    'output file': f"{RUN}.t{cyc}z.{provider_var}.{self.task_config.yyyymmdd}{cyc}.concat.nc4",
-                    'save file': f"{RUN}.t{cyc}z.{provider_var}.{self.task_config.yyyymmdd}{cyc}.nc4",
+                    'output file': f"{RUN}.t{cycstr}z.{provider_var}.{self.task_config.yyyymmdd}{cycstr}.concat.nc4",
+                    'save file': f"{RUN}.t{cycstr}z.{provider_var}.{self.task_config.yyyymmdd}{cycstr}.nc4",
                     'concat config file': f"{provider_var}_concat.yaml",
                     'provider_var': provider_var
                 }
