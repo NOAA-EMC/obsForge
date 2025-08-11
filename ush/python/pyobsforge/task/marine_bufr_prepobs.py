@@ -38,7 +38,7 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
@@ -96,6 +96,7 @@ class MarineBufrObsPrep(Task):
                 obs_cycle_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, obs_cycle_dict)
 
                 # if the bufr file exists in DMPDIR, set it up for conversion
+                logger.debug(f"Looking for {obs_cycle_config.dump_filename}...")
                 if path.exists(obs_cycle_config.dump_filename):
                     save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
                     bufr_files_to_copy.append([obs_cycle_config.dump_filename, obs_cycle_config.local_dump_filename])
