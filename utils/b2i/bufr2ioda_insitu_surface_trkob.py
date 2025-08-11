@@ -12,7 +12,7 @@ platform_description = 'Surface obs from TRACKOB: temperature and salinity'
 
 class TrkobConfig(Bufr2iodaConfig):
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_{self.data_format}.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_{self.data_format}.{self.cycle_datetime}.nc"
 
 
 if __name__ == '__main__':

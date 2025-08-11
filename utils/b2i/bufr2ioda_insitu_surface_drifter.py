@@ -13,7 +13,7 @@ platform_description = 'Lagrangian drifter drogue profiles from dbuoy: temperatu
 class DrifterConfig(Bufr2iodaConfig):
 
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_drifter.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_drifter.{self.cycle_datetime}.nc"
 
 
 if __name__ == '__main__':
