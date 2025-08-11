@@ -118,7 +118,7 @@ class MarineBufrObsPrep(Task):
                     'error ratio': 0.4,
                     'input files': ioda_files_to_concat,
                     'output file': f"{RUN}.t{cycstr}z.{provider_var}.{self.task_config.yyyymmdd}{cycstr}.concat.nc",
-                    'save file': f"{RUN}.t{cycstr}z.{provider_var}.{self.task_config.yyyymmdd}{cycstr}.nc",
+                    'save file': f"{RUN}.t{cycstr}z.{provider_var}.nc",
                     'concat config file': f"{provider_var}_concat.yaml",
                     'provider_var': provider_var
                 }
