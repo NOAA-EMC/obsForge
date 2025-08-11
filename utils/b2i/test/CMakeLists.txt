@@ -17,6 +17,7 @@ list(APPEND b2i_test_input
 	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
 	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
 	testinput/bufr2ioda_insitu_profile_rama_2025061900.yaml.in
+	testinput/bufr2ioda_insitu_surface_dbuoyb_drifter_2019010700.yaml.in
 )
 
 # Define reference output files
@@ -32,6 +33,7 @@ list(APPEND b2i_test_ref
 	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
 	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
 	testref/bufr2ioda_insitu_profile_rama_2025061900.ref
+	testref/bufr2ioda_insitu_surface_dbuoyb_drifter_2019010700.ref
 )
 
 # Set up b2i-specific test directories
@@ -202,4 +204,5 @@ if(GENERATE_B2I_TESTS)
     ADD_B2I_TEST("profile_xbtctd" "xbtctd")
     ADD_B2I_TEST("surface_drifter" "dbuoy")
     ADD_B2I_TEST("surface_trkob" "trkob")
+	ADD_B2I_TEST("surface_dbuoyb_drifter" "dbuoyb")
 endif()
