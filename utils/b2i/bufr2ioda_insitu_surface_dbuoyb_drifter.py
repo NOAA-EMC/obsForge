@@ -13,7 +13,7 @@ platform_description = 'Drifters, surface temperature from dbuoyb'
 class DbuoybDrifterConfig(Bufr2iodaConfig):
 
     def ioda_filename(self):
-        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_dbuoyb_drifter.{self.cycle_datetime}.nc4"
+        return f"{self.cycle_type}.t{self.hh}z.insitu_surface_dbuoyb_drifter.{self.cycle_datetime}.nc"
 
 
 if __name__ == '__main__':
