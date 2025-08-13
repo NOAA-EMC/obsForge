@@ -200,18 +200,18 @@ marinebufrdump:
            #      data_description: 6-hrly in situ XBT/XCTD profiles
            #      data_provider: U.S. NOAA
            #      dump_tag: xbtctd
-    - name: insitu_surface_drifter 
+    - name: insitu_surface_dbuoyb_drifter
       variables:
-        - name: 'waterTemperature'
-          provider_var: insitu_temp_surface_drifter
+        - name: 'seaSurfaceTemperature'
+          provider_var: insitu_sst_surface_dbuoyb_drifter
           error: 0.02
-      data_format: dbuoy
-      subsets: dbuoy
+      data_format: dbuoyb
+      subsets: dbuoyb
       source: NCEP data tank
-      data_type: drifter
+      data_type: dbuoyb_surface_drifter
       data_description: 6-hrly in situ drifter profiles
       data_provider: U.S. NOAA
-      dump_tag: dbuoy
+      dump_tag: dbuoyb
         #    - name: insitu_surface_trkob
         #      variables:
         #        - name: 'seaSurfaceTemperature'
