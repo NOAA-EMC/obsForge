@@ -203,7 +203,7 @@ marinebufrdump:
     - name: insitu_surface_dbuoyb_drifter
       variables:
         - name: 'seaSurfaceTemperature'
-          provider_var: insitu_sst_surface_dbuoyb_drifter
+          provider_var: insitu_temp_surface_drifter
           error: 0.02
       data_format: dbuoyb
       subsets: dbuoyb
