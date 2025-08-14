@@ -161,14 +161,14 @@ class MarineBufrObsPrep(Task):
                     logger.debug("Exception details", exc_info=True)
                     continue  # skip to the next obs_cycle_config
 
-            # for each variable in the converted ioda file, concat all of the 
-            # converted ioda files in the window 
+            # for each variable in the converted ioda file, concat all of the
+            # converted ioda files in the window
             for concat_config in provider['concat_configs']:
                 final_input_files = []
                 for input_file in concat_config['input files']:
                     if path.exists(input_file):
                         final_input_files.append(input_file)
-                concat_config.update({ 'input files': final_input_files })
+                concat_config.update({'input files': final_input_files})
                 save_as_yaml(concat_config, concat_config['concat config file'])
                 concater = Executable(self.task_config.OCNOBS2IODAEXEC)
                 concater.add_default_arg(concat_config['concat config file'])
