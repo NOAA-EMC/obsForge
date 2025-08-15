@@ -38,7 +38,7 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/obsforge/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
