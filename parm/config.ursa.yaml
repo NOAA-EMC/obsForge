@@ -13,7 +13,7 @@ obsforge:
   KEEPDATA: NO
   assim_freq: 6
   DMPDIR: /scratch1/NCEPDEV/da/common/
-  ocean_basin: "/scratch2/NCEPDEV/ocean/Guillaume.Vernieres/data/static/common/RECCAP2_region_masks_all_v20221025.nc"
+  ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 aoddump:
   provider: VIIRSAOD
