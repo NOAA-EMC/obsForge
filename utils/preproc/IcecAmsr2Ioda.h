@@ -77,6 +77,8 @@ namespace obsforge {
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
       size_t index = 0;
+      // Set epoch time for AMSR2_ICEC
+      util::DateTime epochDtime("1970-01-01T00:00:00Z");
       for (int i = 0; i < ntimes; i += dimTimeSize) {
         int year = oneTmpdateTimeVal[i];
         int month = oneTmpdateTimeVal[i+1];
@@ -91,20 +93,7 @@ namespace obsforge {
           year = month = day = hour = minute = second = 0;
         }
 
-        // Construct iso8601 string format for each dateTime
-        std::stringstream ss;
-        ss << std::setfill('0')
-           << std::setw(4) << year << '-'
-           << std::setw(2) << month << '-'
-           << std::setw(2) << day << 'T'
-           << std::setw(2) << hour << ':'
-           << std::setw(2) << minute << ':'
-           << std::setw(2) << second << 'Z';
-        std::string formattedDateTime = ss.str();
-        util::DateTime dateTime(formattedDateTime);
-
-        // Set epoch time for AMSR2_ICEC
-        util::DateTime epochDtime("1970-01-01T00:00:00Z");
+        util::DateTime dateTime(year, month, day, hour, minute, second);
 
         // Convert Obs DateTime objects to epoch time offsets in seconds
         // 0000-00-00T00:00:00Z will be converterd to negative seconds
