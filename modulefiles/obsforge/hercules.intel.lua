@@ -11,6 +11,7 @@ prepend_path("MODULEPATH", "/apps/contrib/spack-stack/spack-stack-1.9.2/envs/ue-
 
 load("stack-oneapi/2024.2.1")
 load("stack-intel-oneapi-mpi/2021.13")
+load("intel-oneapi-mkl/2024.2.1")
 load("stack-python/3.11.7")
 
 load("cmake/3.27.9")
