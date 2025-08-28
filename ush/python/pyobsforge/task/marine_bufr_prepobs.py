@@ -2,6 +2,7 @@
 
 from logging import getLogger
 from os import path
+import pathlib
 from typing import Dict, Any
 from wxflow import (
     AttrDict,
@@ -201,3 +202,7 @@ class MarineBufrObsPrep(Task):
                     ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
+
+        # create an empty file to tell external processes the obs are ready
+        ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_status.log"))
+        ready_file.touch()

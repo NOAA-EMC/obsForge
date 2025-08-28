@@ -9,6 +9,7 @@ from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
                     logit, FileHandler)
 from pyobsforge.obsdb.jrr_aod_db import JrrAodDatabase
 from pyobsforge.task.run_nc2ioda import run_nc2ioda
+import pathlib
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -108,3 +109,7 @@ class AerosolObsPrep(Task):
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
         FileHandler({'copy': src_dst_obs_list}).sync()
+
+        # create an empty file to tell external processes the obs are ready
+        ready_file = pathlib.Path(join(comout, f"{self.task_config['OPREFIX']}obsforge_status.log"))
+        ready_file.touch()
