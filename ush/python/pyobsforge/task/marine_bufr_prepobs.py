@@ -204,5 +204,5 @@ class MarineBufrObsPrep(Task):
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_status.log"))
+        ready_file = pathlib.Path(path.join(self.task_config.COMIN_OBSPROC, f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
         ready_file.touch()

@@ -281,5 +281,5 @@ class MarineObsPrep(Task):
         FileHandler({'copy': src_dst_obs_list}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_status.log"))
+        ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_marine_status.log"))
         ready_file.touch()

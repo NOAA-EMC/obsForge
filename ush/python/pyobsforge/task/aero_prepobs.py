@@ -111,5 +111,5 @@ class AerosolObsPrep(Task):
         FileHandler({'copy': src_dst_obs_list}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(join(comout, f"{self.task_config['OPREFIX']}obsforge_status.log"))
+        ready_file = pathlib.Path(os.path.join(comout, f"{self.task_config['OPREFIX']}obsforge_aod_status.log"))
         ready_file.touch()
