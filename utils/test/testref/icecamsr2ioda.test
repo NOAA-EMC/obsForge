@@ -3,24 +3,24 @@ seconds since 1970-01-01T00:00:00Z
 obsVal:
     Min: 0
     Max: 1
-    Sum: 11.91
+    Sum: 7.97
 obsError:
     Min: 0.1
     Max: 0.1
-    Sum: 1.7
+    Sum: 1
 preQc:
     Min: 0
     Max: 8
-    Sum: 40
+    Sum: 16
 longitude:
     Min: -168.867
     Max: 148.766
-    Sum: -302.819
+    Sum: -4.245
 latitude:
-    Min: 72.8259
-    Max: 86.8975
-    Sum: 1346.66
+    Min: 74.1823
+    Max: 82.8885
+    Sum: 786.105
 datetime:
-    Min: 1625048557
+    Min: 1625090122
     Max: 1625108209
-    Sum: 27626462899
+    Sum: 16251003302
