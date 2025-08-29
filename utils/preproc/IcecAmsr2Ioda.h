@@ -138,8 +138,8 @@ namespace obsforge {
       // basic test for iodaVars.trim
       Eigen::Array<bool, Eigen::Dynamic, 1> mask =
           (iodaVars.obsVal_ >= 0.0) &&
-          (iodaVars.datetime_ > winBeginSecondsSinceEpoch) &&
-          (iodaVars.datetime_ < winEndSecondsSinceEpoch);
+          (iodaVars.datetime_ >= winBeginSecondsSinceEpoch) &&
+          (iodaVars.datetime_ <= winEndSecondsSinceEpoch);
       iodaVars.trim(mask);
 
       return iodaVars;
