@@ -34,6 +34,15 @@ namespace obsforge {
     obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by the AMSR2" << std::endl;
 
+      //  Abort the case where the 'window begin & window end' key is not found
+      ASSERT(fullConfig_.has("window begin"));
+      ASSERT(fullConfig_.has("window end"));
+
+      // read as string
+      std::string windowBeginStr, windowEndStr;
+      fullConfig_.get("window begin", windowBeginStr);
+      fullConfig_.get("window end", windowEndStr);
+
       // Open the NetCDF file in read-only mode
       netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       oops::Log::info() << "Reading... " << fileName << std::endl;
@@ -76,9 +85,19 @@ namespace obsforge {
       ncFile.getVar("Scan_Time").getVar(oneTmpdateTimeVal.data());
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
-      size_t index = 0;
       // Set epoch time for AMSR2_ICEC
       util::DateTime epochDtime("1970-01-01T00:00:00Z");
+
+      // Compute seconds of windowBegin and windowEnd since epoch
+      util::DateTime windowBegin(windowBeginStr);
+      util::DateTime windowEnd(windowEndStr);
+      int64_t winBeginsecondsSinceEpoch
+           = ioda::convertDtimeToTimeOffsets(epochDtime, {windowBegin})[0];
+      int64_t winEndsecondsSinceEpoch
+           = ioda::convertDtimeToTimeOffsets(epochDtime, {windowEnd})[0];
+
+      // Compute seconds of observations  since epoch
+      size_t index = 0;
       for (int i = 0; i < ntimes; i += dimTimeSize) {
         int year = oneTmpdateTimeVal[i];
         int month = oneTmpdateTimeVal[i+1];
@@ -117,8 +136,10 @@ namespace obsforge {
       }
 
       // basic test for iodaVars.trim
-      Eigen::Array<bool, Eigen::Dynamic, 1> mask = (iodaVars.obsVal_ >= 0.0
-        && iodaVars.datetime_ > 0.0);
+      Eigen::Array<bool, Eigen::Dynamic, 1> mask =
+          (iodaVars.obsVal_ >= 0.0) &&
+          (iodaVars.datetime_ > winBeginsecondsSinceEpoch) &&
+          (iodaVars.datetime_ < winEndsecondsSinceEpoch);
       iodaVars.trim(mask);
 
       return iodaVars;
