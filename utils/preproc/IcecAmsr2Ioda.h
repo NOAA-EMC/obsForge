@@ -91,9 +91,9 @@ namespace obsforge {
       // Compute seconds of windowBegin and windowEnd since epoch
       util::DateTime windowBegin(windowBeginStr);
       util::DateTime windowEnd(windowEndStr);
-      int64_t winBeginsecondsSinceEpoch
+      int64_t winBeginSecondsSinceEpoch
            = ioda::convertDtimeToTimeOffsets(epochDtime, {windowBegin})[0];
-      int64_t winEndsecondsSinceEpoch
+      int64_t winEndSecondsSinceEpoch
            = ioda::convertDtimeToTimeOffsets(epochDtime, {windowEnd})[0];
 
       // Compute seconds of observations  since epoch
@@ -138,8 +138,8 @@ namespace obsforge {
       // basic test for iodaVars.trim
       Eigen::Array<bool, Eigen::Dynamic, 1> mask =
           (iodaVars.obsVal_ >= 0.0) &&
-          (iodaVars.datetime_ > winBeginsecondsSinceEpoch) &&
-          (iodaVars.datetime_ < winEndsecondsSinceEpoch);
+          (iodaVars.datetime_ > winBeginSecondsSinceEpoch) &&
+          (iodaVars.datetime_ < winEndSecondsSinceEpoch);
       iodaVars.trim(mask);
 
       return iodaVars;
