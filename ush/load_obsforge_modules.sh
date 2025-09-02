@@ -19,7 +19,7 @@ source "${HOMEobsforge}/ush/module-setup.sh"
 module use "${HOMEobsforge}/modulefiles"
 
 case "${MACHINE_ID}" in
-  ("hera" | "orion" | "hercules" | "wcoss2" | "gaeac5" | "gaeac6")
+  ("hera" | "ursa" | "orion" | "hercules" | "wcoss2" | "gaeac5" | "gaeac6")
     #TODO: Remove LMOD_TMOD_FIND_FIRST line when spack-stack on WCOSS2
     if [[ "${MACHINE_ID}" == "wcoss2" ]]; then
       export LMOD_TMOD_FIND_FIRST=yes

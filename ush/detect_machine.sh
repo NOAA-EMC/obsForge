@@ -80,6 +80,9 @@ elif [[ -d /mnt/lfs1 ]]; then
 elif [[ -d /scratch1 ]]; then
   # We are on NOAA Hera
   MACHINE_ID=hera
+elif [[ -d /scratch3 ]]; then
+  # We are on NOAA Ursa
+  MACHINE_ID=ursa
 elif [[ -d /work ]]; then
   # We are on MSU Orion or Hercules
   if [[ -d /apps/other ]]; then
