@@ -31,7 +31,8 @@ usage() {
 # ==============================================================================
 
 # Defaults:
-INSTALL_PREFIX=""
+INSTALL_PREFIX="${dir_root}/install"
+CMAKE_INSTALL_LIBDIR="lib"
 CMAKE_OPTS=""
 BUILD_TARGET="${MACHINE_ID:-'localhost'}"
 BUILD_VERBOSE="NO"
@@ -93,8 +94,11 @@ if [[ $CLEAN_BUILD == 'YES' ]]; then
 fi
 mkdir -p ${BUILD_DIR} && cd ${BUILD_DIR}
 
-# If INSTALL_PREFIX is not empty; install at INSTALL_PREFIX
-[[ -n "${INSTALL_PREFIX:-}" ]] && CMAKE_OPTS+=" -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
+# Set INSTALL_PREFIX as CMake option
+CMAKE_OPTS+=" -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
+
+# Set CMAKE_INSTALL_LIBDIR as CMake option
+CMAKE_OPTS+=" -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}"
 
 # Configure
 echo "Configuring ... `date`"

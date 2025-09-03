@@ -6,8 +6,8 @@ local pkgName    = myModuleName()
 local pkgVersion = myModuleVersion()
 local pkgNameVer = myModuleFullName()
 
-prepend_path("MODULEPATH", "/apps/contrib/spack-stack/spack-stack-1.9.1/envs/ue-oneapi-2024.1.0/install/modulefiles/Core")
-prepend_path("MODULEPATH", "/apps/contrib/spack-stack/spack-stack-1.9.1/envs/ue-oneapi-2024.1.0/install/modulefiles/gcc/12.2.0")
+prepend_path("MODULEPATH", "/apps/contrib/spack-stack/spack-stack-1.9.2/envs/ue-oneapi-2024.1.0/install/modulefiles/Core")
+prepend_path("MODULEPATH", "/apps/contrib/spack-stack/spack-stack-1.9.2/envs/ue-oneapi-2024.1.0/install/modulefiles/gcc/12.2.0")
 
 load("stack-oneapi/2024.2.1")
 load("stack-intel-oneapi-mpi/2021.13")
@@ -62,6 +62,7 @@ load("tar/1.34")
 load("contrib/0.1")
 load("noaatools/3.1")
 load("rocoto/1.3.7")
+load("prod_util/2.1.1")
 
 load("py-jinja2/3.1.4")
 load("py-netcdf4/1.7.1.post2")
@@ -82,7 +83,6 @@ local mpinproc = '-n'
 setenv('MPIEXEC_EXEC', mpiexec)
 setenv('MPIEXEC_NPROC', mpinproc)
 
-prepend_path("PATH","/apps/contrib/NCEP/libs/hpc-stack/intel-2018.4/prod_util/1.2.2/bin")
 
 execute{cmd="ulimit -s unlimited",modeA={"load"}}
 
