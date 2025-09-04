@@ -68,7 +68,7 @@ case ${BUILD_TARGET} in
     source $dir_root/ush/module-setup.sh
     module use $dir_root/modulefiles
     module load obsforge/$BUILD_TARGET.$COMPILER
-    CMAKE_OPTS+=" -DMPIEXEC_EXECUTABLE=$MPIEXEC_EXEC -DMPIEXEC_NUMPROC_FLAG=$MPIEXEC_NPROC"
+    CMAKE_OPTS+=" -DMPIEXEC_EXECUTABLE=$MPIEXEC_EXEC -DMPIEXEC_NUMPROC_FLAG=$MPIEXEC_NPROC -DPython3_EXECUTABLE=$(which python3)"
     module list
     ;;
   $(hostname))
