@@ -38,18 +38,33 @@ class AtmosBufrObsPrep(Task):
     @logit(logger)
     def initialize(self) -> None:
         """
+        Initialize an atmospheric BUFR observation prep task
+
+        This method will initialize an atmospheric BUFR observation prep task.
+        This includes:
+        - Staging input BUFR files
+        - Staging configuration files
         """
         # Do nothing right now
 
     @logit(logger)
     def execute(self) -> None:
         """
+        Execute converters from BUFR to IODA format for atmospheric observations
         """
+        #  ${obsforge_dir}/build/bin/bufr2netcdf.x "$input_file" "${mapping_file}" "$output_file"
         print("Do nothing for now")
 
     @logit(logger)
     def finalize(self) -> None:
         """
+        Finalize an atmospheric BUFR observation prep task
+
+        This method will finalize an atmospheric BUFR observation prep task.
+        This includes:
+        - Creating an output directory in COMOUT
+        - Copying output IODA files to COMOUT
+        - Creating a "ready" file in COMOUT to signal that the observations are ready
         """
         comout = os.path.join(self.task_config['COMROOT'],
                               self.task_config['PSLOT'],
