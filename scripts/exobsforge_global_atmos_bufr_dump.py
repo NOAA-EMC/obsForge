@@ -6,7 +6,7 @@
 import os
 
 from wxflow import AttrDict, Logger, cast_strdict_as_dtypedict, parse_j2yaml
-from pyobsforge.task.aero_prepobs import AerosolObsPrep
+from pyobsforge.task.atmos_bufr_prepobs import AtmosBufrObsPrep
 
 # Initialize root logger
 logger = Logger(level='DEBUG', colored_log=True)
@@ -25,9 +25,9 @@ if __name__ == '__main__':
             obsforge_dict[key] = value
     # Combine configs together
     config = AttrDict(**config_env, **obsforge_dict)
-    config = AttrDict(**config, **config_yaml['aoddump'])
+    config = AttrDict(**config, **config_yaml['atmosbufrdump'])
 
-    aeroObs = AerosolObsPrep(config)
-    aeroObs.initialize()
-    aeroObs.execute()
-    aeroObs.finalize()
+    atmosBufrObs = AtmosBufrObsPrep(config)
+    atmosBufrObs.initialize()
+    atmosBufrObs.execute()
+    atmosBufrObs.finalize()
