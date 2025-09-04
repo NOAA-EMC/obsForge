@@ -34,10 +34,6 @@ class AtmosBufrObsPrep(Task):
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
-        # Initialize the JRR_AOD database
-        self.jrr_aod_db = JrrAodDatabase(db_name="jrr_aod_obs.db",
-                                         dcom_dir=self.task_config.DCOMROOT,
-                                         obs_dir="jrr_aod")
 
     @logit(logger)
     def initialize(self) -> None:
@@ -55,6 +51,11 @@ class AtmosBufrObsPrep(Task):
     def finalize(self) -> None:
         """
         """
+        comout = os.path.join(self.task_config['COMROOT'],
+                              self.task_config['PSLOT'],
+                              f"{self.task_config['RUN']}.{yyyymmdd}",
+                              f"{self.task_config['cyc']:02d}",
+                              'atmos')
         # create an empty file to tell external processes the obs are ready
         ready_file = pathlib.Path(os.path.join(comout, f"{self.task_config['OPREFIX']}obsforge_atmos_bufr_status.log"))
         ready_file.touch()
