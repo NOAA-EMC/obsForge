@@ -1,11 +1,12 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/obsForge
+  HOMEobsforge: /scratch3/NCEPDEV/stmp/Cory.R.Martin/sep2025/ObsForge/obsforge
   SDATE: 202506011800
   EDATE: 202506020000
-  COMROOT: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/COMROOT
+  COMROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/com
   DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
-  DATAROOT: /scratch1/NCEPDEV/da/Mindo.Choi/obsForge_06052025/RUNDIRS
+  DATAROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/RUNDIRS
+  OBSPROC_COMROOT: /scratch3/NCEPDEV/global/role.glopara/dump/
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
@@ -14,6 +15,17 @@ obsforge:
   assim_freq: 6
   DMPDIR: /scratch1/NCEPDEV/da/common/
   ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
+
+atmosbufrdump:
+  observations:
+    prepbufr_adpsfc:
+      method: bufr2netcdf
+      input file: prepbufr
+      output file: prepbufr_adpsfc.nc
+      mapping file: prepbufr_adpsfc.yaml
+  WALLTIME_ATMOS_BUFR_DUMP: '00:10:00'
+  TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_ATMOS_BUFR_DUMP: 96GB
 
 aoddump:
   provider: VIIRSAOD

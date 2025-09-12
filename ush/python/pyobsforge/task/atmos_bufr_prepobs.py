@@ -6,7 +6,7 @@ from logging import getLogger
 from typing import Dict, Any
 
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit, FileHandler)
+                    logit, FileHandler, Executable)
 import pathlib
 
 logger = getLogger(__name__.split('.')[-1])
@@ -27,7 +27,11 @@ class AtmosBufrObsPrep(Task):
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
-                'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z."
+                'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
+                'COMIN_OBSPROC': os.path.join(self.task_config.OBSPROC_COMROOT,
+                                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                                              f"{self.task_config.cyc:02d}",
+                                              'atmos'),
             }
         )
 
@@ -44,8 +48,42 @@ class AtmosBufrObsPrep(Task):
         This includes:
         - Staging input BUFR files
         - Staging configuration files
+        - Staging any scripts needed to run the task
         """
-        # Do nothing right now
+        # create dictionary of observations to process using bufr2netcdf
+        self.bufr2netcdf_obs = {}
+        # Create dictionary of files to stage
+        src_bufr_files = []
+        dest_bufr_files = []
+        src_mapping_files = []
+        dest_mapping_files = []
+        src_script_files = []
+        dest_script_files = []
+        for ob_name, ob_data in self.task_config.observations.items():
+            if ob_data['method'] == 'bufr2netcdf':
+                input_file = os.path.join(self.task_config.COMIN_OBSPROC, f"{self.task_config.OPREFIX}{ob_data['input file']}")
+                output_file = os.path.join(self.task_config.DATA, ob_data['output file'])
+                mapping_file = os.path.join(self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "config", ob_data['mapping file'])
+                src_bufr_files.append(input_file)
+                dest_bufr_files.append(os.path.join(self.task_config.DATA, os.path.basename(input_file)))
+                src_mapping_files.append(mapping_file)
+                dest_mapping_files.append(os.path.join(self.task_config.DATA, os.path.basename(mapping_file)))
+                self.bufr2netcdf_obs[ob_name] = {
+                    'input_file': os.path.join(self.task_config.DATA, os.path.basename(input_file)),
+                    'output_file': output_file,
+                    'mapping_file': os.path.join(self.task_config.DATA, os.path.basename(mapping_file))
+                    # TODO: MPI information here
+                }      
+        # Stage the input files
+        copylist = []
+        for src, dest in zip(src_bufr_files, dest_bufr_files):
+            copylist.append([src, dest])
+        for src, dest in zip(src_mapping_files, dest_mapping_files):
+            copylist.append([src, dest])
+        for src, dest in zip(src_script_files, dest_script_files):
+            copylist.append([src, dest])
+
+        FileHandler({'copy_opt': copylist}).sync()
 
     @logit(logger)
     def execute(self) -> None:
@@ -53,7 +91,27 @@ class AtmosBufrObsPrep(Task):
         Execute converters from BUFR to IODA format for atmospheric observations
         """
         #  ${obsforge_dir}/build/bin/bufr2netcdf.x "$input_file" "${mapping_file}" "$output_file"
-        print("Do nothing for now")
+
+        # Loop through BUFR to netCDF observations and convert them
+        # TODO: Add MPI support
+        
+        for ob_name, ob_data in self.bufr2netcdf_obs.items():
+            input_file = ob_data['input_file']
+            output_file = ob_data['output_file']
+            mapping_file = ob_data['mapping_file']
+            print(f"Converting {input_file} to {output_file} using {mapping_file}")
+            exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "bufr2netcdf.x"))
+            exec_cmd.add_default_arg(input_file)
+            exec_cmd.add_default_arg(mapping_file)
+            exec_cmd.add_default_arg(output_file)
+            try:
+                logger.debug(f"Executing {exec_cmd}")
+                exec_cmd()
+            except Exception as e:
+                logger.warning(f"Conversion failed for {ob_name}")
+                logger.warning(f"Execution failed for {exec_cmd}: {e}")
+                logger.debug("Exception details", exc_info=True)
+                continue  # skip to the next observation
 
     @logit(logger)
     def finalize(self) -> None:
@@ -68,9 +126,18 @@ class AtmosBufrObsPrep(Task):
         """
         comout = os.path.join(self.task_config['COMROOT'],
                               self.task_config['PSLOT'],
-                              f"{self.task_config['RUN']}.{yyyymmdd}",
-                              f"{self.task_config['cyc']:02d}",
+                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                              f"{self.task_config.cyc:02d}",
                               'atmos')
+        # get a list of files to copy out
+        output_files = glob.glob(os.path.join(self.task_config.DATA, "*.nc"))
+        copy_list = []
+        for output_file in output_files:
+            filename = os.path.basename(output_file)
+            destination_file = os.path.join(comout, f"{self.task_config['OPREFIX']}{filename}")
+            copy_list.append([output_file, destination_file])
+        FileHandler({'mkdir': [comout], 'copy_opt': copy_list}).sync()
+
         # create an empty file to tell external processes the obs are ready
         ready_file = pathlib.Path(os.path.join(comout, f"{self.task_config['OPREFIX']}obsforge_atmos_bufr_status.log"))
         ready_file.touch()
