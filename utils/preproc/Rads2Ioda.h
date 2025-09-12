@@ -45,7 +45,7 @@ namespace obsforge {
       int nobs = ncFile.getDim("time").getSize();
 
       // Set the int metadata names
-      std::vector<std::string> intMetadataNames = {"pass", "cycle", "mission", "oceanBasin"};
+      std::vector<std::string> intMetadataNames = {"cycle", "mission", "oceanBasin"};
 
       // Set the float metadata name
       std::vector<std::string> floatMetadataNames = {"mdt"};
@@ -93,15 +93,13 @@ namespace obsforge {
       ncFile.getAtt("references").getValues(references);
       iodaVars.strGlobalAttr_["references"] = references;
 
-      // Read optional integer metadata "pass" and "cycle"
-      std::vector<int> pass(iodaVars.location_);
-      ncFile.getVar("pass").getVar(pass.data());
+      // Read optional integer metadata "cycle"
       std::vector<int> cycle(iodaVars.location_);
       ncFile.getVar("cycle").getVar(cycle.data());
 
       // Store optional metadata, set ocean basins to -999 for now
       for (int i = 0; i < iodaVars.location_; i++) {
-        iodaVars.intMetadata_.row(i) << pass[i], cycle[i], mission_index, -999;
+        iodaVars.intMetadata_.row(i) << cycle[i], mission_index, -999;
       }
 
       // Get adt_egm2008 obs values and attributes
