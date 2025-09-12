@@ -6,7 +6,7 @@ from logging import getLogger
 from typing import Dict, Any
 
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit, FileHandler, Executable)
+                    logit, FileHandler, Executable, YAMLFile)
 import pathlib
 
 logger = getLogger(__name__.split('.')[-1])
@@ -84,6 +84,17 @@ class AtmosBufrObsPrep(Task):
             copylist.append([src, dest])
 
         FileHandler({'copy_opt': copylist}).sync()
+
+        # For now, as a hack, edit the mapping files to point to the correct reference time
+        # We should eventually modify them in SPOC to use Jinja templates
+        for dest in dest_mapping_files:
+            yaml_file = YAMLFile(dest)
+            try:
+              yaml_file['bufr']['variables']['timestamp']['timeoffset']['referenceTime'] = self.task_config.current_cycle.strftime('%Y-%m-%dT%H:%M:%SZ')
+              yaml_file.save(f"{dest}.tmp")
+              os.replace(f"{dest}.tmp", dest)
+            except Exception as e:
+              logger.warning(f"Failed to update {dest}: {e}")
 
     @logit(logger)
     def execute(self) -> None:

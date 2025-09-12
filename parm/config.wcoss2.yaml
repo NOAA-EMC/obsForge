@@ -15,6 +15,17 @@ obsforge:
   DMPDIR: /lfs/h2/emc/da/noscrub/common
   ocean_basin: "/lfs/h2/emc/da/noscrub/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
+atmosbufrdump:
+  observations:
+    prepbufr_adpsfc:
+      method: bufr2netcdf
+      input file: prepbufr
+      output file: prepbufr_adpsfc.nc
+      mapping file: prepbufr_adpsfc.yaml
+  WALLTIME_ATMOS_BUFR_DUMP: '00:10:00'
+  TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_ATMOS_BUFR_DUMP: 96GB
+
 aoddump:
   provider: VIIRSAOD
   platforms: ['npp', 'j01', 'n21'] # note j01==n20
