@@ -1,11 +1,12 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /lfs/h2/emc/da/noscrub/Mindo.Choi/obsForge/ 
+  HOMEobsforge: /lfs/h2/emc/da/noscrub/cory.r.martin/sep2025/obsforge/obsforge 
   SDATE: 202506101800
   EDATE: 202506110000
-  COMROOT: /lfs/h2/emc/da/noscrub/Mindo.Choi/temp2/COMROOT
+  COMROOT: /lfs/h2/emc/da/noscrub/cory.r.martin/sep2025/obsforge/com 
   DCOMROOT: /lfs/h1/ops/prod/dcom/
-  DATAROOT: /lfs/h2/emc/da/noscrub/Mindo.Choi/temp2/RUNDIRS
+  DATAROOT: /lfs/h2/emc/ptmp/cory.r.martin/obsforge/RUNDIRS 
+  OBSPROC_COMROOT: /lfs/h1/ops/prod/com/obsproc/v1.2
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
   QUEUE: dev
