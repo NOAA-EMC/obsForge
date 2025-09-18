@@ -69,6 +69,7 @@ class AerosolObsPrep(Task):
                            'window_begin': self.task_config.window_begin,
                            'window_end': self.task_config.window_end,
                            'thinning_threshold': self.task_config.thinning_threshold,
+                           'preqc': self.task_config.preqc,
                            'input_files': input_files,
                            'output_file': output_file}
                 for attr in ['binning_stride', 'binning_min_number_of_obs', 'binning_cressman_radius']:
