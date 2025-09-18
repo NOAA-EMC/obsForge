@@ -9,6 +9,9 @@ binning:
   stride: {{ binning_stride }}
   min number of obs: {{ binning_min_number_of_obs }}
 {% endif %}
+  {% if binning_cressman_radius is defined%}
+  cressman radius: {{ binning_cressman_radius }}
+  {% endif %}
 
 # Bounds for rudimentary QC
 {% if bounds_min is defined and bounds_max is defined %}
@@ -34,6 +37,6 @@ variable: aerosolOpticalDepth
 thinning:
   threshold: {{ thinning_threshold }}
 channel: 4
-preqc: 2
+preqc: {{ preqc }}
 {% endif %}
 
