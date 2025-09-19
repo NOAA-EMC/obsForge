@@ -110,7 +110,7 @@ class AtmosBufrObsPrep(Task):
             input_file = ob_data['input_file']
             output_file = ob_data['output_file']
             mapping_file = ob_data['mapping_file']
-            print(f"Converting {input_file} to {output_file} using {mapping_file}")
+            logger.info(f"Converting {input_file} to {output_file} using {mapping_file}")
             exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "bufr2netcdf.x"))
             exec_cmd.add_default_arg(input_file)
             exec_cmd.add_default_arg(mapping_file)
