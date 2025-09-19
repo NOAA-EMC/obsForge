@@ -38,7 +38,6 @@ class AtmosBufrObsPrep(Task):
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
-
     @logit(logger)
     def initialize(self) -> None:
         """
@@ -73,7 +72,7 @@ class AtmosBufrObsPrep(Task):
                     'output_file': output_file,
                     'mapping_file': os.path.join(self.task_config.DATA, os.path.basename(mapping_file))
                     # TODO: MPI information here
-                }      
+                }
         # Stage the input files
         copylist = []
         for src, dest in zip(src_bufr_files, dest_bufr_files):
@@ -90,11 +89,12 @@ class AtmosBufrObsPrep(Task):
         for dest in dest_mapping_files:
             yaml_file = YAMLFile(dest)
             try:
-              yaml_file['bufr']['variables']['timestamp']['timeoffset']['referenceTime'] = self.task_config.current_cycle.strftime('%Y-%m-%dT%H:%M:%SZ')
-              yaml_file.save(f"{dest}.tmp")
-              os.replace(f"{dest}.tmp", dest)
+                yaml_file['bufr']['variables']['timestamp']['timeoffset']['referenceTime'] = \
+                    self.task_config.current_cycle.strftime('%Y-%m-%dT%H:%M:%SZ')
+                yaml_file.save(f"{dest}.tmp")
+                os.replace(f"{dest}.tmp", dest)
             except Exception as e:
-              logger.warning(f"Failed to update {dest}: {e}")
+                logger.warning(f"Failed to update {dest}: {e}")
 
     @logit(logger)
     def execute(self) -> None:
@@ -105,7 +105,7 @@ class AtmosBufrObsPrep(Task):
 
         # Loop through BUFR to netCDF observations and convert them
         # TODO: Add MPI support
-        
+
         for ob_name, ob_data in self.bufr2netcdf_obs.items():
             input_file = ob_data['input_file']
             output_file = ob_data['output_file']
