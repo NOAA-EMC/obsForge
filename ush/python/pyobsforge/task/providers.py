@@ -49,9 +49,10 @@ class QCConfig:
 
 
 class ProviderConfig:
-    def __init__(self, qc_config: QCConfig, db: Any):  # Replace `Any` with a more specific type if desired
+    def __init__(self, qc_config: QCConfig, db: Any, ocean_basin: Any = None):  # Replace `Any` with a more specific type if desired
         self.qc_config = qc_config
         self.db = db
+        self.ocean_basin = ocean_basin
 
     @classmethod
     def from_task_config(cls, provider_name: str, task_config: AttrDict) -> "ProviderConfig":
@@ -84,7 +85,8 @@ class ProviderConfig:
         else:
             raise NotImplementedError(f"DB setup for provider {provider_name} not yet implemented")
 
-        return cls(qc_config=qc, db=db)
+        ocean_basin = getattr(task_config, "ocean_basin", None)
+        return cls(qc_config=qc, db=db, ocean_basin=ocean_basin)
 
     def process_obs_space(self, **kwargs) -> None:
         """
@@ -131,6 +133,10 @@ class ProviderConfig:
                        'window_end': window_end,
                        'input_files': input_files,
                        'output_file': output_file}
+
+            # Add global ocean_basin if present
+            if getattr(self, "ocean_basin", None):
+                context["ocean_basin"] = self.ocean_basin
 
             # Only add QC config attributes if they exist
             if hasattr(self.qc_config, 'bounds_min'):
