@@ -18,9 +18,12 @@ obsforge:
 aoddump:
   provider: VIIRSAOD
   platforms: ['npp', 'j01', 'n21'] # note j01==n20
+  binning_stride: 33
+  binning_min_number_of_obs: 32
+  binning_cressman_radius: 25
   thinning_threshold: 0
   channel: 4
-  preqc: 2
+  preqc: 0
   WALLTIME_AOD_DUMP: '00:10:00'
   TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
   MEMORY_AOD_DUMP: 96GB
