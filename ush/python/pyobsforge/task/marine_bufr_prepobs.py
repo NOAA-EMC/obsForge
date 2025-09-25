@@ -17,6 +17,7 @@ from wxflow import (
     parse_yaml,
     save_as_yaml,
 )
+from pyobsforge.task.sfcshp import SfcShp
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -86,6 +87,7 @@ class MarineBufrObsPrep(Task):
 
             obs_cycles_to_convert = []
             ioda_files_to_concat = []
+            sfcshp = SfcShp()
             for obs_cycle in obs_cycles:
 
                 obs_cycle_cyc = obs_cycle.strftime("%H")
@@ -96,13 +98,40 @@ class MarineBufrObsPrep(Task):
                 })
                 obs_cycle_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, obs_cycle_dict)
 
-                # if the bufr file exists in DMPDIR, set it up for conversion
+                if not sfcshp.is_ready():
+                    # construct sfcshp_filename using j2yaml
+                    sfcshp_cycle_dict = obs_cycle_dict
+                    sfcshp_cycle_dict['dump_tag'] = 'sfcshp'
+                    sfcshp_cycle_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, sfcshp_cycle_dict)
+                    sfcshp_filename = sfcshp_cycle_config.dump_filename
+
+                    if path.exists(sfcshp_filename):
+                        # split and rename
+                        cycle = obs_cycle_config.cycle_datetime[-2:]
+                        sfcshp = SfcShp(sfcshp_filename, cycle=cycle)
+                        sfcshp.split()  # result is in cwd
+                        sfcshp.rename(self.task_config.bufr2ioda_config_temp, sfcshp_cycle_dict)
+                        sfcshp.set_ready()
+                    else:
+                        logger.warning(f"sfcshp not found: {sfcshp_filename}")
+
+                # if the bufr file exists in DMPDIR, set it up for copy 
+                # and conversion
+                # if the bufr file exists in RUNDIR (because it was split from
+                # sfcshp), set it up for conversion
                 logger.debug(f"Looking for {obs_cycle_config.dump_filename}...")
                 if path.exists(obs_cycle_config.dump_filename):
                     save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
                     bufr_files_to_copy.append([obs_cycle_config.dump_filename, obs_cycle_config.local_dump_filename])
                     obs_cycles_to_convert.append(obs_cycle_config)
                     ioda_files_to_concat.append(obs_cycle_config.ioda_filename)
+                elif path.exists(obs_cycle_config.local_dump_filename):
+                    save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
+                    obs_cycles_to_convert.append(obs_cycle_config)
+                    ioda_files_to_concat.append(obs_cycle_config.ioda_filename)
+                else:
+                    logger.warning(f"Unable to setup conversion for {obs_cycle_config.data_format}")
+
 
             provider['obs_cycles_to_convert'] = obs_cycles_to_convert
 
