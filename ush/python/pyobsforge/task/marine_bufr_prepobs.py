@@ -115,7 +115,7 @@ class MarineBufrObsPrep(Task):
                     else:
                         logger.warning(f"sfcshp not found: {sfcshp_filename}")
 
-                # if the bufr file exists in DMPDIR, set it up for copy 
+                # if the bufr file exists in DMPDIR, set it up for copy
                 # and conversion
                 # if the bufr file exists in RUNDIR (because it was split from
                 # sfcshp), set it up for conversion
@@ -131,7 +131,6 @@ class MarineBufrObsPrep(Task):
                     ioda_files_to_concat.append(obs_cycle_config.ioda_filename)
                 else:
                     logger.warning(f"Unable to setup conversion for {obs_cycle_config.data_format}")
-
 
             provider['obs_cycles_to_convert'] = obs_cycles_to_convert
 

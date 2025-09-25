@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import logging
 from functools import wraps
@@ -28,7 +27,7 @@ def logit(logger):
 class BufrFile:
     def __init__(self, bufr_file=None, work_dir=None, cycle=None):
         self.isready = False
-        if bufr_file == None:
+        if bufr_file is None:
             return
         self.bufr_file = os.path.abspath(bufr_file)
         self.work_dir = work_dir or os.getcwd()
@@ -46,7 +45,6 @@ class BufrFile:
     def set_ready(self):
         self.isready - True
 
-
     @logit(logger)
     def split(self):
         """Split BUFR file by subset using external binary `split_by_subset`"""
@@ -63,7 +61,6 @@ class BufrFile:
             logger.error("❌ split_by_subset failed.")
             logger.error("STDOUT:", e.stdout)
             logger.error("STDERR:", e.stderr)
-
 
         except subprocess.CalledProcessError as e:
             logger.error(f"split_by_subset failed: {e.stderr}")
@@ -83,7 +80,7 @@ class BufrFile:
     def rename(self, b2i_template, sfcshp_cycle_dict):
         """
         Rename split files based on a mapping defined in subclass.
-        using the j2 template 
+        using the j2 template
         """
         if not hasattr(self, 'subset_mapping'):
             raise NotImplementedError("Subclass must define subset_mapping dict")
