@@ -98,7 +98,7 @@ class MarineBufrObsPrep(Task):
                 })
                 obs_cycle_config = parse_j2yaml(self.task_config.bufr2ioda_config_temp, obs_cycle_dict)
 
-                if not sfcshp.is_ready():
+                if (not sfcshp.is_ready()) and sfcshp.has_provider_for(provider["dump_tag"]):
                     # construct sfcshp_filename using j2yaml
                     sfcshp_cycle_dict = obs_cycle_dict
                     sfcshp_cycle_dict['dump_tag'] = 'sfcshp'

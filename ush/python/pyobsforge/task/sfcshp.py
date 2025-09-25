@@ -114,6 +114,22 @@ class BufrFile:
 
         return self.renamed_files
 
+    def has_provider_for(self, name):
+        """
+        Check if any value in subset_mapping matches the given name.
+
+        Args:
+            name (str): The observation type (e.g., "dbuoy")
+
+        Returns:
+            bool: True if mapping exists for this name, False otherwise.
+        """
+        if not hasattr(self, 'subset_mapping'):
+            logger.warning("Subset mapping is not defined.")
+            return False
+
+        return name in self.subset_mapping.values()
+
 
 class SfcShp(BufrFile):
     subset_mapping = {
