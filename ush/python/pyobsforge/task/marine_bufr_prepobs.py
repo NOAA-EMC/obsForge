@@ -17,6 +17,7 @@ from wxflow import (
     parse_yaml,
     save_as_yaml,
 )
+import netCDF4
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -202,10 +203,9 @@ class MarineBufrObsPrep(Task):
                     # Only append if source_ioda_filename is a valid NetCDF4 file
                     try:
                         with netCDF4.Dataset(source_ioda_filename, 'r'):
-                            src_dst_obs_list.append([source_ioda_filename, destination_ioda_filename])
+                            ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
                     except Exception:
                         logger.warning(f"Skipping invalid file: {source_ioda_filename}")
-                        ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 
