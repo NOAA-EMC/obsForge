@@ -62,7 +62,7 @@ class AtmosBufrObsPrep(Task):
             if ob_data['method'] == 'bufr2netcdf':
                 input_file = os.path.join(self.task_config.COMIN_OBSPROC, f"{self.task_config.OPREFIX}{ob_data['input file']}")
                 output_file = os.path.join(self.task_config.DATA, ob_data['output file'])
-                mapping_file = os.path.join(self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "config", ob_data['mapping file'])
+                mapping_file = os.path.join(self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "config", "atmosphere", ob_data['mapping file'])
                 src_bufr_files.append(input_file)
                 dest_bufr_files.append(os.path.join(self.task_config.DATA, os.path.basename(input_file)))
                 src_mapping_files.append(mapping_file)
