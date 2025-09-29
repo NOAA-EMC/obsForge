@@ -199,7 +199,13 @@ class MarineBufrObsPrep(Task):
                 source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
                 if path.exists(source_ioda_filename):
                     destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
-                    ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
+                    # Only append if source_ioda_filename is a valid NetCDF4 file
+                    try:
+                        with netCDF4.Dataset(source_ioda_filename, 'r'):
+                            src_dst_obs_list.append([source_ioda_filename, destination_ioda_filename])
+                    except Exception:
+                        logger.warning(f"Skipping invalid file: {source_ioda_filename}")
+                        ioda_files_to_copy.append([source_ioda_filename, destination_ioda_filename])
 
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 

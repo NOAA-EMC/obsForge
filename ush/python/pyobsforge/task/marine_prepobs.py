@@ -10,6 +10,7 @@ from datetime import timedelta
 import glob
 from os.path import basename
 import pathlib
+import netCDF4
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -273,7 +274,12 @@ class MarineObsPrep(Task):
                 logger.info(f"ioda_file: {ioda_file}")
                 src_file = ioda_file
                 dst_file = join(comout_tmp, basename(ioda_file))
-                src_dst_obs_list.append([src_file, dst_file])
+                # Only append if src_file is a valid NetCDF4 file
+                try:
+                    with netCDF4.Dataset(src_file, 'r'):
+                        src_dst_obs_list.append([src_file, dst_file])
+                except Exception:
+                    logger.warning(f"Skipping invalid file: {src_file}")
 
         logger.info("Copying ioda files to destination COMROOT directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
