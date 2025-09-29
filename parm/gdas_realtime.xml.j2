@@ -161,9 +161,10 @@
 	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
-
         <dependency>
-                <datadep><cyclestr>/lfs/h2/emc/obsproc/noscrub/iliana.genkova/CRON/SOCA/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.subpfl.tm00.bufr_d</cyclestr></datadep>
+                <datadep>
+<cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.updated.status.tm00.bufr_d</cyclestr>
+                </datadep>
 	</dependency>
 
 </task>
