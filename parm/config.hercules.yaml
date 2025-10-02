@@ -6,13 +6,13 @@ obsforge:
   COMROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/COMROOT
   DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
   DATAROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/RUNDIRS
+  OBSPROC_COMROOT: /work/noaa/da/marineda/gfs-marine/data/obs/
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
   PARTITION: hercules
   KEEPDATA: NO
   assim_freq: 6
-  DMPDIR: /work/noaa/da/marineda/gfs-marine/data/obs/
   ocean_basin: "/work2/noaa/global/role-global/fix/gdas/soca/20250519/common/RECCAP2_region_masks_all_v20221025.nc"
 
 aoddump:

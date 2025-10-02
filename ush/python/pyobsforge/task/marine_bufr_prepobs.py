@@ -62,7 +62,7 @@ class MarineBufrObsPrep(Task):
         providers = self.task_config.providers
         logger.info(f"Providers: {providers}")
 
-        obs_cycle_dict = AttrDict({key: self.task_config[key] for key in ['DATA', 'DMPDIR', 'RUN', 'ocean_basin']})
+        obs_cycle_dict = AttrDict({key: self.task_config[key] for key in ['DATA', 'OBSPROC_COMROOT', 'RUN', 'ocean_basin']})
         bufr_files_to_copy = []
         RUN = self.task_config.RUN
         cycstr = self.task_config.cycstr
@@ -116,7 +116,7 @@ class MarineBufrObsPrep(Task):
                     else:
                         logger.warning(f"sfcshp not found: {sfcshp_filename}")
 
-                # if the bufr file exists in DMPDIR, set it up for copy
+                # if the bufr file exists in OBSPROC_COMROOTi, set it up for copy
                 # and conversion
                 # if the bufr file exists in RUNDIR (because it was split from
                 # sfcshp), set it up for conversion

@@ -7,13 +7,13 @@ obsforge:
   DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
   DATAROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/RUNDIRS
   OBSPROC_COMROOT: /scratch3/NCEPDEV/global/role.glopara/dump/
+#  OBSPROC_COMROOT: /scratch1/NCEPDEV/da/common/ # for Marine
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
   PARTITION: hera
   KEEPDATA: NO
   assim_freq: 6
-  DMPDIR: /scratch1/NCEPDEV/da/common/
   ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 atmosbufrdump:

@@ -1,11 +1,11 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /lfs/h2/emc/da/noscrub/cory.r.martin/sep2025/obsforge/obsforge 
-  SDATE: 202506101800
-  EDATE: 202506110000
-  COMROOT: /lfs/h2/emc/da/noscrub/cory.r.martin/sep2025/obsforge/com 
+  HOMEobsforge: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/obsForge 
+  SDATE: 202510010000
+  EDATE: 202510011800
+  COMROOT: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/COMROOT
   DCOMROOT: /lfs/h1/ops/prod/dcom/
-  DATAROOT: /lfs/h2/emc/ptmp/cory.r.martin/obsforge/RUNDIRS 
+  DATAROOT: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/obsForge/RUNDIRS 
   OBSPROC_COMROOT: /lfs/h1/ops/prod/com/obsproc/v1.2
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
@@ -13,7 +13,6 @@ obsforge:
   PARTITION: dev 
   KEEPDATA: YES
   assim_freq: 6
-  DMPDIR: /lfs/h2/emc/da/noscrub/common
   ocean_basin: "/lfs/h2/emc/da/noscrub/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 atmosbufrdump:
