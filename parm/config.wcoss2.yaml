@@ -5,7 +5,7 @@ obsforge:
   EDATE: 202510011800
   COMROOT: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/COMROOT
   DCOMROOT: /lfs/h1/ops/prod/dcom/
-  DATAROOT: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/obsForge/RUNDIRS 
+  DATAROOT: /lfs/h2/emc/da/noscrub/mindo.choi/ForConfig/RUNDIRS 
   OBSPROC_COMROOT: /lfs/h1/ops/prod/com/obsproc/v1.2
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
