@@ -119,7 +119,7 @@ class MarineBufrObsPrep(Task):
                 # if the bufr file exists in OBSPROC_COMROOT, set it up for copy
                 # and conversion
                 # if the bufr file exists in RUNDIR (because it was split from
-                # sfcshpn in OBSPROC_COMROOT), set it up for conversion
+                # sfcshp in OBSPROC_COMROOT), set it up for conversion
                 logger.debug(f"Looking for {obs_cycle_config.dump_filename}...")
                 if path.exists(obs_cycle_config.dump_filename):
                     save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
