@@ -44,6 +44,9 @@ add_subdirectory(tools)
 # Include testing.
 add_subdirectory(test)
 
+# submodule spoc
+add_subdirectory(sorc/spoc)
+
 ## Tests
 ecbuild_add_test( TARGET ${PROJECT_NAME}_coding_norms
                   TYPE SCRIPT

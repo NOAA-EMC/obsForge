@@ -11,21 +11,22 @@ obsforge:
   SCHEDULER: slurm
   ACCOUNT: da-cpu
   QUEUE: debug
-  PARTITION: hera
+  PARTITION: u1-compute
   KEEPDATA: NO
   assim_freq: 6
   ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 atmosbufrdump:
-  observations:
+  observations:    
     prepbufr_adpsfc:
-      method: bufr2netcdf
-      input file: prepbufr
-      output file: prepbufr_adpsfc.nc
-      mapping file: prepbufr_adpsfc.yaml
-  WALLTIME_ATMOS_BUFR_DUMP: '00:10:00'
-  TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=1:tpp=1'
-  MEMORY_ATMOS_BUFR_DUMP: 96GB
+      input_file: prepbufr
+      script_file: 
+        - prepbufr_adpsfc.py
+        - prepbufr_obs_builder.py
+      input_path: 1
+  WALLTIME_ATMOS_BUFR_DUMP: '00:20:00'
+  TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=80:tpp=1'
+  MEMORY_ATMOS_BUFR_DUMP: 256GB
 
 aoddump:
   provider: VIIRSAOD
