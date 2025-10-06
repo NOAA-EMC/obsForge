@@ -179,12 +179,9 @@ class AtmosBufrObsPrep(Task):
             logger.info(f"Converting {input_str} to {output_file} using {script_file} and MPI={mpi}")
             if mpi > 1:
                 logger.info(f"Using MPI with {mpi} ranks for {ob_name}")
-                exec_cmd = Executable("srun")
+                exec_cmd = Executable("mpiexec")
                 args = [
-                    "--export", "All",
                     "-n", str(mpi),
-                    "--mem", "0G",              # no memory limit
-                    "--time", "00:30:00",
                     "python", script_file,
                     "--input", input_str,
                     "--output", output_file,
