@@ -51,6 +51,7 @@ class AtmosBufrObsPrep(Task):
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
+
     @logit(logger)
     def initialize(self) -> None:
         """
@@ -171,13 +172,19 @@ class AtmosBufrObsPrep(Task):
         # TODO: Add MPI support
 
         exec_cmd_list = []
+        mpi_count = 0
         for ob_name, ob_data in self.script2netcdf_obs.items():
             input_str = ob_data['input_str']
             output_file = ob_data['output_file']
-            script_file = ob_data['script_file'][0]
+            script_files = ob_data.get('script_file', [])
+            if not script_files:
+                logger.error(f"No script_file provided for observation '{ob_name}'. Skipping.")
+                continue
+            script_file = script_files[0]
             mpi = ob_data.get('mpi', 1)
             logger.info(f"Converting {input_str} to {output_file} using {script_file} and MPI={mpi}")
             if mpi > 1:
+                mpi_count += int(mpi)
                 logger.info(f"Using MPI with {mpi} ranks for {ob_name}")
                 exec_cmd = Executable("mpiexec")
                 args = [
@@ -196,10 +203,10 @@ class AtmosBufrObsPrep(Task):
             exec_cmd_list.append((ob_name, exec_cmd))
 
         # get parallel processing info
-        num_cores = mp.cpu_count()
-        logger.info(f"Number of CPU cores available: {num_cores}")
+        num_workers = min(len(exec_cmd_list) + mpi_count + 5, max(1, mp.cpu_count() - 1))
+        logger.info(f"Number of worker processes to use: {num_workers} (CPU cores available: {mp.cpu_count()})")
         # run everything in parallel
-        with mp.Pool(num_cores) as pool:
+        with mp.Pool(num_workers) as pool:
             pool.starmap(mp_bufr_converter, exec_cmd_list)
 
     @logit(logger)
