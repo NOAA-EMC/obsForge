@@ -17,13 +17,6 @@ obsforge:
   ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
 
 atmosbufrdump:
-  observations:    
-    prepbufr_adpsfc:
-      input_file: prepbufr
-      script_file: 
-        - prepbufr_adpsfc.py
-        - prepbufr_obs_builder.py
-      input_path: 1
   WALLTIME_ATMOS_BUFR_DUMP: '00:20:00'
   TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=80:tpp=1'
   MEMORY_ATMOS_BUFR_DUMP: 256GB

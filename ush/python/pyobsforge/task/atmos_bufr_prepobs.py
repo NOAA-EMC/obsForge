@@ -180,28 +180,21 @@ class AtmosBufrObsPrep(Task):
             if mpi > 1:
                 logger.info(f"Using MPI with {mpi} ranks for {ob_name}")
                 exec_cmd = Executable("srun")
-                exec_cmd.add_default_arg("--export")
-                # exec_cmd.add_default_arg(f"ALL,PYTHONPATH={pythonpath}")
-                exec_cmd.add_default_arg("All")
-                exec_cmd.add_default_arg('-n')
-                exec_cmd.add_default_arg(str(mpi))
-                exec_cmd.add_default_arg('--mem')
-                exec_cmd.add_default_arg("0G")  # no memory limit
-                exec_cmd.add_default_arg('--time')
-                exec_cmd.add_default_arg("00:30:00")
-                exec_cmd.add_default_arg('python')
-                exec_cmd.add_default_arg(script_file)
-                exec_cmd.add_default_arg('--input')
-                exec_cmd.add_default_arg(input_str)
-                exec_cmd.add_default_arg('--output')
-                exec_cmd.add_default_arg(output_file)
+                args = [
+                    "--export", "All",
+                    "-n", str(mpi),
+                    "--mem", "0G",              # no memory limit
+                    "--time", "00:30:00",
+                    "python", script_file,
+                    "--input", input_str,
+                    "--output", output_file,
+                ]
             else:
                 exec_cmd = Executable('python')
-                exec_cmd.add_default_arg(script_file)
-                exec_cmd.add_default_arg('--input')
-                exec_cmd.add_default_arg(input_str)
-                exec_cmd.add_default_arg('--output')
-                exec_cmd.add_default_arg(output_file)
+                args = [script_file, '--input', input_str, '--output', output_file]
+
+            for arg in args:
+                exec_cmd.add_default_arg(arg)
 
             exec_cmd_list.append((ob_name, exec_cmd))
 

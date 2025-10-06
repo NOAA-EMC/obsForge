@@ -49,9 +49,9 @@ def merge_observation_defaults(task_yaml, section_name, default_obs=None):
 
         # Fill dynamic defaults based on obs_name
         if merged_cfg["input_file"] is None:
-            merged_cfg["input_file"] = f"{obs_name}.tm00.bufr_d"
+            merged_cfg["input_file"] = f"{obs_name}.bufr_d"
         if merged_cfg["output_file"] is None:
-            merged_cfg["output_file"] = f"{obs_name}.tm00.nc"
+            merged_cfg["output_file"] = f"{obs_name}.nc"
         if merged_cfg["mapping_file"] is None:
             merged_cfg["mapping_file"] = f"{obs_name}.yaml"
         if merged_cfg["script_file"] is None:
