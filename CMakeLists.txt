@@ -48,7 +48,7 @@ add_subdirectory(test)
 ecbuild_add_test( TARGET ${PROJECT_NAME}_coding_norms
                   TYPE SCRIPT
                   COMMAND ${PROJECT_NAME}_py_lint.sh
-                  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/sorc/spoc/dump/mapping ${CMAKE_CURRENT_SOURCE_DIR}
+                  ARGS ${CMAKE_CURRENT_SOURCE_DIR}/sorc/spoc/dump/scripts ${CMAKE_CURRENT_SOURCE_DIR}
                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 set_tests_properties( ${PROJECT_NAME}_coding_norms PROPERTIES TIMEOUT 90 )
 
