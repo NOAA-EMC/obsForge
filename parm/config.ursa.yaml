@@ -15,6 +15,7 @@ obsforge:
   assim_freq: 6
   DMPDIR: /scratch1/NCEPDEV/da/common/
   ocean_basin: "/scratch3/NCEPDEV/da/common/validation/RECCAP2_region_masks_all_v20221025.nc"
+  MPI_LAUNCHER: srun
 
 atmosbufrdump:
   WALLTIME_ATMOS_BUFR_DUMP: '00:20:00'

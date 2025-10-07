@@ -51,7 +51,6 @@ class AtmosBufrObsPrep(Task):
         # task_config is everything that this task should need
         self.task_config = AttrDict(**self.task_config, **local_dict)
 
-
     @logit(logger)
     def initialize(self) -> None:
         """
@@ -74,7 +73,7 @@ class AtmosBufrObsPrep(Task):
             mapping_files = ob_data.get('mapping_file', [])
             script_files = ob_data.get('script_file', [])
             aux_files = ob_data.get('aux_file', [])
-            input_path = ob_data.get('input_path', None)
+            preserve_rel_path = ob_data.get('preserve_rel_path', None)
 
             if isinstance(input_files, str):
                 input_files = [input_files]
@@ -89,10 +88,10 @@ class AtmosBufrObsPrep(Task):
             for f in input_files:
                 src = os.path.join(self.task_config.COMIN_OBSPROC, f"{self.task_config.OPREFIX}{f}")
                 dest = os.path.join(self.task_config.DATA, os.path.basename(src))
-                if input_path:  # TODO A hack temporary to preserve directory structure if needed
-                    second = self.task_config.COMIN_OBSPROC
-                    # Take the last 3 parts of the second path
-                    last_three = os.path.join(*second.split(os.sep)[-3:])
+                if preserve_rel_path:  # TODO A hack temporary to preserve directory structure if needed
+                    comin_obsproc = self.task_config.COMIN_OBSPROC
+                    # Take the last 3 parts of the comin_obsproc path
+                    last_three = os.path.join(*comin_obsproc.split(os.sep)[-3:])
                     sub_dir_tmp = os.path.join(self.task_config.DATA, last_three)
                     logger.debug(f"Creating subdirectory for input path: {sub_dir_tmp}")
                     if sub_dir_tmp not in sub_dir_list:
@@ -166,10 +165,9 @@ class AtmosBufrObsPrep(Task):
         """
         Execute converters from BUFR to IODA format for atmospheric observations
         """
-        #  ${obsforge_dir}/build/bin/bufr2netcdf.x "$input_file" "${mapping_file}" "$output_file"
+        #  ${obsforge_dir}/build/bin/script2netcdf.x "$input_file" "$output_file"
 
         # Loop through BUFR to netCDF observations and convert them
-        # TODO: Add MPI support
 
         exec_cmd_list = []
         mpi_count = 0
@@ -186,13 +184,25 @@ class AtmosBufrObsPrep(Task):
             if mpi > 1:
                 mpi_count += int(mpi)
                 logger.info(f"Using MPI with {mpi} ranks for {ob_name}")
-                exec_cmd = Executable("mpiexec")
-                args = [
-                    "-n", str(mpi),
-                    "python", script_file,
-                    "--input", input_str,
-                    "--output", output_file,
-                ]
+                if self.task_config.MPI_LAUNCHER.lower() == 'mpiexec':
+                    exec_cmd = Executable("mpiexec")
+                    args = [
+                        "-n", str(mpi),
+                        "python", script_file,
+                        "--input", input_str,
+                        "--output", output_file,
+                    ]
+                else:  # default to srun
+                    exec_cmd = Executable("srun")
+                    args = [
+                        "--export", "All",
+                        "-n", str(mpi),
+                        "--mem", "0G",              # no memory limit
+                        "--time", "00:30:00",
+                        "python", script_file,
+                        "--input", input_str,
+                        "--output", output_file,
+                    ]
             else:
                 exec_cmd = Executable('python')
                 args = [script_file, '--input', input_str, '--output', output_file]
