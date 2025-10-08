@@ -47,7 +47,7 @@ elif [[ $MACHINE_ID = wcoss2 ]]; then
     # We are on WCOSS2
     # Ignore default modules of the same version lower in the search path (req'd by spack-stack)
     export LMOD_TMOD_FIND_FIRST=yes
-    module reset
+    # module reset  # TODO need to find a solution for missing some exported variables
 
 elif [[ $MACHINE_ID = cheyenne* ]] ; then
     # We are on NCAR Cheyenne

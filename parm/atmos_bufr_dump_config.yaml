@@ -17,8 +17,8 @@ atmosbufrdump:
         - atms_beamwidth.txt
     amsua:
       input_file:
-        - 1bamua.bufr_d
-        - esamua.bufr_d
+        - 1bamua.tm00.bufr_d
+        - esamua.tm00.bufr_d
       input:
         1b: 0
         es: 1
@@ -39,21 +39,21 @@ atmosbufrdump:
         - amsua.py
         - atovs_obs_builder.py
     avhrram:
-      input_file: avcsam.bufr_d
+      input_file: avcsam.tm00.bufr_d
       output_file: avhrram_{splits/satId}.nc
       mapping_file: avhrr.yaml
       script_file: avhrr.py
     avhrrpm:
-      input_file: avcspm.bufr_d
+      input_file: avcspm.tm00.bufr_d
       output_file: avhrrpm_{splits/satId}.nc
       mapping_file: avhrr.yaml
       script_file: avhrr.py
     cris-fsr:
-      input_file: crisf4.bufr_d
+      input_file: crisf4.tm00.bufr_d
       output_file: cris_fsr_{splits/satId}.nc
       mpi: 8
     iasi:
-      input_file: mtiasi.bufr_d
+      input_file: mtiasi.tm00.bufr_d
       output_file: iasi_{splits/satId}.nc
       mpi: 8
     mhs:
@@ -79,7 +79,7 @@ atmosbufrdump:
         - mhs_n18.ACCoeff.nc
         - mhs_n19.ACCoeff.nc
     ozone_omi:
-      input_file: omi.bufr_d
+      input_file: omi.tm00.bufr_d
       script_file:
         - ozone_omi.py
         - ozone_obs_builder.py
