@@ -9,7 +9,7 @@ from logging import getLogger
 from typing import Dict, Any
 
 from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
-                    logit, FileHandler, Executable, YAMLFile)
+                    logit, FileHandler, Executable, YAMLFile, save_as_yaml)
 
 
 logger = getLogger(__name__.split('.')[-1])
@@ -255,8 +255,7 @@ class AtmosBufrObsPrep(Task):
             'input directory': self.task_config.DATA,
             'output file': ready_file,
         }
-        stat_yaml = YAMLFile(summary_dict)
-        stat_yaml.save(os.path.join(self.task_config.DATA, "stats.yaml"))
+        save_as_yaml(summary_dict, os.path.join(self.task_config.DATA, "stats.yaml"))
         exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "ioda-dump.x"))
         exec_cmd.add_default_arg(os.path.join(self.task_config.DATA, "stats.yaml"))
         try:
