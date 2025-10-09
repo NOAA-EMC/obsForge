@@ -252,8 +252,8 @@ class AtmosBufrObsPrep(Task):
                 'end': self.task_config.window_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'bound to include': 'begin',
             },
-            'input directory': self.task_config.DATA,
-            'output file': ready_file,
+            'input directory': str(self.task_config.DATA),
+            'output file': str(ready_file),
         }
         save_as_yaml(summary_dict, os.path.join(self.task_config.DATA, "stats.yaml"))
         exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "ioda-dump.x"))
