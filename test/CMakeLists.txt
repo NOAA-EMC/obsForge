@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(obsforge_tests)
 
-# =============================================================
+# ==========================================================
 # Helper function to simplify MPI and non-MPI test addition
-# =============================================================
+# ==========================================================
 function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
     # Append MPI count to target name if MPI is used
     if (mpi_count GREATER 0)
@@ -31,9 +31,28 @@ endfunction()
 # =============================================================
 # Function to add tests for satellite observations dynamically
 # =============================================================
-function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name file_name test_config mpi_count)
-    set(target_name "${target_prefix}_${obs_type}_${sat_name}_${test_config}")
+function(add_obsforge_test_satobs target_prefix obs_type obs_source file_name test_config mpi_count)
+    set(target_name "${target_prefix}_${obs_type}_${test_config}")
     set(env_args "")
+
+    set(satellites_list ${ARGN})  # ARGN stores all extra arguments passed to the function
+    message(STATUS "satellites_list in function ${satellites_list}")
+    message(STATUS "obs_source      in function ${obs_source}")
+    message(STATUS "test_config     in function ${test_config}")
+    message(STATUS "mpi_count       in function ${mpi_count}")
+
+    # Loop through satellites_list correctly
+    set(files_list_to_compare "") # Initialize an empty list for accumulated filenames
+
+    # Loop through each satellite and generate list of filenames to compare
+    foreach(satellite IN LISTS satellites_list)
+        set(file "${test_config}/gdas.t00z.${file_name}_${satellite}.tm00.nc")
+        list(APPEND files_list_to_compare ${file})
+    endforeach()
+
+    # Convert the list into a space-separated string
+    string(REPLACE ";" " " files_list_to_compare "${files_list_to_compare}")
+    message(STATUS "Final accumulated filenames: ${files_list_to_compare}")
 
     if (test_config STREQUAL "bufr2netcdf")
         set(command_args
@@ -41,7 +60,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name fil
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${file_name}_{splits/satId}.tm00.nc"
-            "${test_config}/gdas.t00z.${file_name}_${sat_name}.tm00.nc"
+            "${files_list_to_compare}"
         )
 
     elseif (test_config STREQUAL "script2netcdf")
@@ -50,7 +69,7 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name fil
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
             testinput/bufr_${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${file_name}_{splits/satId}.tm00.nc"
-            "${test_config}/gdas.t00z.${file_name}_${sat_name}.tm00.nc"
+            "${files_list_to_compare}"
         )
         set(env_args
             "ENVIRONMENT PYTHONPATH=${CMAKE_BINARY_DIR}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages:$ENV{PYTHONPATH}"
@@ -61,28 +80,28 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source sat_name fil
             set(command_args
                 "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
                 testinput/bufr_${test_config}_${obs_type}_mpi${mpi_count}.yaml"
-                "${test_config}/gdas.t00z.${file_name}_${sat_name}.tm00_mpi${mpi_count}.nc"
+                "${files_list_to_compare}"
             )
         else()
             set(command_args
                 "${CMAKE_BINARY_DIR}/bin/time_IodaIO.x
                 testinput/bufr_${test_config}_${obs_type}.yaml"
-                "${test_config}/gdas.t00z.${file_name}_${sat_name}.tm00.nc"
+                "${files_list_to_compare}"
             )
         endif()
-
 
     else()
         message(STATUS "Unknown test configuration")
         return()
     endif()
 
+    # add test
     add_obsforge_mpi_test(${target_name} ${mpi_count} "${command_args}" "${env_args}")
 endfunction()
 
-# ================================================================================
+# ===============================================================================
 # Function to add tests for conventional observations from bufr dump dynamically
-# ================================================================================
+# ===============================================================================
 function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config mpi_count)
     set(target_name "${target_prefix}_${obs_type}_${test_config}")
     set(env_args "")
@@ -130,16 +149,20 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
     add_obsforge_mpi_test(${target_name} ${mpi_count} "${command_args}" "${env_args}")
 endfunction()
 
+# ============================
+# Set common test parameters
+# ============================
+set(test_configs "bufr2netcdf" "script2netcdf" "bufr4backend" "script4backend")
+
 # ===============================================
 # Set test parameters for satellite observations
 # ===============================================
-
-set(satobs_types "atms" "satwnd_amv_abi" "satwnd_amv_seviri" "satwnd_amv_viirs" "satwnd_amv_leogeo")
-set(test_configs "bufr2netcdf" "script2netcdf" "bufr4backend" "script4backend")
-set(mpi_counts_convobs "0" "2")
+set(satobs_types "crisf4" "mtiasi" "atms" "satwnd_amv_abi" "satwnd_amv_seviri" "satwnd_amv_viirs" "satwnd_amv_leogeo")
 set(mpi_counts_satobs "0" "4")
 
 # Associate nested lists (satellites) with each observation type
+set_property(GLOBAL PROPERTY mtiasi_satellites "metop-a;metop-b;metop-c")
+set_property(GLOBAL PROPERTY crisf4_satellites "npp;n20;n21")
 set_property(GLOBAL PROPERTY atms_satellites "npp;n20;n21")
 set_property(GLOBAL PROPERTY satwnd_amv_abi_satellites "goes-16;goes-17;goes-18")
 set_property(GLOBAL PROPERTY satwnd_amv_seviri_satellites "m8;m9;m10;m11")
@@ -148,7 +171,6 @@ set_property(GLOBAL PROPERTY satwnd_amv_leogeo_satellites "multi")
 
 # Define specific MPI counts for certain observaion types
 set_property(GLOBAL PROPERTY mpi_counts_satobs_atms "0")
-
 
 # Get the length of the satobs_types list
 list(LENGTH satobs_types satobs_types_length)
@@ -180,24 +202,28 @@ foreach(index RANGE 0 ${satobs_types_last_index})
 
     # Extract components based on the length of satobs_type_parts
     if(parts_length EQUAL 1)
-        # Example: "atms" (single part)
-        set(obs_source "${satobs_type}")
-        set(sensor_name "${satobs_type}")
-        set(file_name "${satobs_type}")
+        # Example: "atms"
+	set(obs_source "${satobs_type}")    # for bufr filename   (e.g. atms, mtiasi)
+	set(sensor_name "${satobs_type}")   # for output filename (e.g. atms, mtiasi) 
+	set(file_name "${satobs_type}")     # for output filename (e.g. atms, mtiasi)
     elseif(parts_length EQUAL 3)
         # Example: "satwnd_amv_abi"
         list(GET satobs_type_parts 0 obs_source)  # Extract "satwnd"
         list(GET satobs_type_parts 2 sensor_name) # Extract "abi"
-        string(CONCAT file_name "${obs_source}" "." "${sensor_name}")
+	string(CONCAT file_name "${obs_source}" "." "${sensor_name}") # for output filename (e.g. satwnd.abi, satwnd.seviri)
     endif()
 
     # Retrieve the nested list of satellite IDs for the current observation type
     get_property(satellites GLOBAL PROPERTY ${satobs_type}_satellites)
-    foreach(sat_name ${satellites})
-	foreach(test_config ${test_configs})
-	    foreach(mpi_count ${mpi_counts})
-                add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${sat_name} ${file_name} ${test_config} ${mpi_count})
-            endforeach()
+    message(STATUS "satobs_type ${satobs_type}")
+    message(STATUS "satellites  ${satellites}")
+    message(STATUS "obs_source  ${obs_source}")
+    message(STATUS "file_name   ${file_name}")
+
+    # For each satobs type, add ctest for various test configuration and mpi 
+    foreach(test_config ${test_configs})
+        foreach(mpi_count ${mpi_counts})
+            add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${file_name} ${test_config} ${mpi_count} ${satellites})
         endforeach()
     endforeach()
 endforeach()
@@ -206,6 +232,7 @@ endforeach()
 # Set test parameters for conventional observations from bufr dump
 # ==================================================================
 set(convobs_types sfcsno)
+set(mpi_counts_convobs "0" "2")
 
 # =========================================================
 # Generate tests for conventional observations dynamically
