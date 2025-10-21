@@ -1,0 +1,113 @@
+obsforge:
+  PSLOT: obsforge
+  HOMEobsforge: /work2/noaa/da/mchoi3/temp/obsForge
+  SDATE: 202504281800
+  EDATE: 202504300000
+  COMROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/COMROOT
+  DCOMROOT: /work2/noaa/da/common/lfs/h1/ops/prod/dcom
+  DATAROOT: /work2/noaa/da/mchoi3/temp/test_obsForge/RUNDIRS
+  OBSPROC_COMROOT: /work/noaa/da/marineda/gfs-marine/data/obs/
+  SCHEDULER: slurm
+  ACCOUNT: da-cpu
+  QUEUE: debug
+  PARTITION: orion
+  KEEPDATA: NO
+  assim_freq: 6
+  ocean_basin: "/work2/noaa/global/role-global/fix/gdas/soca/20250519/common/RECCAP2_region_masks_all_v20221025.nc"
+  MPI_LAUNCHER: srun
+  
+aoddump:
+  provider: VIIRSAOD
+  platforms: ['npp', 'j01', 'n21'] # note j01==n20
+  binning_stride: 33
+  binning_min_number_of_obs: 32
+  binning_cressman_radius: 25
+  thinning_threshold: 0
+  channel: 4
+  preqc: 0
+  WALLTIME_AOD_DUMP: '00:10:00'
+  TASK_GEOM_AOD_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_AOD_DUMP: 96GB
+
+marinedump:
+  providers:
+    ghrsst:
+      list:
+        - sst_viirs_n21_l3u
+        - sst_viirs_n20_l3u
+        - sst_viirs_npp_l3u
+        - sst_avhrrf_ma_l3u
+        - sst_avhrrf_mb_l3u
+        - sst_avhrrf_mc_l3u
+        - sst_ahi_h08_l3c
+        - sst_abi_g17_l3c
+        - sst_abi_g16_l3c
+      qc config:
+        min: -2.0
+        max: 45.0
+        stride: 15
+        min number of obs: 10
+    rads:
+      list:
+        - rads_adt_3a
+        - rads_adt_3b
+        - rads_adt_6a
+        - rads_adt_c2
+        - rads_adt_j2
+        - rads_adt_j3
+        - rads_adt_sa
+        - rads_adt_sw        
+        - rads_adt_3a
+        - rads_adt_3b
+      qc config:
+        min: -2.0
+        max: 3.0
+        error ratio: 1.0
+    nesdis_amsr2:
+      list:
+        - icec_amsr2_north
+        - icec_amsr2_south
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_mirs:
+      list:
+        - icec_amsu_ma1_l2
+        - icec_atms_n20_l2
+        - icec_atms_n21_l2
+        - icec_atms_npp_l2
+#        - icec_gmi_gpm_l2
+      qc config:
+        min: 0.0
+        max: 1.0
+    nesdis_jpssrr:
+      list:
+        - icec_viirs_j01_l2
+        - icec_viirs_n21_l2
+        - icec_viirs_npp_l2
+      qc config:
+        min: 0.0
+        max: 1.0
+    smap:
+      list:
+        - sss_smap_l2
+      qc config:
+        min: 0.1
+        max: 40.0
+    smos:
+      list:
+        - sss_smos_l2
+      qc config:
+        min: 0.1
+        max: 40.0
+
+  WALLTIME_MARINE_DUMP: '00:10:00'
+  TASK_GEOM_MARINE_DUMP: '1:ppn=20:tpp=2'
+  MEMORY_MARINE_DUMP: 32GB
+
+
+marinebufrdump:
+
+  WALLTIME_MARINE_BUFR_DUMP: '00:10:00'
+  TASK_GEOM_MARINE_BUFR_DUMP: '1:ppn=1:tpp=1'
+  MEMORY_MARINE_BUFR_DUMP: 32GB

@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<!DOCTYPE workflow
+[
+	<!--
+	PROGRAM
+		Main workflow manager for ObsForge
+
+	-->
+	<!ENTITY PSLOT "{{ PSLOT }}">
+	<!ENTITY ROTDIR "{{ COMROOT }}/{{ PSLOT }}">
+	<!ENTITY JOBS_DIR "{{ HOMEobsforge }}/jobs/rocoto">
+	<!ENTITY MAXTRIES "2">
+]>
+
+<workflow realtime="T" scheduler="{{ SCHEDULER }}" cyclethrottle="1" taskthrottle="25">
+
+	<log verbosity="10"><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H.log</cyclestr></log>
+
+	<!-- Define the cycles -->
+        <cycledef activation_offset="02:55:00" group="gfs">0 */6 * * 2025 *</cycledef>
+<!--
+	============================================
+	Task: gfs_atmos_bufr_dump
+	============================================
+-->
+<task name="gfs_atmos_bufr_dump" cycledefs="gfs" maxtries="&MAXTRIES;">
+
+	<command>{{ HOMEobsforge }}/jobs/rocoto/atmosbufrdump.sh</command>
+
+	<jobname><cyclestr>obsforge_gfs_atmos_bufr_dump_@H</cyclestr></jobname>
+	<account>{{ ACCOUNT }}</account>
+	<queue>{{ QUEUE }}</queue>
+	<partition>{{ PARTITION }}</partition>
+	<walltime>{{ WALLTIME_ATMOS_BUFR_DUMP }}</walltime>
+	<nodes>{{ TASK_GEOM_ATMOS_BUFR_DUMP }}</nodes>
+	<memory>{{ MEMORY_ATMOS_BUFR_DUMP }}</memory>
+	<native>--export=NONE</native>
+
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_atmos_bufr_dump_prep.log</cyclestr></join>
+
+	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
+	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
+	<envar><name>NET</name><value>gfs</value></envar>
+	<envar><name>RUN</name><value>gfs</value></envar>
+	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
+	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
+	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <envar><name>OBSPROC_COMROOT</name><value>/lfs/h1/ops/prod/com/obsproc/v1.2</value></envar>
+
+</task>
+
+<!--
+        ============================================
+        Task: gfs_marine_dump
+        ============================================
+-->
+<task name="gfs_marine_dump" cycledefs="gfs" maxtries="&MAXTRIES;">
+
+        <command>{{ HOMEobsforge }}/jobs/rocoto/marinedump.sh</command>
+
+        <jobname><cyclestr>obsforge_gfs_marine_dump_@H</cyclestr></jobname>
+        <account>{{ ACCOUNT }}</account>
+        <queue>{{ QUEUE }}</queue>
+        <walltime>{{ WALLTIME_MARINE_DUMP }}</walltime>
+        <nodes>{{ TASK_GEOM_MARINE_DUMP }}</nodes>
+        <memory>{{ MEMORY_MARINE_DUMP }}</memory>
+        <native>-l place=vscatter:shared</native>
+
+        <join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_marine_dump_prep.log</cyclestr></join>
+
+        <envar><name>RUN_ENVIR</name><value>emc</value></envar>
+        <envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
+        <envar><name>NET</name><value>gfs</value></envar>
+        <envar><name>RUN</name><value>gfs</value></envar>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+        <envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+        <envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+        <envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
+        <envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
+        <envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+
+        <!--<dependency>
+                <datadep><cyclestr>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/gfs.@Y@m@d/@H/atmos/gfs.t@Hz.updated.status.tm00.bufr_d</cyclestr></datadep>
+        </dependency>
+        -->
+
+</task>
+
+<!--
+        ============================================
+        Task: gfs_marine_bufr_dump
+        ============================================
+-->
+<task name="gfs_marine_bufr_dump" cycledefs="gfs" maxtries="&MAXTRIES;">
+
+        <command>{{ HOMEobsforge }}/jobs/rocoto/marinebufrdump.sh</command>
+
+        <jobname><cyclestr>obsforge_gfs_marine_bufr_dump_@H</cyclestr></jobname>
+	<account>{{ ACCOUNT }}</account>
+	<queue>{{ QUEUE }}</queue>
+	<walltime>{{ WALLTIME_MARINE_BUFR_DUMP }}</walltime>
+	<nodes>{{ TASK_GEOM_MARINE_BUFR_DUMP }}</nodes>
+	<memory>{{ MEMORY_MARINE_BUFR_DUMP }}</memory>
+	<native>-l place=vscatter:shared</native>
+
+	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gfs_marine_bufr_dump_prep.log</cyclestr></join>
+
+	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
+	<envar><name>HOMEobsforge</name><value>{{ HOMEobsforge }}</value></envar>
+	<envar><name>NET</name><value>gfs</value></envar>
+	<envar><name>RUN</name><value>gfs</value></envar>
+	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
+	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
+	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+
+	<!--dependency>
+                <datadep>
+<cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gfs.@Y@m@d/@H/atmos/gfs.t@Hz.updated.status.tm00.bufr_d</cyclestr>
+                </datadep>
+	</dependency>
+        -->
+
+</task>
+
+</workflow>

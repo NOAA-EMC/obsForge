@@ -44,6 +44,7 @@ option( ENABLE_LORENZ95_MODEL "Build LORENZ95 toy model" OFF )
 option( ENABLE_QG_MODEL "Build QG toy model" OFF )
 
 # EMC BUFR-query library
+set( SKIP_DOWNLOAD_TEST_DATA OFF )
 ecbuild_bundle( PROJECT bufr-query SOURCE "../sorc/bufr-query" )
 
 # Core JEDI repositories
@@ -54,7 +55,7 @@ option(ENABLE_IODA_DATA "Obtain ioda test data from ioda-data repository (vs tar
 ecbuild_bundle( PROJECT ioda SOURCE "../sorc/ioda" )
 
 # Build JEDI/DA or other peripherals
-#ecbuild_bundle( PROJECT obsforge-utils SOURCE "../utils" )
+ecbuild_bundle( PROJECT obsforge-utils SOURCE "../utils" )
 ecbuild_bundle( PROJECT da-utils SOURCE "../sorc/da-utils" )
 
 # Build IODA converters

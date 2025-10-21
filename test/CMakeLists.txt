@@ -9,7 +9,7 @@ project(obsforge_tests)
 function(add_obsforge_mpi_test target_name mpi_count command_args env_args)
     # Append MPI count to target name if MPI is used
     if (mpi_count GREATER 0)
-        # Set test name 
+        # Set test name
         set(target_name "${target_name}_mpi${mpi_count}")
 	ecbuild_add_test(
             TARGET ${target_name}
@@ -188,7 +188,7 @@ foreach(index RANGE 0 ${satobs_types_last_index})
         set(mpi_counts ${mpi_counts_satobs})  # Use default if not overridden
     else()
         get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type})
-    endif()   
+    endif()
 
     # Split satobs_type into parts using "_" as a delimiter
     string(REPLACE "_" ";" satobs_type_parts "${satobs_type}")
@@ -252,7 +252,7 @@ endforeach()
 # testdata   : input bufr files
 # testoutput : test references
 # testinput  : mapping files, Python scripts, and test configuration YAML files
-# testrun    : test output files 
+# testrun    : test output files
 # =================================================================================
 
 # Create combined obs types
@@ -328,45 +328,46 @@ foreach(file ${test_aux_files})
         ${CMAKE_CURRENT_BINARY_DIR}/${file} )
 endforeach(file)
 
-# ===================================================================
-# Download the test data ./build/obsForge/test/ if we don't have it
-# ===================================================================
+if(NOT SKIP_DOWNLOAD_TEST_DATA)
+  # ===================================================================
+  # Download the test data ./build/obsForge/test/ if we don't have it
+  # ===================================================================
 
-set(DOWNLOAD_URL "https://ftp.emc.ncep.noaa.gov/static_files/public/obsforge")
-set(FILE_COLLECTION "obsforge-0.0.0.tgz")
-#set(FILE_COLLECTION "obsforge-0.0.0-extended.tgz")
-#set(FILE_COLLECTION "obsforge-0.0.1.tgz")
+  set(DOWNLOAD_URL "https://ftp.emc.ncep.noaa.gov/static_files/public/obsforge")
+  set(FILE_COLLECTION "obsforge-0.0.0.tgz")
+  #set(FILE_COLLECTION "obsforge-0.0.1.tgz")
 
-# Get the test data if we don't have it.
-if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
-    message(STATUS "Downloading: ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
-    file(DOWNLOAD
-        ${DOWNLOAD_URL}/${FILE_COLLECTION}
-        ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
-        SHOW_PROGRESS
-        STATUS download_status
-        INACTIVITY_TIMEOUT 30
-    )
+  # Get the test data if we don't have it.
+  if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
+      message(STATUS "Downloading: ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}")
+      file(DOWNLOAD
+          ${DOWNLOAD_URL}/${FILE_COLLECTION}
+          ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION}
+          SHOW_PROGRESS
+          STATUS download_status
+          INACTIVITY_TIMEOUT 30
+      )
 
-  list(GET download_status 0 download_status_num)
+    list(GET download_status 0 download_status_num)
 
-  if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-    # Remove empty file if download doesn't complete
-    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${BUFR_TAR})
-    message(STATUS "Could not download test files, not building tests")
-    return()
+    if(NOT download_status_num EQUAL 0 OR NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
+      # Remove empty file if download doesn't complete
+      file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${BUFR_TAR})
+      message(STATUS "Could not download test files, not building tests")
+      return()
+    endif()
+
+    # file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+    add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
+    add_custom_command(
+      TARGET get_obsforge_test_data
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} tar xzf ${FILE_COLLECTION}
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testdata
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testoutput
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testdata testdata
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testoutput testoutput
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf remote_data)
   endif()
-
-#  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${FILE_COLLECTION} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-  add_custom_target(get_obsforge_test_data ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${FILE_COLLECTION})
-  add_custom_command(
-    TARGET get_obsforge_test_data
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} tar xzf ${FILE_COLLECTION}
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testdata
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf testoutput
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testdata testdata
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} mv remote_data/testoutput testoutput
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf remote_data)
 endif()

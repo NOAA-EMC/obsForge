@@ -15,6 +15,13 @@ elif [[ $MACHINE_ID = hera* ]] ; then
     fi
     module purge
 
+elif [[ $MACHINE_ID = ursa* ]] ; then
+    # We are on NOAA Ursa
+    if ( ! eval module help > /dev/null 2>&1 ) ; then
+        source /apps/lmod/lmod/init/bash
+    fi
+    module purge
+
 elif [[ $MACHINE_ID = orion* ]] ; then
     # We are on Orion
     if ( ! eval module help > /dev/null 2>&1 ) ; then
@@ -38,7 +45,9 @@ elif [[ $MACHINE_ID = s4* ]] ; then
 
 elif [[ $MACHINE_ID = wcoss2 ]]; then
     # We are on WCOSS2
-    module reset
+    # Ignore default modules of the same version lower in the search path (req'd by spack-stack)
+    export LMOD_TMOD_FIND_FIRST=yes
+    # module reset  # TODO need to find a solution for missing some exported variables
 
 elif [[ $MACHINE_ID = cheyenne* ]] ; then
     # We are on NCAR Cheyenne

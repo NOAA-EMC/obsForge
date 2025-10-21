@@ -1,0 +1,41 @@
+name: Run Tests on Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4  # Clones the repository
+        with:
+            submodules: recursive
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          python -m venv obsdb
+          source obsdb/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Code Style Check
+        run: |
+          source obsdb/bin/activate
+          pip install flake8
+          flake8 ush/python/pyobsforge
+          flake8 ush/*.py
+          flake8 scripts/*.py
+
+      - name: Run Pytest
+        run: |
+          source obsdb/bin/activate
+          pytest ush/python/pyobsforge/tests/ --disable-warnings -v
