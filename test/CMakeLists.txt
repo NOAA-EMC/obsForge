@@ -58,16 +58,16 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source file_name te
         set(command_args
             "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
-            testinput/bufr_${obs_type}_mapping.yaml
+            testinput/${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${file_name}_{splits/satId}.tm00.nc"
             "${files_list_to_compare}"
         )
 
     elseif (test_config STREQUAL "script2netcdf")
         set(command_args
-            "testinput/bufr_${obs_type}.py
+            "testinput/${obs_type}.py
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
-            testinput/bufr_${obs_type}_mapping.yaml
+            testinput/${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${file_name}_{splits/satId}.tm00.nc"
             "${files_list_to_compare}"
         )
@@ -110,16 +110,16 @@ function(add_obsforge_test_convobs target_prefix obs_type obs_source test_config
         set(command_args
             "${CMAKE_BINARY_DIR}/bin/bufr2netcdf.x
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
-            testinput/bufr_${obs_type}_mapping.yaml
+            testinput/${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.tm00.nc"
             "${test_config}/gdas.t00z.${obs_source}.tm00.nc"
         )
 
     elseif (test_config STREQUAL "script2netcdf")
         set(command_args
-            "testinput/bufr_${obs_type}.py
+            "testinput/${obs_type}.py
             testdata/gdas.t00z.${obs_source}.tm00.bufr_d
-            testinput/bufr_${obs_type}_mapping.yaml
+            testinput/${obs_type}_mapping.yaml
             testrun/${test_config}/gdas.t00z.${obs_source}.tm00.nc"
             "${test_config}/gdas.t00z.${obs_source}.tm00.nc"
         )
@@ -280,8 +280,8 @@ list(APPEND test_aux_files
 # List for mapping files and Python scripts
 foreach(obs_type IN LISTS obs_types)
     list(APPEND test_input_files
-        "bufr_${obs_type}_mapping.yaml"
-        "bufr_${obs_type}.py"
+        "${obs_type}_mapping.yaml"
+        "${obs_type}.py"
     )
 endforeach()
 
