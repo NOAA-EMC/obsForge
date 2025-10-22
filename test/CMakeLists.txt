@@ -111,12 +111,12 @@ function(add_obsforge_staging_test target_name run_type)
     # Create a shell script that determines PDY and cyc at runtime (when ctest is executed)
     set(staging_script_content "#!/bin/bash
 # Determine PDY and cyc based on current UTC time when test is executed
-# If current time is after 6 UTC, use 0 UTC cycle for today's date
+# If current time is after 8 UTC, use 0 UTC cycle for today's date
 # Otherwise, use 18 UTC from yesterday
 
 current_utc_hour=\$(date -u +%H)
 
-if [[ \${current_utc_hour} -ge 6 ]]; then
+if [[ \${current_utc_hour} -ge 8 ]]; then
     # Use today's date with 00 UTC cycle
     pdy=\$(date -u +%Y%m%d)
     cyc=\"00\"
@@ -129,7 +129,7 @@ fi
 echo \"Using PDY=\${pdy} and cyc=\${cyc} for ${run_type} staging test\"
 
 # Call the staging script with determined parameters
-${CMAKE_SOURCE_DIR}/ush/stage_comin_obsproc.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
+${CMAKE_SOURCE_DIR}/../ush/stage_comin_obsproc.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
 
 if [[ \$? -eq 0 ]]; then
     echo \"Staging test completed successfully for ${run_type}.\${pdy}/\${cyc}\"
