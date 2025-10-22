@@ -58,8 +58,7 @@ jobs:
             make -j\$(nproc) &&
 
             echo '===== Running C++ tests (ctest) =====' &&
-            cd obsforge-utils &&
-            ctest -j\$(nproc) --output-on-failure &&
+            ctest -j\$(nproc) -R obsforge --output-on-failure &&
 
             echo '===== Running pytest =====' &&
             cd /workspace &&
