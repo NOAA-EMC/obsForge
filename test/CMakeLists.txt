@@ -99,6 +99,61 @@ function(add_obsforge_test_satobs target_prefix obs_type obs_source file_name te
     add_obsforge_mpi_test(${target_name} ${mpi_count} "${command_args}" "${env_args}")
 endfunction()
 
+# =======================================================================
+# Function to add staging tests for observation data using stage_comin_obsproc
+# =======================================================================
+function(add_obsforge_staging_test target_name run_type)
+    set(staging_output_dir "${CMAKE_CURRENT_BINARY_DIR}/testrun/staged_input_obs")
+    
+    # Create staging output directory
+    file(MAKE_DIRECTORY ${staging_output_dir})
+    
+    # Create a shell script that determines PDY and cyc at runtime (when ctest is executed)
+    set(staging_script_content "#!/bin/bash
+# Determine PDY and cyc based on current UTC time when test is executed
+# If current time is after 6 UTC, use 0 UTC cycle for today's date
+# Otherwise, use 18 UTC from yesterday
+
+current_utc_hour=\$(date -u +%H)
+
+if [[ \${current_utc_hour} -ge 6 ]]; then
+    # Use today's date with 00 UTC cycle
+    pdy=\$(date -u +%Y%m%d)
+    cyc=\"00\"
+else
+    # Use yesterday's date with 18 UTC cycle
+    pdy=\$(date -u -d \"yesterday\" +%Y%m%d)
+    cyc=\"18\"
+fi
+
+echo \"Using PDY=\${pdy} and cyc=\${cyc} for ${run_type} staging test\"
+
+# Call the staging script with determined parameters
+${CMAKE_SOURCE_DIR}/ush/stage_comin_obsproc.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
+
+if [[ \$? -eq 0 ]]; then
+    echo \"Staging test completed successfully for ${run_type}.\${pdy}/\${cyc}\"
+else
+    echo \"Staging test failed for ${run_type}.\${pdy}/\${cyc}\"
+    exit 1
+fi
+")
+    
+    # Write the staging script to a file
+    set(staging_script_file "${CMAKE_CURRENT_BINARY_DIR}/run_staging_test_${run_type}.sh")
+    file(WRITE ${staging_script_file} "${staging_script_content}")
+    
+    # Make the script executable
+    execute_process(COMMAND chmod +x ${staging_script_file})
+    
+    ecbuild_add_test(
+        TARGET ${target_name}
+        TYPE SCRIPT
+        COMMAND bash
+        ARGS ${staging_script_file}
+    )
+endfunction()
+
 # ===============================================================================
 # Function to add tests for conventional observations from bufr dump dynamically
 # ===============================================================================
@@ -246,6 +301,18 @@ foreach(convobs_type IN LISTS convobs_types)
     endforeach()
 endforeach()
 
+# =========================================
+# Generate staging tests for observations
+# =========================================
+# Test staging for GDAS run
+add_obsforge_staging_test("test_obsforge_staging_gdas" "gdas")
+
+if (ON_NOAA_HPC)
+    # Test staging for GFS run also, don't do this on
+    # non-NOAA HPC systems to avoid using too much disk space
+    add_obsforge_staging_test("test_obsforge_staging_gfs" "gfs")
+endif()
+
 # =================================================================================
 # Create necessary test directories and links to required data and files
 # =================================================================================
@@ -371,3 +438,4 @@ if(NOT SKIP_DOWNLOAD_TEST_DATA)
       COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR} rm -rf remote_data)
   endif()
 endif()
+
