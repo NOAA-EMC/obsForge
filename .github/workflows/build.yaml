@@ -54,7 +54,7 @@ jobs:
             echo '===== Building C++ code =====' &&
             mkdir -p build &&
             cd build &&
-            cmake /workspace/bundle &&
+            cmake -DSKIP_DOWNLOAD_TEST_DATA=ON /workspace/bundle &&
             make -j\$(nproc) &&
 
             echo '===== Running C++ tests (ctest) =====' &&
