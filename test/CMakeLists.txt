@@ -103,7 +103,7 @@ endfunction()
 # Function to add staging tests for observation data using stage_comin_obsproc
 # =======================================================================
 function(add_obsforge_staging_test target_name run_type)
-    set(staging_output_dir "${CMAKE_CURRENT_BINARY_DIR}/testrun/staged_input_obs")
+    set(staging_output_dir "${PROJECT_BINARY_DIR}/atmos/staged_input_obs")
     
     # Create staging output directory
     file(MAKE_DIRECTORY ${staging_output_dir})
@@ -439,3 +439,5 @@ if(NOT SKIP_DOWNLOAD_TEST_DATA)
   endif()
 endif()
 
+# atmos j-job tests
+add_subdirectory(atmos)
