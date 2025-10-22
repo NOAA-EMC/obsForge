@@ -15,6 +15,12 @@ ulimit_s=$( ulimit -S -s )
 source "${HOMEobsforge}/ush/detect_machine.sh"
 source "${HOMEobsforge}/ush/module-setup.sh"
 
+if [[ "${MACHINE_ID}" == "UNKNOWN"]]; then
+    echo "Cannot load modules on UNKNOWN machine"
+    echo "Will assume environment is sufficient"
+    exit 0
+fi
+
 # Load our modules:
 module use "${HOMEobsforge}/modulefiles"
 

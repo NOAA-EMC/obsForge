@@ -54,7 +54,7 @@ fi
 export job="atmosbufrdump"
 
 # Create yaml with job configuration
-memory="24Gb"
+memory="96Gb"
 if [[ ${MACHINE_ID} == "gaeac6" ]]; then
     memory=0
 fi
@@ -65,7 +65,7 @@ HOMEobsforge: ${HOMEobsforge}
 job_name: ${type}
 walltime: "00:30:00"
 nodes: 1
-ntasks_per_node: 1
+ntasks_per_node: 24
 threads_per_task: 1
 memory: ${memory}
 command: ${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP
