@@ -31,3 +31,4 @@ tomli==2.2.1
 tzdata==2025.1
 urllib3
 pysqlite3
+wxflow

@@ -35,6 +35,8 @@ set( ENABLE_MPI ON CACHE BOOL "Compile with MPI" )
 # -----------------
 ecbuild_bundle_initialize()
 
+option( ON_NOAA_HPC "Build with NOAA HPC specific settings" OFF )
+
 # jedi-cmake
 ecbuild_bundle( PROJECT jedicmake SOURCE "../sorc/jedicmake" )
 include( jedicmake/cmake/Functions/git_functions.cmake )
@@ -44,7 +46,7 @@ option( ENABLE_LORENZ95_MODEL "Build LORENZ95 toy model" OFF )
 option( ENABLE_QG_MODEL "Build QG toy model" OFF )
 
 # EMC BUFR-query library
-set( SKIP_DOWNLOAD_TEST_DATA OFF )
+option( SKIP_DOWNLOAD_TEST_DATA "Skip download of test data tarball" OFF )
 ecbuild_bundle( PROJECT bufr-query SOURCE "../sorc/bufr-query" )
 
 # Core JEDI repositories
