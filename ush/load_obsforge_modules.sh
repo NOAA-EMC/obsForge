@@ -15,14 +15,11 @@ ulimit_s=$( ulimit -S -s )
 source "${HOMEobsforge}/ush/detect_machine.sh"
 source "${HOMEobsforge}/ush/module-setup.sh"
 
-if [[ "${MACHINE_ID}" == "UNKNOWN" ]]; then
-    echo "Cannot load modules on UNKNOWN machine"
-    echo "Will assume environment is sufficient"
-    return 0
+if [[ "${MACHINE_ID}" != "UNKNOWN" ]]; then
+    module use "${HOMEobsforge}/modulefiles"
 fi
 
 # Load our modules:
-module use "${HOMEobsforge}/modulefiles"
 
 case "${MACHINE_ID}" in
   ("hera" | "ursa" | "orion" | "hercules" | "wcoss2" | "gaeac5" | "gaeac6")
