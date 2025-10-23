@@ -72,14 +72,16 @@ command: ${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP
 filename: submit_${type}.sh
 EOF
 
-# Create script to execute j-job
-$HOMEobsforge/test/generate_job_script.py ${config_yaml}
 SCHEDULER=$(echo `grep SCHEDULER ${HOMEobsforge}/test/hosts/${MACHINE_ID}.yaml | cut -d":" -f2` | tr -d ' ')
 
 # Submit script to execute j-job
 if [[ $SCHEDULER = 'slurm' ]]; then
+    # Create script to execute j-job
+    $HOMEobsforge/test/generate_job_script.py ${config_yaml}
     sbatch --export=ALL --wait submit_${type}.sh
 elif [[ $SCHEDULER = 'pbspro' ]]; then
+    # Create script to execute j-job
+    $HOMEobsforge/test/generate_job_script.py ${config_yaml}
     qsub -V -W block=true submit_${type}.sh
 else
     ${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP
