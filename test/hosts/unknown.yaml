@@ -1,0 +1,8 @@
+# Scheduler and queue information
+SCHEDULER: none
+QUEUE: none
+PARTITION_BATCH: none
+PARTITION_SERVICE: none
+
+# HPC account information
+HPC_ACCOUNT: none

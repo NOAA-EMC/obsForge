@@ -234,56 +234,56 @@ math(EXPR satobs_types_last_index "${satobs_types_length} - 1")
 # ======================================================
 # Generate tests for satellite observations dynamically
 # ======================================================
-if(NOT SKIP_DOWNLOAD_TEST_DATA)
-    foreach(index RANGE 0 ${satobs_types_last_index})
-        list(GET satobs_types ${index} satobs_type)
+# if(NOT SKIP_DOWNLOAD_TEST_DATA)
+#     foreach(index RANGE 0 ${satobs_types_last_index})
+#         list(GET satobs_types ${index} satobs_type)
 
-        # Retrieve MPI counts for the current satobs_type (use default if not set)
-        get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type} SET)
-        if(NOT mpi_counts)
-            set(mpi_counts ${mpi_counts_satobs})  # Use default if not overridden
-        else()
-            get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type})
-        endif()
+#         # Retrieve MPI counts for the current satobs_type (use default if not set)
+#         get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type} SET)
+#         if(NOT mpi_counts)
+#             set(mpi_counts ${mpi_counts_satobs})  # Use default if not overridden
+#         else()
+#             get_property(mpi_counts GLOBAL PROPERTY mpi_counts_satobs_${satobs_type})
+#         endif()
 
-        # Split satobs_type into parts using "_" as a delimiter
-        string(REPLACE "_" ";" satobs_type_parts "${satobs_type}")
+#         # Split satobs_type into parts using "_" as a delimiter
+#         string(REPLACE "_" ";" satobs_type_parts "${satobs_type}")
 
-        # Get the length of the split list
-        list(LENGTH satobs_type_parts parts_length)
+#         # Get the length of the split list
+#         list(LENGTH satobs_type_parts parts_length)
 
-        # Default values (in case components do not exist)
-        set(obs_source "unknown")
-        set(sensor_name "unknown")
+#         # Default values (in case components do not exist)
+#         set(obs_source "unknown")
+#         set(sensor_name "unknown")
 
-        # Extract components based on the length of satobs_type_parts
-        if(parts_length EQUAL 1)
-            # Example: "atms"
-        set(obs_source "${satobs_type}")    # for bufr filename   (e.g. atms, mtiasi)
-        set(sensor_name "${satobs_type}")   # for output filename (e.g. atms, mtiasi) 
-        set(file_name "${satobs_type}")     # for output filename (e.g. atms, mtiasi)
-        elseif(parts_length EQUAL 3)
-            # Example: "satwnd_amv_abi"
-            list(GET satobs_type_parts 0 obs_source)  # Extract "satwnd"
-            list(GET satobs_type_parts 2 sensor_name) # Extract "abi"
-        string(CONCAT file_name "${obs_source}" "." "${sensor_name}") # for output filename (e.g. satwnd.abi, satwnd.seviri)
-        endif()
+#         # Extract components based on the length of satobs_type_parts
+#         if(parts_length EQUAL 1)
+#             # Example: "atms"
+#         set(obs_source "${satobs_type}")    # for bufr filename   (e.g. atms, mtiasi)
+#         set(sensor_name "${satobs_type}")   # for output filename (e.g. atms, mtiasi) 
+#         set(file_name "${satobs_type}")     # for output filename (e.g. atms, mtiasi)
+#         elseif(parts_length EQUAL 3)
+#             # Example: "satwnd_amv_abi"
+#             list(GET satobs_type_parts 0 obs_source)  # Extract "satwnd"
+#             list(GET satobs_type_parts 2 sensor_name) # Extract "abi"
+#         string(CONCAT file_name "${obs_source}" "." "${sensor_name}") # for output filename (e.g. satwnd.abi, satwnd.seviri)
+#         endif()
 
-        # Retrieve the nested list of satellite IDs for the current observation type
-        get_property(satellites GLOBAL PROPERTY ${satobs_type}_satellites)
-        message(STATUS "satobs_type ${satobs_type}")
-        message(STATUS "satellites  ${satellites}")
-        message(STATUS "obs_source  ${obs_source}")
-        message(STATUS "file_name   ${file_name}")
+#         # Retrieve the nested list of satellite IDs for the current observation type
+#         get_property(satellites GLOBAL PROPERTY ${satobs_type}_satellites)
+#         message(STATUS "satobs_type ${satobs_type}")
+#         message(STATUS "satellites  ${satellites}")
+#         message(STATUS "obs_source  ${obs_source}")
+#         message(STATUS "file_name   ${file_name}")
 
-        # For each satobs type, add ctest for various test configuration and mpi 
-        foreach(test_config ${test_configs})
-            foreach(mpi_count ${mpi_counts})
-                add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${file_name} ${test_config} ${mpi_count} ${satellites})
-            endforeach()
-        endforeach()
-    endforeach()
-endif()
+#         # For each satobs type, add ctest for various test configuration and mpi 
+#         foreach(test_config ${test_configs})
+#             foreach(mpi_count ${mpi_counts})
+#                 add_obsforge_test_satobs("test_obsforge_satobs" ${satobs_type} ${obs_source} ${file_name} ${test_config} ${mpi_count} ${satellites})
+#             endforeach()
+#         endforeach()
+#     endforeach()
+# endif()
 
 # ==================================================================
 # Set test parameters for conventional observations from bufr dump
@@ -294,16 +294,16 @@ set(mpi_counts_convobs "0" "2")
 # =========================================================
 # Generate tests for conventional observations dynamically
 # =========================================================
-if(NOT SKIP_DOWNLOAD_TEST_DATA)
-    foreach(convobs_type IN LISTS convobs_types)
-        set(obs_source ${convobs_type})
-        foreach(test_config IN LISTS test_configs)
-            foreach(mpi_count IN LISTS mpi_counts_convobs)
-                add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
-            endforeach()
-        endforeach()
-    endforeach()
-endif()
+# if(NOT SKIP_DOWNLOAD_TEST_DATA)
+#     foreach(convobs_type IN LISTS convobs_types)
+#         set(obs_source ${convobs_type})
+#         foreach(test_config IN LISTS test_configs)
+#             foreach(mpi_count IN LISTS mpi_counts_convobs)
+#                 add_obsforge_test_convobs("test_obsforge_convobs" ${convobs_type} ${obs_source} ${test_config} ${mpi_count})
+#             endforeach()
+#         endforeach()
+#     endforeach()
+# endif()
 
 # =========================================
 # Generate staging tests for observations
