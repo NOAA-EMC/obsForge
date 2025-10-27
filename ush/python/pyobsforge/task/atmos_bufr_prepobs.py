@@ -240,8 +240,9 @@ class AtmosBufrObsPrep(Task):
         copy_list = []
         for output_file in output_files:
             filename = os.path.basename(output_file)
-            destination_file = os.path.join(comout, f"{self.task_config['OPREFIX']}{filename}")
-            copy_list.append([output_file, destination_file])
+            if 'Coeff' not in filename:
+                destination_file = os.path.join(comout, f"{self.task_config['OPREFIX']}{filename}")
+                copy_list.append([output_file, destination_file])
         FileHandler({'mkdir': [comout], 'copy_opt': copy_list}).sync()
 
         # create a summary stats file to tell external processes the obs are ready
@@ -252,7 +253,7 @@ class AtmosBufrObsPrep(Task):
                 'end': self.task_config.window_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'bound to include': 'begin',
             },
-            'input directory': str(self.task_config.DATA),
+            'input directory': str(comout),
             'output file': str(ready_file),
         }
         save_as_yaml(summary_dict, os.path.join(self.task_config.DATA, "stats.yaml"))
