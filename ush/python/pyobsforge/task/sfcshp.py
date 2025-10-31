@@ -141,7 +141,7 @@ class SfcShp(BufrFile):
         "NC001007": "cstgd",
         "NC001101": "shipsb",
         "NC001102": "dbuoyb",
-        "NC001103": "mbuoybs",
+        "NC001103": "mbuoyb",
         "NC001104": "cmanb",
         "NC001113": "shipub"
     }
