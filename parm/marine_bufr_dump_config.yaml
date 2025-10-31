@@ -95,7 +95,7 @@ marinebufrdump:
       subsets: mbuoyb
       source: NCEP data tank
       data_type: pirata
-      data_description: 6-hrly in situ RAMA tropical mooring profiles
+      data_description: 6-hrly in situ PIRATA tropical mooring profiles
       data_provider: U.S. NOAA
       dump_tag: mbuoyb
 
@@ -111,7 +111,7 @@ marinebufrdump:
       subsets: mbuoyb
       source: NCEP data tank
       data_type: taotriton
-      data_description: 6-hrly in situ RAMA tropical mooring profiles
+      data_description: 6-hrly in situ TAO/TRITON tropical mooring profiles
       data_provider: U.S. NOAA
       dump_tag: mbuoyb
 
