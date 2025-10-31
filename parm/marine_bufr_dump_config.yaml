@@ -115,22 +115,6 @@ marinebufrdump:
       data_provider: U.S. NOAA
       dump_tag: mbuoyb
 
-    # - name: insitu_profile_tropical 
-      # variables:
-        # - name: 'waterTemperature'
-          # provider_var: insitu_temp_profile_tropical
-          # error: 0.02
-        # - name: 'salinity'
-          # provider_var: insitu_salt_profile_tropical
-          # error: 0.01
-      # data_format: dbuoy
-      # subsets: dbuoy
-      # source: NCEP data tank
-      # data_type: tropical
-      # data_description: 6-hrly in situ tropical mooring profiles
-      # data_provider: U.S. NOAA
-      # dump_tag: mbuoyb
-
     - name: insitu_profile_xbtctd 
       variables:
         - name: 'waterTemperature'
