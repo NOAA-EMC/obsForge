@@ -31,7 +31,7 @@ source "${HOMEobsforge}/ush/detect_machine.sh"
 
 # different behavior based on machine
 copy_or_download="download"
-obsproc_ver=v1.2
+
 if [[ "${NRT}" == "YES" ]]; then
     if [[ "${MACHINE_ID}" == "wcoss2" ]]; then
         # use the operational DCOM directory

@@ -1,4 +1,4 @@
-# create runtime directory for atmos tests
+# create runtime directory for chem tests
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/chem/run)
 
 ecbuild_add_test( 
