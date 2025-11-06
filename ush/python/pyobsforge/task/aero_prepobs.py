@@ -110,6 +110,7 @@ class AerosolObsPrep(Task):
         logger.info("Copying ioda files to destination COMROOT directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
+        FileHandler({'mkdir': [comout]}).sync()
         FileHandler({'copy': src_dst_obs_list}).sync()
 
         # create an empty file to tell external processes the obs are ready

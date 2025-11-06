@@ -103,7 +103,11 @@ endfunction()
 # Function to add staging tests for observation data using stage_comin_obsproc
 # =======================================================================
 function(add_obsforge_staging_test target_name run_type)
-    set(staging_output_dir "${PROJECT_BINARY_DIR}/atmos/staged_input_obs")
+    if (run_type STREQUAL "gcdas")
+        set(staging_output_dir "${PROJECT_BINARY_DIR}/chem/staged_input_obs")
+    else()
+        set(staging_output_dir "${PROJECT_BINARY_DIR}/atmos/staged_input_obs")
+    endif()
     
     # Create staging output directory
     file(MAKE_DIRECTORY ${staging_output_dir})
@@ -128,8 +132,12 @@ fi
 
 echo \"Using PDY=\${pdy} and cyc=\${cyc} for ${run_type} staging test\"
 
-# Call the staging script with determined parameters
-${CMAKE_SOURCE_DIR}/../ush/stage_comin_obsproc.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
+# Call the appropriate staging script based on run_type
+if [[ \"${run_type}\" == \"gcdas\" ]]; then
+    ${CMAKE_SOURCE_DIR}/../ush/stage_comin_aod.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
+else
+    ${CMAKE_SOURCE_DIR}/../ush/stage_comin_obsproc.sh \"\${pdy}\" \"\${cyc}\" \"${run_type}\" \"${staging_output_dir}\"
+fi
 
 if [[ \$? -eq 0 ]]; then
     echo \"Staging test completed successfully for ${run_type}.\${pdy}/\${cyc}\"
@@ -311,6 +319,9 @@ set(mpi_counts_convobs "0" "2")
 # Test staging for GDAS run
 add_obsforge_staging_test("test_obsforge_staging_gdas" "gdas")
 
+# Test staging for GCDAS run
+add_obsforge_staging_test("test_obsforge_staging_gcdas" "gcdas")
+
 if (ON_NOAA_HPC)
     # Test staging for GFS run also, don't do this on
     # non-NOAA HPC systems to avoid using too much disk space
@@ -454,3 +465,5 @@ endif()
 
 # atmos j-job tests
 add_subdirectory(atmos)
+# chem j-job tests
+add_subdirectory(chem)
