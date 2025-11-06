@@ -138,9 +138,7 @@ if __name__ == '__main__':
 
     ioda_vars = NDBCIODAVariables()
     ioda_vars.set_temperature_var_name("seaSurfaceTemperature")
-    ioda_vars.set_temperature_error(0.02)
-    # ioda_vars.set_salinity_var_name("salinity")
-    # ioda_vars.set_salinity_error(0.01)
+    ioda_vars.set_temperature_error(0.3)
 
     converter = Bufr2ioda_Converter(bufr2ioda_config, ioda_vars, log_file)
 
