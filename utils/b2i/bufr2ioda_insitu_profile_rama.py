@@ -20,7 +20,6 @@ class RamaIODAVariables(MbuoybTropicalIODAVariables):
     def filter(self):
         super().filter()
         mask = is_rama(self.metadata.stationID)
-        # mask = [True if int(rpid) in RAMA else False for rpid in self.metadata.stationID]
         self.metadata.filter(mask)
         self.temp = self.temp[mask]
         self.saln = self.saln[mask]
