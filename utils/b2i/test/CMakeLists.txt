@@ -9,9 +9,7 @@ list(APPEND b2i_test_input
     testinput/bufr2ioda_insitu_profile_bathy_2021063006.yaml.in
     testinput/bufr2ioda_insitu_profile_glider_2021063006.yaml.in
     testinput/bufr2ioda_insitu_profile_tesac_2021063006.yaml.in
-    # testinput/bufr2ioda_insitu_profile_tropical_2019010700.yaml.in
     testinput/bufr2ioda_insitu_profile_xbtctd_2021063006.yaml.in
-    # testinput/bufr2ioda_insitu_surface_drifter_2019010700.yaml.in
     testinput/bufr2ioda_insitu_surface_trkob_2021063006.yaml.in
 	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
 	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
@@ -26,9 +24,7 @@ list(APPEND b2i_test_ref
     testref/bufr2ioda_insitu_profile_bathy_2021063006.ref
     testref/bufr2ioda_insitu_profile_glider_2021063006.ref
     testref/bufr2ioda_insitu_profile_tesac_2021063006.ref
-    # testref/bufr2ioda_insitu_profile_tropical_2019010700.ref
     testref/bufr2ioda_insitu_profile_xbtctd_2021063006.ref
-    # testref/bufr2ioda_insitu_surface_drifter_2019010700.ref
     testref/bufr2ioda_insitu_surface_trkob_2021063006.ref
 	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
 	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
