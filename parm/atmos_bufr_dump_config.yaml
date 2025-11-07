@@ -54,8 +54,8 @@ atmosbufrdump:
     radiance_avhrrpm:
       input_file: avcspm.tm00.bufr_d
       output_file: radiance_avhrrpm_{splits/satId}.nc
-      mapping_file: radiance_avhrrpm.yaml
-      script_file: radiance_avhrrpm.py
+      mapping_file: radiance_avhrr.yaml
+      script_file: radiance_avhrr.py
     radiance_cris-fsr:
       input_file: crisf4.tm00.bufr_d
       output_file: radiance_cris_fsr_{splits/satId}.nc
