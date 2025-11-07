@@ -11,14 +11,19 @@ atmosbufrdump:
     #   script_file: obstype.py
     #   mpi: [optional mpi settings]
     #   aux_files: [optional auxiliary files]  
-    atms: 
+    gnssro:
+      input_file: gpsro.tm00.bufr_d
+      output_file: gnssro_{splits/satId}.nc
+      mapping_file: gnssro.yaml
+      script_file: gnssro.py
+    radiance_atms: 
       input_file: atms.tm00.bufr_d
-      output_file: atms_{splits/satId}.nc
-      mapping_file: atms.yaml
-      script_file: atms.py
+      output_file: radiance_atms_{splits/satId}.nc
+      mapping_file: radiance_atms.yaml
+      script_file: radiance_atms.py
       aux_file:
         - atms_beamwidth.txt
-    amsua:
+    radiance_amsua:
       input_file:
         - 1bamua.tm00.bufr_d
         - esamua.tm00.bufr_d
@@ -26,12 +31,12 @@ atmosbufrdump:
         1b: 0
         es: 1
       mapping_file:
-        - amsua_1bamua.yaml
-        - amsua_esamua.yaml
-      output_file: amsua_{splits/satId}.nc
+        - radiance_amsua_1bamua.yaml
+        - radiance_amsua_esamua.yaml
+      output_file: radiance_amsua_{splits/satId}.nc
       script_file:
-        - amsua.py
-        - atovs_obs_builder.py
+        - radiance_amsua.py
+        - radiance_atovs_obs_builder.py
       aux_file:
         - amsua_metop-a.ACCoeff.nc
         - amsua_metop-b.ACCoeff.nc
@@ -41,42 +46,42 @@ atmosbufrdump:
         - amsua_n17.ACCoeff.nc
         - amsua_n18.ACCoeff.nc
         - amsua_n19.ACCoeff.nc
-    avhrram:
+    radiance_avhrram:
       input_file: avcsam.tm00.bufr_d
-      output_file: avhrram_{splits/satId}.nc
-      mapping_file: avhrr.yaml
-      script_file: avhrr.py
-    avhrrpm:
+      output_file: radiance_avhrram_{splits/satId}.nc
+      mapping_file: radiance_avhrr.yaml
+      script_file: radiance_avhrr.py
+    radiance_avhrrpm:
       input_file: avcspm.tm00.bufr_d
-      output_file: avhrrpm_{splits/satId}.nc
-      mapping_file: avhrr.yaml
-      script_file: avhrr.py
-    cris-fsr:
+      output_file: radiance_avhrrpm_{splits/satId}.nc
+      mapping_file: radiance_avhrrpm.yaml
+      script_file: radiance_avhrrpm.py
+    radiance_cris-fsr:
       input_file: crisf4.tm00.bufr_d
-      output_file: cris_fsr_{splits/satId}.nc
-      mapping_file: cris-fsr.yaml
-      script_file: cris-fsr.py
+      output_file: radiance_cris_fsr_{splits/satId}.nc
+      mapping_file: radiance_cris-fsr.yaml
+      script_file: radiance_cris-fsr.py
       mpi: 8
-    iasi:
+    radiance_iasi:
       input_file: mtiasi.tm00.bufr_d
-      output_file: iasi_{splits/satId}.nc
-      mapping_file: iasi.yaml
-      script_file: iasi.py
+      output_file: radiance_iasi_{splits/satId}.nc
+      mapping_file: radiance_iasi.yaml
+      script_file: radiance_iasi.py
       mpi: 8
-    mhs:
+    radiance_mhs:
       input_file:
         - 1bmhs.tm00.bufr_d
         - esmhs.tm00.bufr_d
       input:
         1b: 0
         es: 1
-      output_file: mhs_{splits/satId}.nc
+      output_file: radiance_mhs_{splits/satId}.nc
       mapping_file:
-        - mhs_1bmhs.yaml
-        - mhs_esmhs.yaml
+        - radiance_mhs_1bmhs.yaml
+        - radiance_mhs_esmhs.yaml
       script_file:
-        - mhs.py
-        - atovs_obs_builder.py
+        - radiance_mhs.py
+        - radiance_atovs_obs_builder.py
       aux_file:
         - mhs_metop-a.ACCoeff.nc
         - mhs_metop-b.ACCoeff.nc
@@ -85,74 +90,74 @@ atmosbufrdump:
         - mhs_metop-c_v2.ACCoeff.nc
         - mhs_n18.ACCoeff.nc
         - mhs_n19.ACCoeff.nc
-    ozone_omi:
+    retrieval_ozone_omi:
       input_file: omi.tm00.bufr_d
-      output_file: ozone_omi_{splits/satId}.nc
-      mapping_file: ozone_omi.yaml
+      output_file: retrieval_ozone_omi_{splits/satId}.nc
+      mapping_file: retrieval_ozone_omi.yaml
       script_file:
-        - ozone_omi.py
-        - ozone_obs_builder.py
-    ozone_ompsnp:
+        - retrieval_ozone_omi.py
+        - retrieval_ozone_obs_builder.py
+    retrieval_ozone_ompsnp:
       input_file: ompsn8.tm00.bufr_d
-      output_file: ozone_ompsnp_{splits/satId}.nc
-      mapping_file: ozone_ompsnp.yaml
+      output_file: retrieval_ozone_ompsnp_{splits/satId}.nc
+      mapping_file: retrieval_ozone_ompsnp.yaml
       script_file:
-        - ozone_ompsnp.py
-        - ozone_obs_builder.py
-    ozone_ompstc:
+        - retrieval_ozone_ompsnp.py
+        - retrieval_ozone_obs_builder.py
+    retrieval_ozone_ompstc:
       input_file: ompst8.tm00.bufr_d
-      output_file: ozone_ompstc_{splits/satId}.nc
-      mapping_file: ozone_ompstc.yaml
+      output_file: retrieval_ozone_ompstc_{splits/satId}.nc
+      mapping_file: retrieval_ozone_ompstc.yaml
       script_file:
-        - ozone_ompstc.py
-        - ozone_obs_builder.py
-    satwnd_amv_abi:
+        - retrieval_ozone_ompstc.py
+        - retrieval_ozone_obs_builder.py
+    retrieval_amv_abi:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_abi_{splits/satId}.nc
-      mapping_file: satwnd_amv_abi.yaml
+      output_file: retrieval_amv_abi_{splits/satId}.nc
+      mapping_file: retrieval_amv_abi.yaml
       script_file:
-        - satwnd_amv_abi.py
-        - satwnd_amv_obs_builder.py
-    satwnd_amv_ahi:
+        - retrieval_amv_abi.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_ahi:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_ahi_{splits/satId}.nc
-      mapping_file: satwnd_amv_ahi.yaml
+      output_file: retrieval_amv_ahi_{splits/satId}.nc
+      mapping_file: retrieval_amv_ahi.yaml
       script_file:
-        - satwnd_amv_ahi.py
-        - satwnd_amv_obs_builder.py
-    satwnd_amv_avhrr:
+        - retrieval_amv_ahi.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_avhrr:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_avhrr_{splits/satId}.nc
-      mapping_file: satwnd_amv_avhrr.yaml
+      output_file: retrieval_amv_avhrr_{splits/satId}.nc
+      mapping_file: retrieval_amv_avhrr.yaml
       script_file:
-        - satwnd_amv_avhrr.py
-        - satwnd_amv_obs_builder.py
-    satwnd_amv_modis:
+        - retrieval_amv_avhrr.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_modis:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_modis_{splits/satId}.nc
-      mapping_file: satwnd_amv_modis.yaml
+      output_file: retrieval_amv_modis_{splits/satId}.nc
+      mapping_file: retrieval_amv_modis.yaml
       script_file:
-        - satwnd_amv_modis.py
-        - satwnd_amv_obs_builder.py
-    satwnd_amv_seviri:
+        - retrieval_amv_modis.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_seviri:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_seviri_{splits/satId}.nc
-      mapping_file: satwnd_amv_seviri.yaml
+      output_file: retrieval_amv_seviri_{splits/satId}.nc
+      mapping_file: retrieval_amv_seviri.yaml
       script_file:
-        - satwnd_amv_seviri.py
-        - satwnd_amv_obs_builder.py
-    satwnd_amv_viirs:
+        - retrieval_amv_seviri.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_viirs:
       input_file: satwnd.tm00.bufr_d
-      output_file: satwnd_amv_viirs_{splits/satId}.nc
-      mapping_file: satwnd_amv_viirs.yaml
+      output_file: retrieval_amv_viirs_{splits/satId}.nc
+      mapping_file: retrieval_amv_viirs.yaml
       script_file:
-        - satwnd_amv_viirs.py
-        - satwnd_amv_obs_builder.py
-    scatwnd_ascat:
+        - retrieval_amv_viirs.py
+        - retrieval_amv_obs_builder.py
+    retrieval_osw_ascat:
       input_file: ascatw.tm00.bufr_d
-      output_file: scatwnd_ascat_{splits/satId}.nc
-      mapping_file: scatwnd_ascat.yaml
-      script_file: scatwnd_ascat.py
+      output_file: retrieval_osw_ascat_{splits/satId}.nc
+      mapping_file: retrieval_osw_ascat.yaml
+      script_file: retrieval_osw_ascat.py
     # ssmis: 
     #   input_file: ssmisu.tm00.bufr_d
     #   output_file: ssmis_{splits/satId}.nc
