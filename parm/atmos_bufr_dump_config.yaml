@@ -15,7 +15,9 @@ atmosbufrdump:
       input_file: gpsro.tm00.bufr_d
       output_file: gnssro_{splits/satId}.nc
       mapping_file: gnssro.yaml
-      script_file: gnssro.py
+      script_file: 
+        - gnssro.py
+        - gnssro_obs_builder.py
     radiance_atms: 
       input_file: atms.tm00.bufr_d
       output_file: radiance_atms_{splits/satId}.nc
@@ -46,16 +48,16 @@ atmosbufrdump:
         - amsua_n17.ACCoeff.nc
         - amsua_n18.ACCoeff.nc
         - amsua_n19.ACCoeff.nc
-    radiance_avhrram:
-      input_file: avcsam.tm00.bufr_d
-      output_file: radiance_avhrram_{splits/satId}.nc
-      mapping_file: radiance_avhrr.yaml
-      script_file: radiance_avhrr.py
-    radiance_avhrrpm:
-      input_file: avcspm.tm00.bufr_d
-      output_file: radiance_avhrrpm_{splits/satId}.nc
-      mapping_file: radiance_avhrr.yaml
-      script_file: radiance_avhrr.py
+    # radiance_avhrram:
+    #   input_file: avcsam.tm00.bufr_d
+    #   output_file: radiance_avhrram_{splits/satId}.nc
+    #   mapping_file: radiance_avhrr.yaml
+    #   script_file: radiance_avhrr.py
+    # radiance_avhrrpm:
+    #   input_file: avcspm.tm00.bufr_d
+    #   output_file: radiance_avhrrpm_{splits/satId}.nc
+    #   mapping_file: radiance_avhrr.yaml
+    #   script_file: radiance_avhrr.py
     radiance_cris-fsr:
       input_file: crisf4.tm00.bufr_d
       output_file: radiance_cris_fsr_{splits/satId}.nc
