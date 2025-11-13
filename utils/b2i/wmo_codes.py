@@ -1,3 +1,5 @@
+import numpy as np
+
 '''
 Understanding WMO Identifiers for Tropical Moorings
 
@@ -205,3 +207,18 @@ RAMA = [
     1400042,
     1400046
 ]
+
+def is_rama(stationID):
+    return [True if int(rpid) in RAMA else False for rpid in stationID]
+
+def is_pirata(stationID):
+    return [True if int(rpid) in PIRATA else False for rpid in stationID]
+
+def is_taotriton(stationID):
+    return [True if int(rpid) in TAO_TRITON else False for rpid in stationID]
+
+def is_tropical_mooring(stationID):
+    mr = is_rama(stationID)
+    mp = is_pirata(stationID)
+    mt = is_taotriton(stationID)
+    return np.logical_or.reduce([mr, mp, mt])
