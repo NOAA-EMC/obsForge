@@ -120,7 +120,7 @@ class ProviderConfig:
 
         # YAML window (always DA window)
         yaml_window_begin = task_config.window_begin
-        yaml_window_end   = task_config.window_end
+        yaml_window_end = task_config.window_end
 
         # Query the database for valid files
         input_files = self.db.get_valid_files(window_begin=search_window_begin,
