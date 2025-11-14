@@ -112,13 +112,19 @@ class ProviderConfig:
         platform = kwargs.get('platform')
         obs_type = kwargs.get('obs_type')
         output_file = kwargs.get('output_file')
-        window_begin = kwargs.get('window_begin')
-        window_end = kwargs.get('window_end')
         task_config = kwargs.get('task_config')
 
+        # Search window (used for DB file search)
+        search_window_begin = kwargs.get('window_begin')
+        search_window_end = kwargs.get('window_end')
+
+        # YAML window (always DA window)
+        yaml_window_begin = task_config.window_begin
+        yaml_window_end = task_config.window_end
+
         # Query the database for valid files
-        input_files = self.db.get_valid_files(window_begin=window_begin,
-                                              window_end=window_end,
+        input_files = self.db.get_valid_files(window_begin=search_window_begin,
+                                              window_end=search_window_end,
                                               dst_dir=obs_space,
                                               instrument=instrument,
                                               satellite=platform,
@@ -129,8 +135,8 @@ class ProviderConfig:
         if len(input_files) > 0:
             # Configure the ioda converter
             context = {'provider': provider.upper(),
-                       'window_begin': window_begin,
-                       'window_end': window_end,
+                       'window_begin': yaml_window_begin,
+                       'window_end': yaml_window_end,
                        'input_files': input_files,
                        'output_file': output_file}
 
