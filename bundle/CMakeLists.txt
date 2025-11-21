@@ -61,7 +61,7 @@ ecbuild_bundle( PROJECT obsforge-utils SOURCE "../utils" )
 ecbuild_bundle( PROJECT da-utils SOURCE "../sorc/da-utils" )
 
 # Build IODA converters
-option(BUILD_IODA_CONVERTERS "Build IODA Converters" ON)
+option(BUILD_IODA_CONVERTERS "Build IODA Converters" OFF)
 if(BUILD_IODA_CONVERTERS)
   ecbuild_bundle( PROJECT iodaconv SOURCE "../sorc/iodaconv" )
 endif()
