@@ -3,7 +3,7 @@
 import argparse
 import random
 from datetime import datetime, timedelta
-from obsforge_monitor import ObsforgeMonitor
+from obsforge_monitor_db import ObsforgeMonitorDB
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -135,7 +135,7 @@ def generate_test_data(db, days=3):
 # ------------------------------------------------------------
 class MonitorCLI:
     def __init__(self):
-        self.db = ObsforgeMonitor("obsforge.db")
+        self.db = ObsforgeMonitorDB("obsforge.db")
 
         self.parser = argparse.ArgumentParser(description="Obsforge Monitoring CLI")
         sub = self.parser.add_subparsers(dest="command", required=True)

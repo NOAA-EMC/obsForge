@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-class ObsforgeMonitor:
+class ObsforgeMonitorDB:
     def __init__(self, db_path="obsforge_monitor.db"):
         self.db_path = Path(db_path)
         self.conn = sqlite3.connect(self.db_path)
@@ -34,7 +34,7 @@ class ObsforgeMonitor:
         );
         """)
 
-        # optional collections
+        # collections of obs spaces
         cur.execute("""
         CREATE TABLE IF NOT EXISTS obs_space_collections (
             id INTEGER PRIMARY KEY,
@@ -82,7 +82,7 @@ class ObsforgeMonitor:
         );
         """)
 
-        # recommended indexes
+        # indexes
         cur.execute("CREATE INDEX IF NOT EXISTS idx_task_runs_task_cycle_date ON task_runs(task_id, cycle, date);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_trd_run ON task_run_details(task_run_id);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_trd_space ON task_run_details(obs_space_id);")
