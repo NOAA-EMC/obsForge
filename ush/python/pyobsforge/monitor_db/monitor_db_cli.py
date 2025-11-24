@@ -131,7 +131,7 @@ def generate_test_data(db, days=3):
 
 
 # ------------------------------------------------------------
-# Class-based CLI
+# Class-based CLI for obsforge monitor database
 # ------------------------------------------------------------
 class MonitorCLI:
     def __init__(self):

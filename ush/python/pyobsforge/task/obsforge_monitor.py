@@ -23,9 +23,6 @@ import netCDF4
 logger = getLogger(__name__.split('.')[-1])
 
 
-
-
-
 import os
 import re
 # import csv 
@@ -36,6 +33,8 @@ import math
 import statistics
 
 from pyobsforge.monitor_db.obsforge_monitor_db import ObsforgeMonitorDB
+import sqlite3
+from netCDF4 import Dataset
 
 
 
@@ -75,6 +74,7 @@ def extract_timing_from_log(log_path):
     return None
 
 
+# this might be moved to the db class (?)
 def is_valid_sqlite(db_path: str) -> bool:
     """
     Returns True if db_path is a valid SQLite database, False otherwise.
@@ -100,6 +100,22 @@ def is_valid_sqlite(db_path: str) -> bool:
 
     except sqlite3.Error:
         return False
+
+
+
+def read_number_of_ioda_obs(ncfile):
+    """
+    Returns the number of observations in an IODA-style NetCDF file.
+    Specifically, it reads the 'Location' dimension.
+    """
+
+    if not os.path.isfile(ncfile):
+        raise FileNotFoundError(f"File not found: {ncfile}")
+
+    with Dataset(ncfile, "r") as ds:
+        if "Location" not in ds.dimensions:
+            raise KeyError("The NetCDF file does not contain a 'Location' dimension.")
+        return len(ds.dimensions["Location"])
 
 
 
@@ -160,6 +176,30 @@ class ObsforgeMonitor(Task):
 
         logger.info(f"logged task run id ==>>>>> {task_run_id}")
         logger.info("===========================================")
+
+        ncfile_path = '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/gdas.20251111/18/chem/gdas.t18z.retrieval_aod_viirs_n20.nc'
+        n_obs = read_number_of_ioda_obs(ncfile_path)
+
+        obs_space_id = 7
+        self.db.log_task_run_detail(
+            task_run_id=task_run_id,
+            obs_space_id=obs_space_id,
+            obs_count=n_obs,
+            runtime_sec=0.0     # test None here
+        )   
+
+        logger.info(f"logged number of obs {ncfile_path}  ==>>>>> {n_obs}")
+
+
+        # Add details for each obs space
+        # for s_id in obs_spaces:
+            # db.log_task_run_detail(
+                # task_run_id=run_id,
+                # obs_space_id=s_id,
+                # obs_count=random.randint(10_000, 200_000),
+                # runtime_sec=random.randint(10, 200)
+            # )   
+
 
     @logit(logger)
     def finalize(self) -> None:
