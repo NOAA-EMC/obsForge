@@ -23,11 +23,11 @@ if __name__ == '__main__':
         if key not in config_env.keys():
             obsforge_dict[key] = value
 
-    task_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', 'marine_bufr_dump_config.yaml'), config_env)
+    task_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', 'monitor_config.yaml'), config_env)
 
     # Combine configs together
     config = AttrDict(**config_env, **obsforge_dict)
-    config = AttrDict(**config, **task_yaml['marinebufrdump'])
+    config = AttrDict(**config, **task_yaml['obsforgemonitor'])
 
     monitor = ObsforgeMonitor(config)
     monitor.initialize()

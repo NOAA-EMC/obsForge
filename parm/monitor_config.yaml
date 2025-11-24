@@ -1,0 +1,2 @@
+obsforgemonitor:
+    database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
