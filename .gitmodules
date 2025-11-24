@@ -14,10 +14,6 @@
 	path = sorc/oops
 	url = https://github.com/JCSDA/oops
 	branch = develop
-[submodule "sorc/iodaconv"]
-	path = sorc/iodaconv
-	url = https://github.com/JCSDA-internal/ioda-converters
-	branch = develop
 [submodule "sorc/jedicmake"]
 	path = sorc/jedicmake
 	url = https://github.com/JCSDA/jedi-cmake/

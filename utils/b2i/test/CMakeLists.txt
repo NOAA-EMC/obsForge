@@ -1,7 +1,7 @@
 # Find Python (required for running tests)
 find_package(Python REQUIRED)
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+).*" "\\1" PYTHON_MAJOR_MINOR ${Python_VERSION})
-set(PYIODACONV_DIR "${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}/")
+set(PYIODACONV_DIR "${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}:${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}/site-packages")
 
 # Define test input YAML files
 list(APPEND b2i_test_input

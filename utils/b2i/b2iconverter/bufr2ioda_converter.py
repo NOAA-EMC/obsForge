@@ -4,7 +4,7 @@ import numpy.ma as ma
 import os
 import time
 from datetime import datetime
-from pyiodaconv import bufr
+import bufr
 from collections import namedtuple
 from pyioda import ioda_obs_space as ioda_ospace
 from .util import parse_arguments, run_diff

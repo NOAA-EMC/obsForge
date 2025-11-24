@@ -1,5 +1,5 @@
 import numpy as np
-from pyiodaconv import bufr
+import bufr
 from .util import *
 from .ioda_metadata import IODAMetadata
 from .ioda_addl_vars import IODAAdditionalVariables
