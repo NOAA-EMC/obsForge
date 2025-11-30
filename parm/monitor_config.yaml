@@ -1,2 +1,7 @@
 obsforgemonitor:
     database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
+    tasks:
+        marinedump:
+            logfile: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/logs/2025112000/gdas_marine_dump_prep.log'
+            nc_dir: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/RUNDIR/obsforge/gdas.2025112000/marinedump.1012686/'
+
