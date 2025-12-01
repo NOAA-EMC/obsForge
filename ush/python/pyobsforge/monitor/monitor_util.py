@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# this creates some dependency on the ??
 import logging
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,6 @@ from wxflow import (
     parse_yaml,
     save_as_yaml,
 )
-from pyobsforge.task.sfcshp import SfcShp
 import netCDF4
 
 import os
@@ -29,7 +27,7 @@ from datetime import datetime, timedelta
 import math
 import statistics
 
-from pyobsforge.monitor_db.obsforge_monitor_db import ObsforgeMonitorDB
+# from pyobsforge.monitor_db.obsforge_monitor_db import ObsforgeMonitorDB
 import sqlite3
 from netCDF4 import Dataset
 

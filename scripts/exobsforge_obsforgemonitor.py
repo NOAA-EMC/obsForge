@@ -44,6 +44,7 @@ if __name__ == '__main__':
     config.dump_tasks = dump_tasks
 
     monitor = ObsforgeMonitor(config)
-    monitor.initialize()
-    monitor.execute()
-    monitor.finalize()
+    monitor.run()
+    # monitor.initialize()
+    # monitor.execute()
+    # monitor.finalize()
