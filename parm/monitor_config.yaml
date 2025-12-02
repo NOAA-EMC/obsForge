@@ -1,19 +1,37 @@
-# obsforgemonitor:
-    # database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
-    # tasks:
-        # marinedump:
-            # logfile: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/logs/2025112000/gdas_marine_dump_prep.log'
-            # nc_dir: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/RUNDIR/obsforge/gdas.2025112000/marinedump.1012686/'
-
-
 obsforgemonitor:
-  database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
+
+  database: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db'
+  data_root: "/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime"
+
+  # Standalone only — omit in Rocoto mode
+  time_range:
+    start: "2025112000"
+    end:   "2025112500"
+
   tasks:
+
     marinedump:
-      # logfile: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/logs/2025112000/gdas_marine_dump_prep.log'
-      logfile: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/logs/2025112500/gdas_marine_dump_prep.log'
-      categories:
-        adt: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/adt'
-        sst: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/sst'
+      run_type: gdas
+      logfile_template: "logs/{date}{cycle}/gdas_marine_dump_prep.log"
+      obs_path_template: "{run_type}.{date}/{cycle}/ocean"
+      categories: auto
+
+      # Explicitly name the categories to be monitored
+      # categories:
+        # sst: "sst"
+        # icec: "icec"
+        # sic: "sic"
+
+
+
+# obsforgemonitor:
+  # database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
+  # tasks:
+    # marinedump:
+      # # logfile: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/logs/2025112000/gdas_marine_dump_prep.log'
+      # logfile: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/logs/2025112500/gdas_marine_dump_prep.log'
+      # categories:
+        # adt: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/adt'
+        # sst: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/sst'
         # sst: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/RUNDIR/obsforge/gdas.2025112000/marinedump.1012686/'
 

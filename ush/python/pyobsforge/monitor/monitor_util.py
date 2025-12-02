@@ -20,6 +20,7 @@ from wxflow import (
     save_as_yaml,
 )
 import netCDF4
+from netCDF4 import Dataset
 
 import os
 import re
@@ -27,40 +28,9 @@ from datetime import datetime, timedelta
 import math
 import statistics
 
-# from pyobsforge.monitor_db.obsforge_monitor_db import ObsforgeMonitorDB
-import sqlite3
-from netCDF4 import Dataset
 
 import glob
 from os.path import join, basename
-
-
-# this might be moved to the db class (?)
-def is_valid_sqlite(db_path: str) -> bool:
-    """
-    Returns True if db_path is a valid SQLite database, False otherwise.
-    """
-
-    # File must exist
-    if not os.path.isfile(db_path):
-        return False
-
-    # Must be large enough to contain SQLite header
-    if os.path.getsize(db_path) < 100:
-        return False
-
-    # Try opening the DB and running PRAGMA integrity_check
-    try:
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("PRAGMA integrity_check;")
-        result = cur.fetchone()
-        conn.close()
-
-        return result and result[0].lower() == "ok"
-
-    except sqlite3.Error:
-        return False
 
 
 def read_number_of_ioda_obs(ncfile):
@@ -314,71 +284,28 @@ def parse_obs_dir(obs_type, obs_dir):
 
 
 
-##########################################################################
-
-# marine dump names -- copied, to be corrected
-def obs_space_output_file_name(obs_space: str, cfg):
-    return f"{cfg['RUN']}.t{cfg['cyc']:02d}z.{obs_space}.nc"
-
-def gather_output_file_names(cfg, providers):
-    filenames = []
-    for provider, obs_spaces in providers.items():
-        for obs_space in obs_spaces["list"]:
-            output_file_name = obs_space_output_file_name(obs_space, cfg)
-            filenames.append(output_file_name)
-    return filenames
-
-
-
-def get_marine_obs_map(task_config):
+def detect_categories(obs_root: str) -> dict:
     """
-    Return a mapping of obs_type → {
-        'dest_dir': <destination directory>, 
-        'dest_files': [list of destination file paths]
-    }
+    Auto-discover categories under an obs_root directory.
+
+    Example layout:
+        /.../ocean/
+           sst/
+           icec/
+           insitu/
+
+    Returns:
+        {"sst": "/.../ocean/sst", ...}
     """
-    # Build YYYYMMDD and base COMROOT path
-    yyyymmdd = task_config['PDY'].strftime('%Y%m%d')
 
-    comout = join(task_config['COMROOT'],
-                  task_config['PSLOT'],
-                  f"{task_config['RUN']}.{yyyymmdd}",
-                  f"{task_config['cyc']:02d}",
-                  'ocean')
+    if not os.path.isdir(obs_root):
+        return {}
 
-    PREFIX = f"{task_config.RUN}.t{task_config.cyc:02d}z."
+    categories = {}
+    for name in sorted(os.listdir(obs_root)):
+        full = os.path.join(obs_root, name)
+        if os.path.isdir(full):
+            categories[name] = full
 
-    obs_types = ['sst', 'adt', 'icec', 'sss']
-    results = {}
-
-    for obs_type in obs_types:
-
-        # Destination directory for this obs type
-        dest_dir = join(comout, obs_type)
-
-        # Find matching IODA files
-        pattern = join(
-            task_config['DATA'],
-            f"{PREFIX}*{obs_type}_*.nc"
-        )
-        ioda_files = glob.glob(pattern)
-        logger.info(f'obs_type =|{obs_type}|')
-        logger.info(f'pattern =|{pattern}|')
-        logger.info(f'dest_dir =|{dest_dir}|')
-        logger.info(f'ioda_files =|{ioda_files}|')
-
-        # Build list of destination file paths
-        dest_files = [
-            join(dest_dir, basename(f)) for f in ioda_files
-        ]
-
-        # Store results
-        results[obs_type] = {
-            'dest_dir': dest_dir,
-            'dest_files': dest_files
-        }
-
-    return results
-
-##########################################################################
+    return categories
 
