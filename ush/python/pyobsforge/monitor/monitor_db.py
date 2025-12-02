@@ -146,6 +146,7 @@ class MonitorDB:
 
     def log_task_run_detail(self, task_run_id: int, obs_space_id: int,
                             obs_count: int, runtime_sec: float):
+        # print(f'>>>>>>>>>>>>>task_run_id={task_run_id}, obs_space_id={obs_space_id}')
         cur = self.conn.cursor()
         cur.execute("""
             INSERT INTO task_run_details(task_run_id, obs_space_id,

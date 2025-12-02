@@ -94,6 +94,7 @@ class ObsforgeMonitor(Task):
         if cfg.get("categories") == "auto":
             obs_root = self._resolve_obs_path(cfg, date, cycle, run_type)
             category_map = monitor_util.detect_categories(obs_root)
+            # print('OOOOOOO', date, cycle, obs_root, 'CCCC', category_map)  # <--- add this
         else:
             category_map = cfg["categories"]
 

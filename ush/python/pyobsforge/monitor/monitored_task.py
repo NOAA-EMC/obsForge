@@ -4,6 +4,7 @@ from typing import Dict
 
 from logging import getLogger
 logger = getLogger("MonitoredTask")
+# from wxflow import logit
 
 from pyobsforge.monitor.monitor_db import MonitorDB
 import pyobsforge.monitor.log_file_parser as log_file_parser
@@ -24,6 +25,7 @@ class MonitoredTask:
         self.obs_path_template = obs_path_template
 
     # ---------------------------------------------------------
+    # @logit
     def log_task_run(self, db: MonitorDB, logfile: str) -> int:
         """
         Parse the log file and insert task_run.
@@ -56,11 +58,14 @@ class MonitoredTask:
         return task_run_id
 
     # ---------------------------------------------------------
+    # @logit
     def log_task_run_details(self, db: MonitorDB, task_run_id: int,
                              category_map: Dict[str, str]):
         """
         For each category, parse obs-space dirs and insert task_run_details.
         """
+        # logger.debug(f"DDDDDDDD Logging details for task_run id={task_run_id}")
+        # logger.debug(f"DDDDDDDD Logging details for category_map={category_map}")
 
         for category_name, nc_dir in category_map.items():
             try:
@@ -72,9 +77,11 @@ class MonitoredTask:
             logger.info(f"[{self.name}] {category_name} → {len(results)} obs-spaces")
 
             category_id = db.get_or_create_category(category_name)
+            # logger.debug(f"[{self.name}] {category_name} → id = {category_id}")
 
             for obs_space, info in results.items():
                 obs_space_id = db.get_or_create_obs_space(obs_space, category_id)
+                # logger.debug(f"[{self.name}] {obs_space} → id = {obs_space_id}")
                 db.log_task_run_detail(
                     task_run_id,
                     obs_space_id,
