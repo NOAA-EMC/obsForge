@@ -248,7 +248,8 @@ it will construct the collection of all the obs spaces which will get the name o
     return obs_map
 
 
-def print_obs_space_description(obs_type, obs_space, filename, nobs):
+def print_obs_space_description(obs_type, obs_space, info):
+# def print_obs_space_description(obs_type, obs_space, filename, nobs):
     """
     Placeholder logging function.
     Instead of writing to a database, it prints all information nicely.
@@ -259,8 +260,8 @@ def print_obs_space_description(obs_type, obs_space, filename, nobs):
     print("--------------------------------------------")
     print(f"  Observation Type : {obs_type}")
     print(f"  Obs Space        : {obs_space}")
-    print(f"  File Name        : {filename}")
-    print(f"  Number of Obs    : {nobs}")
+    print(f"  File Name        : {info['filename']}")
+    print(f"  Number of Obs    : {info['n_obs']}")
     print("============================================\n")
 
 

@@ -1,335 +1,288 @@
-import os
-import sqlite3
-import hashlib
-from datetime import datetime
+'''
+Categories
 
+These are logical groupings of obs spaces, often based on the type of observation.
+
+Examples: 'sst', 'icec', 'adt', 'sss'.
+
+Typically, the workflow generates data in directories that correspond to categories.
+
+Categories are persistent concepts across cycles; the set of obs spaces in a category may vary per cycle.
+
+Collections
+
+Collections are concrete sets of obs spaces that exist at a given moment (or cycle).
+
+A collection may be a subset of a category or span multiple categories.
+
+Collections are useful if you want to record the actual set of files/obs spaces processed in a run.
+
+A collection is essentially the snapshot of obs spaces for a workflow run.
+
+It can have a hash or unique ID to detect if an identical set has been processed before.
+'''
+
+import sqlite3
+from typing import List, Tuple
 
 class MonitorDB:
-    """
-    Database layer for storing task metadata, task runs, obs spaces,
-    obs space collections, and detailed run stats.
-    """
-
-    # ------------------------------------------------------------------
-    # Initialization
-    # ------------------------------------------------------------------
-    def __init__(self, db_path):
-        self.db_path = db_path
-        self.conn = sqlite3.connect(self.db_path)
-        self.conn.row_factory = sqlite3.Row
+    def __init__(self, db_path: str):
+        self.conn = sqlite3.connect(db_path)
         self._initialize_schema()
 
-    # ------------------------------------------------------------------
     def _initialize_schema(self):
-        """Create all DB tables and indexes if not present."""
         cur = self.conn.cursor()
 
-        # ------------------------
-        # Table: tasks
-        # ------------------------
+        # --- Categories ---
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT
-            );
+        CREATE TABLE IF NOT EXISTS obs_space_categories (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT
+        );
         """)
 
-        # ------------------------
-        # Table: task_runs
-        # ------------------------
+        # --- Obs spaces ---
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS task_runs (
-                id INTEGER PRIMARY KEY,
-                task_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                cycle INTEGER NOT NULL,
-                run_type TEXT,
-                start_time TEXT,
-                end_time TEXT,
-                runtime_sec REAL,
-                notes TEXT,
-                FOREIGN KEY(task_id) REFERENCES tasks(id)
-            );
+        CREATE TABLE IF NOT EXISTS obs_spaces (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            category_id INTEGER NOT NULL,
+            description TEXT,
+            FOREIGN KEY(category_id) REFERENCES obs_space_categories(id)
+        );
         """)
 
-        # ------------------------
-        # Table: obs_spaces
-        # ------------------------
+        # --- Collections ---
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS obs_spaces (
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                category TEXT,
-                description TEXT
-            );
-        """)
-
-        # ------------------------
-        # obs_space_collections
-        # ------------------------
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS obs_space_collections (
-                id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                hash TEXT UNIQUE NOT NULL,
-                description TEXT
-            );
-        """)
-
-        # ------------------------
-        # members of a collection
-        # ------------------------
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS obs_space_collection_members (
-                collection_id INTEGER,
-                obs_space_id INTEGER,
-                FOREIGN KEY(collection_id) REFERENCES obs_space_collections(id),
-                FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id),
-                PRIMARY KEY(collection_id, obs_space_id)
-            );
-        """)
-
-        # ------------------------
-        # task_run_details
-        # ------------------------
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS task_run_details (
-                id INTEGER PRIMARY KEY,
-                task_run_id INTEGER NOT NULL,
-                obs_space_id INTEGER NOT NULL,
-                obs_count INTEGER,
-                runtime_sec REAL,
-                FOREIGN KEY(task_run_id) REFERENCES task_runs(id),
-                FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id)
-            );
-        """)
-
-        # ----------------------------------------------------------------------
-        # Indexes for performance
-        # ----------------------------------------------------------------------
-        cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_task_runs_task_cycle_date
-            ON task_runs(task_id, cycle, date);
+        CREATE TABLE IF NOT EXISTS obs_space_collections (
+            id INTEGER PRIMARY KEY,
+            hash TEXT UNIQUE NOT NULL,
+            description TEXT
+        );
         """)
 
         cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_trd_run
-            ON task_run_details(task_run_id);
+        CREATE TABLE IF NOT EXISTS obs_space_collection_members (
+            collection_id INTEGER,
+            obs_space_id INTEGER,
+            PRIMARY KEY(collection_id, obs_space_id),
+            FOREIGN KEY(collection_id) REFERENCES obs_space_collections(id),
+            FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id)
+        );
         """)
 
+        # --- Tasks ---
         cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_trd_space
-            ON task_run_details(obs_space_id);
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT
+        );
         """)
 
+        # --- Task runs ---
         cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_collections_hash
-            ON obs_space_collections(hash);
+        CREATE TABLE IF NOT EXISTS task_runs (
+            id INTEGER PRIMARY KEY,
+            task_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            cycle INTEGER NOT NULL,
+            run_type TEXT,
+            logfile TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            runtime_sec REAL,
+            notes TEXT,
+            FOREIGN KEY(task_id) REFERENCES tasks(id)
+        );
+        """)
+
+        # --- Task run details ---
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS task_run_details (
+            id INTEGER PRIMARY KEY,
+            task_run_id INTEGER NOT NULL,
+            obs_space_id INTEGER NOT NULL,
+            obs_count INTEGER,
+            runtime_sec REAL,
+            FOREIGN KEY(task_run_id) REFERENCES task_runs(id),
+            FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id)
+        );
+        """)
+
+        # --- Indexes ---
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_task_runs_task_cycle_date
+        ON task_runs(task_id, cycle, date);
+        """)
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trd_run
+        ON task_run_details(task_run_id);
+        """)
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_trd_space
+        ON task_run_details(obs_space_id);
+        """)
+        cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_collections_hash
+        ON obs_space_collections(hash);
         """)
 
         self.conn.commit()
 
-    # ======================================================================
-    # Reset entire DB
-    # ======================================================================
-    def reset(self):
-        """Drop all tables and recreate them."""
+    # --- Helper methods for inserting/fetching ---
+
+    def reset_database(self):
         cur = self.conn.cursor()
-
-        cur.execute("DROP TABLE IF EXISTS task_run_details;")
-        cur.execute("DROP TABLE IF EXISTS obs_space_collection_members;")
-        cur.execute("DROP TABLE IF EXISTS obs_space_collections;")
-        cur.execute("DROP TABLE IF EXISTS obs_spaces;")
-        cur.execute("DROP TABLE IF EXISTS task_runs;")
-        cur.execute("DROP TABLE IF EXISTS tasks;")
-
+        tables = [
+            "task_run_details",
+            "task_runs",
+            "tasks",
+            "obs_space_collection_members",
+            "obs_space_collections",
+            "obs_spaces",
+            "obs_space_categories"
+        ]
+        for t in tables:
+            cur.execute(f"DROP TABLE IF EXISTS {t}")
         self.conn.commit()
         self._initialize_schema()
 
-    # ======================================================================
-    # Task helpers
-    # ======================================================================
-    def get_task_id(self, task_name):
-        """Return the ID of a task, creating it if needed."""
-        cur = self.conn.cursor()
-
-        row = cur.execute(
-            "SELECT id FROM tasks WHERE name = ?;", (task_name,)
-        ).fetchone()
-
-        if row:
-            return row["id"]
-
-        cur.execute(
-            "INSERT INTO tasks(name) VALUES (?);",
-            (task_name,)
-        )
-        self.conn.commit()
-        return cur.lastrowid
-
-    # ======================================================================
-    # Logging task runs
-    # ======================================================================
-    def log_task_run(self, task_id, date, cycle, run_type,
-                     start_time, end_time, runtime_sec, notes):
-        cur = self.conn.cursor()
-
-        cur.execute("""
-            INSERT INTO task_runs(
-                task_id, date, cycle, run_type,
-                start_time, end_time, runtime_sec, notes
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """, (task_id, date, cycle, run_type,
-              start_time, end_time, runtime_sec, notes))
-
-        self.conn.commit()
-        return cur.lastrowid
-
-    # ======================================================================
-    # Obs-space helpers
-    # ======================================================================
-    def ensure_obs_space(self, name, category=None, description=None):
-        """Create obs-space entry if needed."""
-        cur = self.conn.cursor()
-
-        row = cur.execute(
-            "SELECT id FROM obs_spaces WHERE name = ?;",
-            (name,)
-        ).fetchone()
-
-        if row:
-            return row["id"]
-
-        cur.execute(
-            """
-            INSERT INTO obs_spaces(name, category, description)
-            VALUES (?, ?, ?);
-            """,
-            (name, category, description)
-        )
-
-        self.conn.commit()
-        return cur.lastrowid
-
-    # ======================================================================
-    # Obs-space collections
-    # ======================================================================
-    @staticmethod
-    def _collection_hash(collection_set):
-        """Stable hash for a set of obs space names."""
-        joined = ",".join(sorted(collection_set))
-        return hashlib.sha1(joined.encode("utf-8")).hexdigest()
-
-    def ensure_space_collection(self, category_name, obs_space_names):
-        """
-        Ensure a unique obs-space collection exists for this exact set.
-        Returns the collection ID.
-        """
-        obs_space_names = list(obs_space_names)
-        col_hash = self._collection_hash(obs_space_names)
-
-        cur = self.conn.cursor()
-
-        row = cur.execute(
-            "SELECT id FROM obs_space_collections WHERE hash = ?;",
-            (col_hash,)
-        ).fetchone()
-
-        if row:
-            return row["id"]
-
-        # Create new collection
-        collection_name = f"{category_name}:{col_hash[:10]}"
-
-        cur.execute("""
-            INSERT INTO obs_space_collections(name, hash, description)
-            VALUES (?, ?, ?);
-        """, (collection_name, col_hash, f"Auto-created collection for {category_name}"))
-
-        collection_id = cur.lastrowid
-
-        # Add members
-        for name in obs_space_names:
-            obs_id = self.ensure_obs_space(name, category=category_name)
-            cur.execute("""
-                INSERT INTO obs_space_collection_members(collection_id, obs_space_id)
-                VALUES (?, ?);
-            """, (collection_id, obs_id))
-
-        self.conn.commit()
-        return collection_id
-
-    # ======================================================================
-    # Logging run details
-    # ======================================================================
-    def log_task_run_detail(self, task_run_id, obs_space_id, obs_count, runtime_sec):
+    def fetch_task_time_series(self, task_name: str) -> List[Tuple]:
         cur = self.conn.cursor()
         cur.execute("""
-            INSERT INTO task_run_details(
-                task_run_id, obs_space_id, obs_count, runtime_sec
-            ) VALUES (?, ?, ?, ?);
-        """, (task_run_id, obs_space_id, obs_count, runtime_sec))
-
-        self.conn.commit()
-        return cur.lastrowid
-
-    # ======================================================================
-    # Fetching Helpers
-    # ======================================================================
-    def fetch_task_time_series(self, task_name):
-        """Return all runtime_sec values for a task ordered by date+cycle."""
-        cur = self.conn.cursor()
-        return cur.execute("""
             SELECT tr.date, tr.cycle, tr.runtime_sec
             FROM task_runs tr
             JOIN tasks t ON t.id = tr.task_id
             WHERE t.name = ?
-            ORDER BY tr.date, tr.cycle;
-        """, (task_name,)).fetchall()
+            ORDER BY tr.date, tr.cycle
+        """, (task_name,))
+        return cur.fetchall()
 
-    def fetch_obs_count_time_series(self, obs_space_name):
-        """Time series for a single obs-space."""
+    def get_or_create_task(self, name: str) -> int:
         cur = self.conn.cursor()
-        return cur.execute("""
+        cur.execute("SELECT id FROM tasks WHERE name = ?", (name,))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+
+        cur.execute(
+            "INSERT INTO tasks (name, description) VALUES (?, ?)",
+            (name, None)
+        )
+        self.conn.commit()
+        return cur.lastrowid
+
+
+    def get_or_create_category(self, name: str) -> int:
+        cur = self.conn.cursor()
+        cur.execute("SELECT id FROM obs_space_categories WHERE name = ?", (name,))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+
+        cur.execute(
+            "INSERT INTO obs_space_categories (name, description) VALUES (?, ?)",
+            (name, None)
+        )
+        self.conn.commit()
+        return cur.lastrowid
+
+
+    def get_or_create_obs_space(self, obs_space_name: str, category_id: int) -> int:
+        cur = self.conn.cursor()
+        cur.execute("SELECT id FROM obs_spaces WHERE name = ?", (obs_space_name,))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+
+        cur.execute(
+            """
+            INSERT INTO obs_spaces (name, category_id, description)
+            VALUES (?, ?, ?)
+            """,
+            (obs_space_name, category_id, None)
+        )
+        self.conn.commit()
+        return cur.lastrowid
+
+
+    def log_task_run(
+        self, task_id: int, date: str, cycle: int,
+        run_type: str, start_time: str, end_time: str,
+        runtime_sec: float, logfile: str, notes: str = None
+    ) -> int:
+
+        cur = self.conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO task_runs
+            (task_id, date, cycle, run_type, logfile, start_time, end_time, runtime_sec, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (task_id, date, cycle, run_type, logfile, start_time, end_time, runtime_sec, notes)
+        )
+        self.conn.commit()
+        return cur.lastrowid
+
+
+    def log_task_run_detail(
+        self, task_run_id: int, obs_space_id: int, obs_count: int, runtime_sec: float
+    ):
+        cur = self.conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO task_run_details
+            (task_run_id, obs_space_id, obs_count, runtime_sec)
+            VALUES (?, ?, ?, ?)
+            """,
+            (task_run_id, obs_space_id, obs_count, runtime_sec)
+        )
+        self.conn.commit()
+
+
+    def fetch_obs_count_time_series(self, obs_space_name: str) -> List[Tuple]:
+        cur = self.conn.cursor()
+        cur.execute("""
             SELECT tr.date, tr.cycle, d.obs_count
             FROM task_run_details d
             JOIN obs_spaces s ON s.id = d.obs_space_id
             JOIN task_runs tr ON tr.id = d.task_run_id
             WHERE s.name = ?
-            ORDER BY tr.date, tr.cycle;
-        """, (obs_space_name,)).fetchall()
+            ORDER BY tr.date, tr.cycle
+        """, (obs_space_name,))
+        return cur.fetchall()
 
-    def fetch_obs_count_for_collection(self, collection_name):
-        """Sum of obs across a collection."""
+    def fetch_obs_count_for_category(self, category_name: str) -> List[Tuple]:
         cur = self.conn.cursor()
-        return cur.execute("""
+        cur.execute("""
             SELECT tr.date, tr.cycle, SUM(d.obs_count) AS total_obs
             FROM task_run_details d
             JOIN task_runs tr ON tr.id = d.task_run_id
-            JOIN obs_space_collection_members m ON m.obs_space_id = d.obs_space_id
-            JOIN obs_space_collections c ON c.id = m.collection_id
+            JOIN obs_spaces s ON s.id = d.obs_space_id
+            JOIN obs_space_categories c ON c.id = s.category_id
             WHERE c.name = ?
             GROUP BY tr.date, tr.cycle
-            ORDER BY tr.date, tr.cycle;
-        """, (collection_name,)).fetchall()
+            ORDER BY tr.date, tr.cycle
+        """, (category_name,))
+        return cur.fetchall()
 
-    def fetch_all_runs(self):
+    def fetch_all_runs(self) -> List[Tuple]:
         cur = self.conn.cursor()
         return cur.execute("""
-            SELECT tr.id, t.name AS task, tr.date, tr.cycle,
-                   tr.run_type, tr.runtime_sec
+            SELECT tr.id, t.name AS task, tr.date, tr.cycle, tr.run_type, tr.runtime_sec
             FROM task_runs tr
             JOIN tasks t ON t.id = tr.task_id
-            ORDER BY tr.date, tr.cycle;
+            ORDER BY tr.date, tr.cycle
         """).fetchall()
 
-    def fetch_run_details(self, task_run_id):
+    def fetch_run_details(self, task_run_id: int) -> List[Tuple]:
         cur = self.conn.cursor()
         return cur.execute("""
             SELECT s.name AS obs_space, d.obs_count, d.runtime_sec
             FROM task_run_details d
             JOIN obs_spaces s ON s.id = d.obs_space_id
-            WHERE d.task_run_id = ?;
+            WHERE d.task_run_id = ?
         """, (task_run_id,)).fetchall()
+

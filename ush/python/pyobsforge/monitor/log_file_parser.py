@@ -164,7 +164,8 @@ def extract_job_times_from_lines(lines, job_script):
 # Main parse function
 # -------------------------------
 @logit(logger)
-def parse_job_log(logfile_path: str, job_script: str):
+def parse_job_log(logfile_path: str, job_script_name: str):
+    job_script = f'{job_script_name}.sh'
     if not os.path.isfile(logfile_path):
         raise FileNotFoundError(f"Log file does not exist: {logfile_path}")
 
