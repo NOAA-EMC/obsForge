@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime, timedelta
 from pyobsforge.monitor.monitor_db import MonitorDB
 
-from monitor_db_utils import (
+from monitor_db_util import (
     list_tables,
     print_table,
     print_full_table,

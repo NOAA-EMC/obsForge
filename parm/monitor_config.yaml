@@ -22,16 +22,3 @@ obsforgemonitor:
         # icec: "icec"
         # sic: "sic"
 
-
-
-# obsforgemonitor:
-  # database: /lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/obsforge_task_monitor.db
-  # tasks:
-    # marinedump:
-      # # logfile: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/COMROOT/obsforge/logs/2025112000/gdas_marine_dump_prep.log'
-      # logfile: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/logs/2025112500/gdas_marine_dump_prep.log'
-      # categories:
-        # adt: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/adt'
-        # sst: '/lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gdas.20251125/00/ocean/sst'
-        # sst: '/lfs/h2/emc/obsproc/noscrub/edward.givelberg/orun/RUNDIR/obsforge/gdas.2025112000/marinedump.1012686/'
-

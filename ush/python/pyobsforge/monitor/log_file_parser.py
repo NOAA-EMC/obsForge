@@ -4,41 +4,19 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import os
 from os import path
+from os.path import join, basename
 import pathlib
 
 from wxflow import logit
-'''
-from typing import Dict, Any
-from wxflow import (
-    AttrDict,
-    Executable,
-    FileHandler,
-    Task,
-    add_to_datetime,
-    to_isotime,
-    to_timedelta,
-    logit,
-    parse_j2yaml,
-    parse_yaml,
-    save_as_yaml,
-)
-import netCDF4
-'''
 
-import os
 import re
 from datetime import datetime, timedelta
 import math
 import statistics
 
-# from pyobsforge.monitor_db.obsforge_monitor_db import ObsforgeMonitorDB
-# import sqlite3
-# from netCDF4 import Dataset
-
 import glob
-from os.path import join, basename
-
 
 
 # -------------------------------
@@ -187,8 +165,6 @@ def parse_job_log(logfile_path: str, job_script_name: str):
         "cycle": cycle,
         "run_type": run_type
     }
-
-
 
 '''
 helper function for parsing the log
