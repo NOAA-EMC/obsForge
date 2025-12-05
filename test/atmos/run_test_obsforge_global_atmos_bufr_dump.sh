@@ -1,30 +1,54 @@
 #! /usr/bin/env bash
 
 set -x
-bindir=$1
-srcdir=$2
+bindir=$1  # Root for data
+srcdir=$2  # Root for code
+opt_date=$3
 
 type="atmosbufrdump"
 
 # Set g-w HOMEobsforge
-topdir=$(cd "$(dirname "$(readlink -f -n "${bindir}" )" )/../.." && pwd -P)
+topdir=$(cd "$(dirname "$(readlink -f -n "${srcdir}" )" )" && pwd -P)
 export HOMEobsforge=$topdir
 
 export RUN_ENVIR="emc"
 export NET="gfs"
 export RUN="gdas"
 
-current_utc_hour=$(date -u +%H)
+usage() {
+    echo "Usage: $0 bindir srcdir [YYYYMMDDHH]"
+    echo "  Optional date must be in YYYYMMDDHH format (e.g. 2025120400)."
+    exit 1
+}
 
-if [[ ${current_utc_hour} -ge 8 ]]; then
-    # Use today's date with 00 UTC cycle
-    PDY=$(date -u +%Y%m%d)
-    cyc="00"
+# If an optional date (YYYYMMDDHH) is provided, use its hour in lieu of current UTC hour.
+# Otherwise fall back to using the current UTC hour as before.
+if [[ -n "${opt_date}" ]]; then
+    if [[ ! "${opt_date}" =~ ^[0-9]{10}$ ]]; then
+        echo "ERROR: optional date must be in YYYYMMDDHH format"
+        usage
+    fi
+    # Extract components from supplied date
+    supplied_yyyymmdd=${opt_date:0:8}
+    current_utc_hour=${opt_date:8:2}
+
+    # Decide PDY and cyc relative to the supplied date
+    PDY=${supplied_yyyymmdd}
+    cyc=${current_utc_hour}
 else
-    # Use yesterday's date with 18 UTC cycle
-    PDY=$(date -u -d "yesterday" +%Y%m%d)
-    cyc="18"
+    current_utc_hour=$(date -u +%H)
+
+    if ((10#${current_utc_hour} >= 8)); then
+        # Use today's date with 00 UTC cycle
+        PDY=$(date -u +%Y%m%d)
+        cyc="00"
+    else
+        # Use yesterday's date with 18 UTC cycle
+        PDY=$(date -u -d "yesterday" +%Y%m%d)
+        cyc="18"
+    fi
 fi
+
 export PDY
 export cyc
 
