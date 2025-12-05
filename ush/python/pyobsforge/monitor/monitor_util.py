@@ -219,7 +219,6 @@ it will construct the collection of all the obs spaces which will get the name o
 
 
 def print_obs_space_description(obs_type, obs_space, info):
-# def print_obs_space_description(obs_type, obs_space, filename, nobs):
     """
     Placeholder logging function.
     Instead of writing to a database, it prints all information nicely.
@@ -233,8 +232,6 @@ def print_obs_space_description(obs_type, obs_space, info):
     print(f"  File Name        : {info['filename']}")
     print(f"  Number of Obs    : {info['n_obs']}")
     print("============================================\n")
-
-
 
 
 def parse_obs_dir(obs_type, obs_dir):

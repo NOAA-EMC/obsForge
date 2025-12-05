@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import os
 from logging import getLogger
 
@@ -33,6 +34,7 @@ class ObsforgeMonitor(Task):
 
     def run(self):
         logger.info("=== Obsforge Monitor Dispatcher Starting ===")
+        # logger.debug(f"=== Obsforge Monitor Dispatcher config {self.config} ===")
 
         # Determine timestamps
         if "time_range" in self.config:
@@ -41,7 +43,10 @@ class ObsforgeMonitor(Task):
             timestamps = list(timeutil.iter_timestamps(start, end))
             logger.info(f"Standalone mode: {len(timestamps)} timestamps")
         else:
-            ts = f"{self.config.pdy}{self.config.cyc}"
+            pdy_raw = self.config.PDY        # any Rocoto format
+            cyc_raw = self.config.cyc        # maybe "0", maybe "00", maybe weird
+            ts = timeutil.normalize_rocoto_timestamp(pdy_raw, cyc_raw)
+
             timestamps = [timeutil.parse_timestamp(ts)]
             logger.info(f"Rocoto mode: timestamp {ts}")
 

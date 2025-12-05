@@ -68,6 +68,7 @@ class MonitoredTask:
         # logger.debug(f"DDDDDDDD Logging details for category_map={category_map}")
 
         for category_name, nc_dir in category_map.items():
+            # logger.debug(f"[{self.name}] PPPPPPP {category_name} → {nc_dir}")
             try:
                 results = monitor_util.parse_obs_dir(category_name, nc_dir)
             except Exception as e:
@@ -77,11 +78,11 @@ class MonitoredTask:
             logger.info(f"[{self.name}] {category_name} → {len(results)} obs-spaces")
 
             category_id = db.get_or_create_category(category_name)
-            # logger.debug(f"[{self.name}] {category_name} → id = {category_id}")
+            logger.debug(f"[{self.name}] {category_name} → id = {category_id}")
 
             for obs_space, info in results.items():
                 obs_space_id = db.get_or_create_obs_space(obs_space, category_id)
-                # logger.debug(f"[{self.name}] {obs_space} → id = {obs_space_id}")
+                logger.debug(f"[{self.name}] {obs_space} → id = {obs_space_id}")
                 db.log_task_run_detail(
                     task_run_id,
                     obs_space_id,
