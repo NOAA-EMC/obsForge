@@ -1,11 +1,12 @@
 import os
 from datetime import datetime
 from typing import Dict
+import sqlite3 # Import sqlite3 to catch IntegrityError
 
 from logging import getLogger
 logger = getLogger("MonitoredTask")
-# from wxflow import logit
 
+# Assuming the correct structure for imports
 from pyobsforge.monitor.monitor_db import MonitorDB
 import pyobsforge.monitor.log_file_parser as log_file_parser
 import pyobsforge.monitor.monitor_util as monitor_util
@@ -14,8 +15,8 @@ import pyobsforge.monitor.monitor_util as monitor_util
 class MonitoredTask:
     """
     A monitored workflow task.
-    Parse its log → create task_run
-    Parse its obs directories → create task_run_details
+    Parse its log -> create task_run
+    Parse its obs directories -> create task_run_details
     """
 
     def __init__(self, name: str, logfile_template: str,
@@ -25,7 +26,6 @@ class MonitoredTask:
         self.obs_path_template = obs_path_template
 
     # ---------------------------------------------------------
-    # @logit
     def log_task_run(self, db: MonitorDB, logfile: str) -> int:
         """
         Parse the log file and insert task_run.
@@ -41,52 +41,77 @@ class MonitoredTask:
         cycle = int(info["cycle"])
         runtime_sec = log_file_parser.elapsed_to_seconds(info["elapsed_time"])
 
+        # Fetch/create task_id once
         task_id = db.get_or_create_task(self.name)
 
-        task_run_id = db.log_task_run(
-            task_id=task_id,
-            date=date,
-            cycle=cycle,
-            run_type=info["run_type"],
-            logfile=logfile,
-            start_time=info["start_date"].isoformat(),
-            end_time=info["end_date"].isoformat(),
-            runtime_sec=runtime_sec,
-        )
+        try:
+            task_run_id = db.log_task_run(
+                task_id=task_id,
+                date=date,
+                cycle=cycle,
+                run_type=info["run_type"],
+                logfile=logfile,
+                start_time=info["start_date"].isoformat(),
+                end_time=info["end_date"].isoformat(),
+                runtime_sec=runtime_sec,
+            )
+        except sqlite3.IntegrityError as e:
+            # Catch duplicate task_run error (UNIQUE(task_id, date, cycle, run_type))
+            logger.warning(
+                f"[{self.name}] Skipping logging: Task run already exists for {date}/{cycle}. Error: {e}"
+            )
+            raise
 
         logger.info(f"[{self.name}] Logged task_run id={task_run_id}")
         return task_run_id
 
     # ---------------------------------------------------------
-    # @logit
     def log_task_run_details(self, db: MonitorDB, task_run_id: int,
                              category_map: Dict[str, str]):
         """
         For each category, parse obs-space dirs and insert task_run_details.
         """
-        # logger.debug(f"DDDDDDDD Logging details for task_run id={task_run_id}")
-        # logger.debug(f"DDDDDDDD Logging details for category_map={category_map}")
+        
+        # --- NEW: Get task_id for mapping enforcement ---
+        # We need the task_id to set the disjoint mapping constraint.
+        task_id = db.get_or_create_task(self.name)
 
         for category_name, nc_dir in category_map.items():
-            # logger.debug(f"[{self.name}] PPPPPPP {category_name} → {nc_dir}")
             try:
                 results = monitor_util.parse_obs_dir(category_name, nc_dir)
             except Exception as e:
                 logger.error(f"[{self.name}] Failed to parse {nc_dir}: {e}")
                 continue
 
-            logger.info(f"[{self.name}] {category_name} → {len(results)} obs-spaces")
+            logger.info(f"[{self.name}] {category_name} -> {len(results)} obs-spaces")
 
             category_id = db.get_or_create_category(category_name)
-            logger.debug(f"[{self.name}] {category_name} → id = {category_id}")
+            logger.debug(f"[{self.name}] {category_name} -> id = {category_id}")
 
             for obs_space, info in results.items():
                 obs_space_id = db.get_or_create_obs_space(obs_space, category_id)
-                logger.debug(f"[{self.name}] {obs_space} → id = {obs_space_id}")
-                db.log_task_run_detail(
-                    task_run_id,
-                    obs_space_id,
-                    obs_count=info["n_obs"],
-                    runtime_sec=0.0,
-                )
+                logger.debug(f"[{self.name}] {obs_space} -> id = {obs_space_id}")
+                
+                try:
+                    # 1. ENFORCE DISJOINT SETS: Map obs space to current task. 
+                    # If this obs space is already mapped to a different task, an IntegrityError occurs.
+                    db.set_task_obs_space_mapping(task_id, obs_space_id)
+
+                    # 2. LOG THE DETAIL: This enforces UNIQUE(task_run_id, obs_space_id)
+                    db.log_task_run_detail(
+                        task_run_id,
+                        obs_space_id,
+                        obs_count=info["n_obs"],
+                        runtime_sec=0.0,
+                    )
+                except sqlite3.IntegrityError as e:
+                    # Catch violation of UNIQUE(obs_space_id) in task_obs_space_map 
+                    # OR violation of UNIQUE(task_run_id, obs_space_id) in task_run_details
+                    logger.error(
+                        f"[{self.name}] Logging failed for obs space '{obs_space}': "
+                        f"Integrity check failed. Possible violation: Obs space already owned by another task, "
+                        f"or duplicate detail entry for this run. Error: {e}"
+                    )
+                    # We continue to the next obs_space detail rather than crashing the whole run
+                    continue 
 
