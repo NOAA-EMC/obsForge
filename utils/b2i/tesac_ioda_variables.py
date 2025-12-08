@@ -1,4 +1,4 @@
-from pyiodaconv import bufr
+import bufr
 from b2iconverter.ioda_variables import IODAVariables
 
 
