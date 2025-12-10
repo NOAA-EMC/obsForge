@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+
+##### OBSOLETE/ was refactored
+
 import os
 from logging import getLogger
 

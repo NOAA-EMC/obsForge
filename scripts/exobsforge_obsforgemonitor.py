@@ -3,7 +3,8 @@
 # This script monitors obsforge data processing
 import os
 from wxflow import AttrDict, Logger, cast_strdict_as_dtypedict, parse_j2yaml
-from pyobsforge.task.obsforge_monitor import ObsforgeMonitor                    
+# from pyobsforge.task.obsforge_monitor import ObsforgeMonitor                    
+from pyobsforge.task.monitor_task import ObsforgeMonitorTask
 
 logger = Logger(level='DEBUG', colored_log=True)
 
@@ -43,8 +44,6 @@ if __name__ == '__main__':
     config = AttrDict(**base_config)
     config.dump_tasks = dump_tasks
 
-    monitor = ObsforgeMonitor(config)
+    # monitor = ObsforgeMonitor(config)
+    monitor = ObsforgeMonitorTask(config)
     monitor.run()
-    # monitor.initialize()
-    # monitor.execute()
-    # monitor.finalize()

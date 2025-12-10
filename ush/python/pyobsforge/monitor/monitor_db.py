@@ -192,3 +192,28 @@ class MonitorDB:
             VALUES (?, ?, ?, ?)
         """, (task_run_id, obs_space_id, obs_count, runtime_sec))
         self.conn.commit()
+
+    def get_latest_cycle(self) -> Optional[Tuple[str, str]]:
+        """
+        Returns the latest (date, cycle) tuple found in task_runs.
+        Returns strings formatted as (YYYYMMDD, HH).
+        """
+        cur = self.conn.cursor()
+        try:
+            # Order by date descending, then cycle descending to get the absolute latest
+            cur.execute("SELECT date, cycle FROM task_runs ORDER BY date DESC, cycle DESC LIMIT 1")
+            row = cur.fetchone()
+            
+            if row:
+                date_str = row[0]   # e.g., "20251120"
+                cycle_int = row[1]  # e.g., 0, 6, 12, 18
+                
+                # Convert integer cycle to zero-padded string (e.g. 0 -> "00")
+                # This ensures compatibility with the file system scanning logic
+                cycle_str = f"{cycle_int:02d}"
+                
+                return (date_str, cycle_str)
+            
+            return None
+        except Exception:
+            return None
