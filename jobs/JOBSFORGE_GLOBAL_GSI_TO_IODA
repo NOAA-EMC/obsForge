@@ -7,7 +7,6 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 # Set variables used in the script
 ##############################################
 
-
 ##############################################
 # Begin JOB SPECIFIC work
 ##############################################
