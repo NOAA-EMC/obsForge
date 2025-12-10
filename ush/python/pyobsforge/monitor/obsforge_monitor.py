@@ -77,7 +77,20 @@ class ObsforgeMonitor:
 
         # Convert set back to sorted list
         sorted_cycles = sorted(list(new_cycles))
-        logger.info(f"Scan complete. Found {len(sorted_cycles)} new cycle(s) to process.")
+        
+        if sorted_cycles:
+            # Extract first and last for logging
+            # Tuple format is (YYYYMMDD, HH)
+            first_ts = f"{sorted_cycles[0][0]}.{sorted_cycles[0][1]}"
+            last_ts  = f"{sorted_cycles[-1][0]}.{sorted_cycles[-1][1]}"
+            
+            logger.info(
+                f"Scan complete. Found {len(sorted_cycles)} new cycle(s) to process. "
+                f"Range: {first_ts} to {last_ts}"
+            )
+        else:
+            logger.info("Scan complete. No new cycles found.")
+        
         return sorted_cycles
 
     def run(self):
