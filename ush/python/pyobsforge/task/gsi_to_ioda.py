@@ -41,7 +41,7 @@ class GsiToIoda(Task):
                 #                               f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                 #                               f"{self.task_config.cyc:02d}",
                 #                               'atmos'),
-                'COMIN_ATMOS_ANALYSIS': os.path.join(self.task_config.COMROOT, "gfs", "v16.3",
+                'COMIN_ATMOS_ANALYSIS': os.path.join(self.task_config.COMROOT_PROD, "gfs", "v16.3",
                                                      f"gdas.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                      f"{self.task_config.cyc:02d}", "atmos"),
             }
@@ -133,28 +133,47 @@ class GsiToIoda(Task):
                 logger.warning(f"WARNING: {anl_ioda_file} does not exist to combine with {ges_ioda_file}")
                 logger.warning("Skipping this file ...")
 
-        # Tar up the ioda files
-        iodastatzipfile = os.path.join(self.task_config.DATA, 'atmos_gsi_ioda',
-                                       f"{self.task_config.APREFIX}atmos_gsi_ioda_diags.tar.gz")
-        logger.info(f"Compressing GSI IODA files to {iodastatzipfile}")
-        # get list of iodastat files to put in tarball
-        iodastatfiles = glob.glob(os.path.join(output_dir_path, '*nc4'))
-        logger.info(f"Gathering {len(iodastatfiles)} GSI IODA files to {iodastatzipfile}")
-        with tarfile.open(iodastatzipfile, "w|gz") as archive:
-            for targetfile in iodastatfiles:
-                # gzip the file before adding to tar
-                with open(targetfile, 'rb') as f_in:
-                    with gzip.open(f"{targetfile}.gz", 'wb') as f_out:
-                        f_out.writelines(f_in)
-                os.remove(targetfile)
-                targetfile = f"{targetfile}.gz"
-                archive.add(targetfile, arcname=os.path.basename(targetfile))
-        logger.info(f"Finished compressing GSI IODA files to {iodastatzipfile}")
-        # copy to COMOUT
-        outdir = self.task_config.COMOUT_ATMOS_ANALYSIS
-        if not os.path.exists(outdir):
-            FileHandler({'mkdir': [outdir]}).sync()
-        dest = os.path.join(outdir, os.path.basename(iodastatzipfile))
-        logger.info(f"Copying {iodastatzipfile} to {dest}")
-        FileHandler({'copy_opt': [[iodastatzipfile, dest]]}).sync()
-        logger.info("Finished copying GSI IODA tar file to COMOUT")
+        # Copy the output IODA files to COMOUT
+        # define output COMOUT path
+        comout = os.path.join(self.task_config['COMROOT'],
+                        self.task_config['PSLOT'],
+                        f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                        f"{self.task_config.cyc:02d}",
+                        'atmos_gsi')
+        if not os.path.exists(comout):
+            FileHandler({'mkdir': [comout]}).sync()
+        copy_ioda_files = []
+        # get list of output ioda files to copy to COMOUT
+        output_ioda_files = glob.glob(os.path.join(output_dir_path, '*nc4'))
+        for ioda_file in output_ioda_files:
+            dest = os.path.join(comout, os.path.basename(ioda_file))
+            copy_ioda_files.append([ioda_file, dest])
+        logger.info(f"Copying {len(copy_ioda_files)} GSI IODA files to {comout}")
+        FileHandler({'copy_opt': copy_ioda_files}).sync()
+        
+
+        # # Tar up the ioda files
+        # iodastatzipfile = os.path.join(self.task_config.DATA, 'atmos_gsi_ioda',
+        #                                f"{self.task_config.APREFIX}atmos_gsi_ioda_diags.tar.gz")
+        # logger.info(f"Compressing GSI IODA files to {iodastatzipfile}")
+        # # get list of iodastat files to put in tarball
+        # iodastatfiles = glob.glob(os.path.join(output_dir_path, '*nc4'))
+        # logger.info(f"Gathering {len(iodastatfiles)} GSI IODA files to {iodastatzipfile}")
+        # with tarfile.open(iodastatzipfile, "w|gz") as archive:
+        #     for targetfile in iodastatfiles:
+        #         # gzip the file before adding to tar
+        #         with open(targetfile, 'rb') as f_in:
+        #             with gzip.open(f"{targetfile}.gz", 'wb') as f_out:
+        #                 f_out.writelines(f_in)
+        #         os.remove(targetfile)
+        #         targetfile = f"{targetfile}.gz"
+        #         archive.add(targetfile, arcname=os.path.basename(targetfile))
+        # logger.info(f"Finished compressing GSI IODA files to {iodastatzipfile}")
+        # # copy to COMOUT
+        # outdir = self.task_config.COMOUT_ATMOS_ANALYSIS
+        # if not os.path.exists(outdir):
+        #     FileHandler({'mkdir': [outdir]}).sync()
+        # dest = os.path.join(outdir, os.path.basename(iodastatzipfile))
+        # logger.info(f"Copying {iodastatzipfile} to {dest}")
+        # FileHandler({'copy_opt': [[iodastatzipfile, dest]]}).sync()
+        # logger.info("Finished copying GSI IODA tar file to COMOUT")
