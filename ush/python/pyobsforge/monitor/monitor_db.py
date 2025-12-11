@@ -1,7 +1,6 @@
 import os
 import sqlite3
-from typing import List, Tuple, Optional
-
+from typing import List, Tuple, Optional, Set
 
 class MonitorDB:
     """
@@ -24,7 +23,7 @@ class MonitorDB:
 
     # -----------------------------------------------------
     def _initialize_schema(self):
-        """Create tables and indexes if missing, with new constraints."""
+        """Create tables and indexes if missing."""
         cur = self.conn.cursor()
 
         # Table 1: obs_space_categories
@@ -56,19 +55,18 @@ class MonitorDB:
         );
         """)
 
-        # NEW Table: task_obs_space_map
-        # Enforces the rule: OBS SPACE SETS ARE DISJOINT BETWEEN TASKS.
+        # Table 4: task_obs_space_map (Enforces disjoint set rule)
         cur.execute("""
         CREATE TABLE IF NOT EXISTS task_obs_space_map (
             task_id INTEGER NOT NULL,
-            obs_space_id INTEGER NOT NULL UNIQUE, -- The UNIQUE constraint enforces the disjoint set rule
+            obs_space_id INTEGER NOT NULL UNIQUE,
             FOREIGN KEY(task_id) REFERENCES tasks(id),
             FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id),
             PRIMARY KEY (task_id, obs_space_id)
         );
         """)
 
-        # Table 4: task_runs
+        # Table 5: task_runs
         cur.execute("""
         CREATE TABLE IF NOT EXISTS task_runs (
             id INTEGER PRIMARY KEY,
@@ -82,12 +80,11 @@ class MonitorDB:
             runtime_sec REAL,
             notes TEXT,
             FOREIGN KEY(task_id) REFERENCES tasks(id),
-            -- ENFORCE UNIQUENESS: A specific task/cycle/run_type combination runs only once.
             UNIQUE(task_id, date, cycle, run_type) 
         );
         """)
 
-        # Table 5: task_run_details
+        # Table 6: task_run_details
         cur.execute("""
         CREATE TABLE IF NOT EXISTS task_run_details (
             id INTEGER PRIMARY KEY,
@@ -95,16 +92,13 @@ class MonitorDB:
             obs_space_id INTEGER NOT NULL,
             obs_count INTEGER,
             runtime_sec REAL,
-            -- FOREIGN KEY constraint to enforce the disjoint set rule at logging time
-            -- (ensuring the obs_space logged belongs to the task that ran)
             FOREIGN KEY(task_run_id) REFERENCES task_runs(id),
             FOREIGN KEY(obs_space_id) REFERENCES obs_spaces(id),
-            -- ENFORCE UNIQUENESS: OBS SPACE is detailed only once per task run.
             UNIQUE(task_run_id, obs_space_id)
         );
         """)
 
-        # Indexes (unchanged)
+        # Indexes
         cur.execute("""
         CREATE INDEX IF NOT EXISTS idx_task_runs_task_cycle_date
         ON task_runs(task_id, cycle, date);
@@ -115,15 +109,13 @@ class MonitorDB:
         self.conn.commit()
 
     # -----------------------------------------------------
-    # Helper methods (Updated/New)
+    # Helper methods (Get/Create IDs)
     
     def get_or_create_task(self, name: str) -> int:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM tasks WHERE name=?", (name,))
         row = cur.fetchone()
-        if row:
-            return row[0]
-
+        if row: return row[0]
         cur.execute("INSERT INTO tasks(name) VALUES(?)", (name,))
         self.conn.commit()
         return cur.lastrowid
@@ -132,9 +124,7 @@ class MonitorDB:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM obs_space_categories WHERE name=?", (name,))
         row = cur.fetchone()
-        if row:
-            return row[0]
-
+        if row: return row[0]
         cur.execute("INSERT INTO obs_space_categories(name) VALUES(?)", (name,))
         self.conn.commit()
         return cur.lastrowid
@@ -143,9 +133,7 @@ class MonitorDB:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM obs_spaces WHERE name=?", (name,))
         row = cur.fetchone()
-        if row:
-            return row[0]
-
+        if row: return row[0]
         cur.execute(
             "INSERT INTO obs_spaces(name, category_id) VALUES(?,?)",
             (name, category_id)
@@ -154,13 +142,7 @@ class MonitorDB:
         return cur.lastrowid
     
     def set_task_obs_space_mapping(self, task_id: int, obs_space_id: int):
-        """
-        Maps an obs_space_id to a task_id. This must be done BEFORE logging
-        to enforce the disjoint set rule (one Obs Space belongs to one Task).
-        """
         cur = self.conn.cursor()
-        # INSERT OR IGNORE allows this to be idempotent; if the mapping exists, it does nothing.
-        # If obs_space_id is already mapped to a different task, UNIQUE constraint fails.
         cur.execute(
             "INSERT OR IGNORE INTO task_obs_space_map(task_id, obs_space_id) VALUES(?,?)",
             (task_id, obs_space_id)
@@ -169,7 +151,8 @@ class MonitorDB:
         return cur.lastrowid
 
     # -----------------------------------------------------
-    # Logging inserts
+    # Logging methods
+
     def log_task_run(self, task_id: int, date: str, cycle: int, run_type: str,
                      logfile: str, start_time: str, end_time: str,
                      runtime_sec: float, notes: Optional[str] = None) -> int:
@@ -193,27 +176,48 @@ class MonitorDB:
         """, (task_run_id, obs_space_id, obs_count, runtime_sec))
         self.conn.commit()
 
+    # -----------------------------------------------------
+    # Inspection Methods (For Monitor Logic)
+
     def get_latest_cycle(self) -> Optional[Tuple[str, str]]:
-        """
-        Returns the latest (date, cycle) tuple found in task_runs.
-        Returns strings formatted as (YYYYMMDD, HH).
-        """
+        """Returns the NEWEST (date, cycle) tuple in DB. E.g. ('20251120', '18')"""
         cur = self.conn.cursor()
         try:
-            # Order by date descending, then cycle descending to get the absolute latest
             cur.execute("SELECT date, cycle FROM task_runs ORDER BY date DESC, cycle DESC LIMIT 1")
             row = cur.fetchone()
-            
             if row:
-                date_str = row[0]   # e.g., "20251120"
-                cycle_int = row[1]  # e.g., 0, 6, 12, 18
-                
-                # Convert integer cycle to zero-padded string (e.g. 0 -> "00")
-                # This ensures compatibility with the file system scanning logic
-                cycle_str = f"{cycle_int:02d}"
-                
-                return (date_str, cycle_str)
-            
+                return (str(row[0]), f"{row[1]:02d}")
             return None
         except Exception:
             return None
+
+    def get_oldest_cycle(self) -> Optional[Tuple[str, str]]:
+        """Returns the OLDEST (date, cycle) tuple in DB."""
+        cur = self.conn.cursor()
+        try:
+            cur.execute("SELECT date, cycle FROM task_runs ORDER BY date ASC, cycle ASC LIMIT 1")
+            row = cur.fetchone()
+            if row:
+                return (str(row[0]), f"{row[1]:02d}")
+            return None
+        except Exception:
+            return None
+
+    def get_existing_cycles(self, run_type: str) -> Set[Tuple[str, str]]:
+        """
+        Returns a set of (date_str, cycle_str) for ALL runs of a specific type.
+        Used to detect gaps by comparing against the filesystem.
+        """
+        cur = self.conn.cursor()
+        try:
+            cur.execute(
+                "SELECT DISTINCT date, cycle FROM task_runs WHERE run_type=?", 
+                (run_type,)
+            )
+            found = set()
+            for row in cur.fetchall():
+                # Format cycle as 2-digit string to match filesystem "00", "06"
+                found.add((str(row[0]), f"{row[1]:02d}"))
+            return found
+        except Exception:
+            return set()

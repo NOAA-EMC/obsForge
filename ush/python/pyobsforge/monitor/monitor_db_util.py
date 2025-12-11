@@ -1,6 +1,7 @@
 import sqlite3
 from typing import List, Tuple, Optional, Dict
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 # Assuming MonitorDB class is in the file 'monitor_db.py' in the same directory
 from monitor_db import MonitorDB
@@ -249,3 +250,84 @@ def fetch_obs_count_by_category_for_plot(db: MonitorDB, obs_category_name: str, 
     rows = [dict(zip(col_names, row)) for row in cur.fetchall()]
     return rows
 
+def get_db_ranges_report(db: MonitorDB) -> str:
+    """
+    Generates a formatted text report of continuous cycle ranges for each run type.
+    """
+    cur = db.conn.cursor()
+    
+    # 1. Fetch DISTINCT cycles per run_type. 
+    # (We use DISTINCT because multiple tasks like 'atmos' and 'marine' 
+    #  might both run for the same cycle/run_type).
+    cur.execute("""
+        SELECT DISTINCT run_type, date, cycle 
+        FROM task_runs 
+        ORDER BY run_type, date, cycle
+    """)
+    rows = cur.fetchall()
+
+    if not rows:
+        return "Database is empty."
+
+    # 2. Group datetimes by run_type
+    grouped_runs = defaultdict(list)
+    for r_type, date_str, cyc_int in rows:
+        if not r_type: 
+            r_type = "Unknown"
+        try:
+            # Construct datetime object: "20251120" + 0 -> 2025-11-20 00:00:00
+            dt = datetime.strptime(f"{date_str}{cyc_int:02d}", "%Y%m%d%H")
+            grouped_runs[r_type].append(dt)
+        except ValueError:
+            continue
+
+    # 3. Build Report
+    report_lines = []
+    report_lines.append("\nAvailable Cycle Ranges per Run Type")
+    report_lines.append("=" * 60)
+    
+    for r_type in sorted(grouped_runs.keys()):
+        timestamps = grouped_runs[r_type]
+        ranges = _condense_to_ranges(timestamps)
+        
+        # Format strings
+        range_strs = []
+        for start, end in ranges:
+            s_str = start.strftime('%Y%m%d%H')
+            e_str = end.strftime('%Y%m%d%H')
+            if s_str == e_str:
+                range_strs.append(s_str) # Single point
+            else:
+                range_strs.append(f"{s_str} through {e_str}")
+        
+        report_lines.append(f"Run Type: {r_type}")
+        # Indent ranges for readability
+        for r_str in range_strs:
+            report_lines.append(f"  - {r_str}")
+        report_lines.append("") # Empty line between types
+
+    return "\n".join(report_lines)
+
+def _condense_to_ranges(sorted_dates: List[datetime], interval_hours=6) -> List[Tuple[datetime, datetime]]:
+    """
+    Helper: Condenses a list of sorted datetimes into continuous ranges.
+    A gap larger than 'interval_hours' breaks the continuity.
+    """
+    if not sorted_dates:
+        return []
+
+    ranges = []
+    start = sorted_dates[0]
+    prev = sorted_dates[0]
+    gap = timedelta(hours=interval_hours)
+
+    for current in sorted_dates[1:]:
+        # If the jump between this cycle and the previous one is > 6 hours (or custom interval)
+        if current - prev > gap:
+            ranges.append((start, prev))
+            start = current
+        prev = current
+    
+    # Close the final range
+    ranges.append((start, prev))
+    return ranges

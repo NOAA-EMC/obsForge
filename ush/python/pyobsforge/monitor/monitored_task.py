@@ -25,8 +25,45 @@ class MonitoredTask:
         self.logfile_template = logfile_template
         self.obs_path_template = obs_path_template
 
+    def log_task_run(self, db: MonitorDB, logfile: str, 
+                     logical_date: str, logical_cycle: str) -> int:
+        
+        try:
+            info = log_file_parser.parse_job_log(logfile, self.name)
+        except Exception as e:
+            logger.error(f"[{self.name}] Error parsing log file {logfile}: {e}")
+            raise
+
+        # We trust the date/cycle that CycleMonitor gave us (from the directory structure)
+        date = logical_date
+        cycle = int(logical_cycle)
+        
+        runtime_sec = log_file_parser.elapsed_to_seconds(info["elapsed_time"])
+
+        task_id = db.get_or_create_task(self.name)
+
+        try:
+            task_run_id = db.log_task_run(
+                task_id=task_id,
+                date=date,         # Inserting the LOGICAL date
+                cycle=cycle,       # Inserting the LOGICAL cycle
+                run_type=info["run_type"],
+                logfile=logfile,
+                start_time=info["start_date"].isoformat(), # We still keep actual start time for metadata
+                end_time=info["end_date"].isoformat(),
+                runtime_sec=runtime_sec,
+            )
+        except sqlite3.IntegrityError as e:
+            logger.warning(
+                f"[{self.name}] Skipping: Run already exists for {date}/{cycle}. Error: {e}"
+            )
+            raise
+
+        logger.info(f"[{self.name}] Logged task_run id={task_run_id}")
+        return task_run_id
+
     # ---------------------------------------------------------
-    def log_task_run(self, db: MonitorDB, logfile: str) -> int:
+    def old_log_task_run(self, db: MonitorDB, logfile: str) -> int:
         """
         Parse the log file and insert task_run.
         """
@@ -86,11 +123,11 @@ class MonitoredTask:
             logger.info(f"[{self.name}] {category_name} -> {len(results)} obs-spaces")
 
             category_id = db.get_or_create_category(category_name)
-            logger.debug(f"[{self.name}] {category_name} -> id = {category_id}")
+            # logger.debug(f"[{self.name}] {category_name} -> id = {category_id}")
 
             for obs_space, info in results.items():
                 obs_space_id = db.get_or_create_obs_space(obs_space, category_id)
-                logger.debug(f"[{self.name}] {obs_space} -> id = {obs_space_id}")
+                # logger.debug(f"[{self.name}] {obs_space} -> id = {obs_space_id}")
                 
                 try:
                     # 1. ENFORCE DISJOINT SETS: Map obs space to current task. 

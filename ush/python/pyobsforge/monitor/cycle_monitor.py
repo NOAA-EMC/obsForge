@@ -121,19 +121,27 @@ class CycleMonitor:
             
         logger.info(f"← END timestamp date={date} cycle={cycle}")
 
+
+
     def _inspect_task(self, name, cfg, date, cycle):
         task = self.monitored_tasks[name]
         logfile = self._resolve_logfile(cfg, date, cycle)
 
+        # Optional: Add a check to prevent crashing if file is missing
+        if not os.path.exists(logfile):
+            logger.debug(f"[{name}] Log file not found: {logfile}")
+            return
+
         try:
-            # log_task_run will enforce UNIQUE(task_id, date, cycle, run_type)
-            task_run_id = task.log_task_run(self.db, logfile)
+            task_run_id = task.log_task_run(self.db, logfile, 
+                                            logical_date=date, 
+                                            logical_cycle=cycle)
         except sqlite3.IntegrityError:
              logger.warning(f"[{name}] Task run for date={date}, cycle={cycle} already logged. Skipping details.")
              return
         except Exception:
-            logger.error(f"[{name}] Could not log task run")
-            return
+             logger.error(f"[{name}] Could not log task run")
+             return
 
         # Note: run_type must be present in the config passed to CycleMonitor
         run_type = cfg.get("run_type", "gdas") 
