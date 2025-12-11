@@ -9,6 +9,7 @@ from monitor_db_util import (
     fetch_obs_count_by_category_for_plot
 )
 
+
 class MonitorPlotter:
     def __init__(self, db_instance):
         self.db = db_instance
@@ -29,7 +30,7 @@ class MonitorPlotter:
             x = [f"{r['date']} {r['cycle']:02d}Z" for r in rows]
             y = [r["runtime_sec"] for r in rows]
             color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
-            
+
             self._plot_with_mean_std(x, y, task, color)
             plt.title(f"Task Runtime: {task}")
         else:
@@ -37,9 +38,9 @@ class MonitorPlotter:
             task_groups = {}
             for r in rows:
                 tname = r["name"]
-                if tname not in task_groups: 
+                if tname not in task_groups:
                     task_groups[tname] = {"x": [], "y": []}
-                
+
                 task_groups[tname]["x"].append(f"{r['date']} {r['cycle']:02d}Z")
                 task_groups[tname]["y"].append(r["runtime_sec"])
 
@@ -47,14 +48,14 @@ class MonitorPlotter:
             for idx, (tname, data) in enumerate(task_groups.items()):
                 color = colors[idx % len(colors)]
                 self._plot_with_mean_std(data["x"], data["y"], tname, color)
-            
+
             plt.title("All Task Runtimes")
 
         self._finalize_plot(output, "Cycle", "Runtime (sec)")
 
     def plot_obs(self, obs_space: Optional[str], obs_category: Optional[str], days: Optional[int], output: Optional[str]):
         plt.figure(figsize=(12, 6))
-        
+
         if obs_space:
             rows = fetch_obs_count_for_space_for_plot(self.db, obs_space, days)
             title = f"Obs Count: {obs_space}"
@@ -78,7 +79,7 @@ class MonitorPlotter:
         color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
         self._plot_with_mean_std(x, y, label, color)
         plt.title(title)
-        
+
         self._finalize_plot(output, "Cycle", "Count")
 
     # --- Internal Helpers ---

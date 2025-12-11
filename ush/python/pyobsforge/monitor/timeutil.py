@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 
 VALID_CYCLES = ["00", "06", "12", "18"]
 
@@ -32,6 +31,7 @@ def iter_timestamps(start_ts: str, end_ts: str):
         cycle = dt.strftime("%H")
         yield date, cycle
         dt += timedelta(hours=6)
+
 
 def normalize_rocoto_timestamp(pdy_raw, cyc_raw):
     """
@@ -66,7 +66,6 @@ def normalize_rocoto_timestamp(pdy_raw, cyc_raw):
     yyyy, mm, dd = m.groups()
     pdy = f"{yyyy}{mm}{dd}"  # normalized
 
-
     # ---------------------------------------------------------
     # 2. Normalize cycle hour
     # ---------------------------------------------------------
@@ -86,9 +85,7 @@ def normalize_rocoto_timestamp(pdy_raw, cyc_raw):
 
     cyc = m3.group(1).zfill(2)  # "0" → "00", "6" → "06"
 
-
     # ---------------------------------------------------------
     # 3. Final timestamp: YYYYMMDDHH
     # ---------------------------------------------------------
     return f"{pdy}{cyc}"
-

@@ -56,7 +56,7 @@ def print_table(db: MonitorDB, table_name: str, limit: Optional[int] = None):
     cur = db.conn.cursor()
     try:
         sql = f"SELECT * FROM {table_name}"
-        
+
         if limit is not None and limit > 0:
             sql += f" LIMIT {limit}"
 
@@ -132,7 +132,6 @@ def obs_total(db: MonitorDB, days: Optional[int] = None) -> List[Tuple[str, int]
     )
     return cur.fetchall()
 
-
 # ---------------------------------------------------------------------
 # Data Fetching for CLI Output (Show/Plot)
 # ---------------------------------------------------------------------
@@ -157,7 +156,7 @@ def fetch_task_timings_for_plot(db: MonitorDB, days: Optional[int] = None, task_
     base_query += " ORDER BY tr.date, tr.cycle"
 
     cur.execute(base_query, tuple(params))
-    
+
     col_names = [desc[0] for desc in cur.description]
     rows = [dict(zip(col_names, row)) for row in cur.fetchall()]
     return rows
@@ -172,9 +171,9 @@ def fetch_obs_count_for_space_for_plot(db: MonitorDB, obs_space: str, days: Opti
     cur = db.conn.cursor()
 
     cur.execute("""
-        SELECT 
-            tr.date, 
-            tr.cycle, 
+        SELECT
+            tr.date,
+            tr.cycle,
             SUM(d.obs_count) AS obs_count_sum,
             COUNT(d.id) AS run_count
         FROM task_run_details d
@@ -192,13 +191,13 @@ def fetch_obs_count_for_space_for_plot(db: MonitorDB, obs_space: str, days: Opti
         # Rename the summed column for consistency in the CLI
         row_dict['obs_count'] = row_dict.pop('obs_count_sum')
         rows.append(row_dict)
-        
+
     return rows
 
 
 def fetch_obs_count_by_category_raw(db: MonitorDB, obs_category_name: str, days: Optional[int] = None) -> List[Tuple]:
     """
-    Fetches aggregated obs counts for all spaces within a category, 
+    Fetches aggregated obs counts for all spaces within a category,
     used for 'show obs --obs-category'.
     """
     cutoff = calculate_cutoff_date(db, days)
@@ -207,12 +206,12 @@ def fetch_obs_count_by_category_raw(db: MonitorDB, obs_category_name: str, days:
     # Note: We aggregate here to show a single, consolidated obs count per space per cycle
     cur.execute(
         """
-        SELECT 
-            c.name AS category, 
-            s.name AS space, 
-            tr.date, 
-            tr.cycle, 
-            SUM(d.obs_count) AS total_obs_count, 
+        SELECT
+            c.name AS category,
+            s.name AS space,
+            tr.date,
+            tr.cycle,
+            SUM(d.obs_count) AS total_obs_count,
             COUNT(d.id) AS run_count
         FROM task_run_details d
         JOIN task_runs tr ON tr.id = d.task_run_id
@@ -229,7 +228,7 @@ def fetch_obs_count_by_category_raw(db: MonitorDB, obs_category_name: str, days:
 
 def fetch_obs_count_by_category_for_plot(db: MonitorDB, obs_category_name: str, days: Optional[int] = None) -> List[Dict]:
     """
-    Fetches obs counts aggregated across all spaces in a category by date/cycle, 
+    Fetches obs counts aggregated across all spaces in a category by date/cycle,
     used for 'plot obs --obs-category'.
     """
     cutoff = calculate_cutoff_date(db, days)
@@ -250,18 +249,19 @@ def fetch_obs_count_by_category_for_plot(db: MonitorDB, obs_category_name: str, 
     rows = [dict(zip(col_names, row)) for row in cur.fetchall()]
     return rows
 
+
 def get_db_ranges_report(db: MonitorDB) -> str:
     """
     Generates a formatted text report of continuous cycle ranges for each run type.
     """
     cur = db.conn.cursor()
-    
-    # 1. Fetch DISTINCT cycles per run_type. 
-    # (We use DISTINCT because multiple tasks like 'atmos' and 'marine' 
+
+    # 1. Fetch DISTINCT cycles per run_type.
+    # (We use DISTINCT because multiple tasks like 'atmos' and 'marine'
     #  might both run for the same cycle/run_type).
     cur.execute("""
-        SELECT DISTINCT run_type, date, cycle 
-        FROM task_runs 
+        SELECT DISTINCT run_type, date, cycle
+        FROM task_runs
         ORDER BY run_type, date, cycle
     """)
     rows = cur.fetchall()
@@ -272,7 +272,7 @@ def get_db_ranges_report(db: MonitorDB) -> str:
     # 2. Group datetimes by run_type
     grouped_runs = defaultdict(list)
     for r_type, date_str, cyc_int in rows:
-        if not r_type: 
+        if not r_type:
             r_type = "Unknown"
         try:
             # Construct datetime object: "20251120" + 0 -> 2025-11-20 00:00:00
@@ -285,28 +285,29 @@ def get_db_ranges_report(db: MonitorDB) -> str:
     report_lines = []
     report_lines.append("\nAvailable Cycle Ranges per Run Type")
     report_lines.append("=" * 60)
-    
+
     for r_type in sorted(grouped_runs.keys()):
         timestamps = grouped_runs[r_type]
         ranges = _condense_to_ranges(timestamps)
-        
+
         # Format strings
         range_strs = []
         for start, end in ranges:
             s_str = start.strftime('%Y%m%d%H')
             e_str = end.strftime('%Y%m%d%H')
             if s_str == e_str:
-                range_strs.append(s_str) # Single point
+                range_strs.append(s_str)    # Single point
             else:
                 range_strs.append(f"{s_str} through {e_str}")
-        
+
         report_lines.append(f"Run Type: {r_type}")
         # Indent ranges for readability
         for r_str in range_strs:
             report_lines.append(f"  - {r_str}")
-        report_lines.append("") # Empty line between types
+        report_lines.append("")     # Empty line between types
 
     return "\n".join(report_lines)
+
 
 def _condense_to_ranges(sorted_dates: List[datetime], interval_hours=6) -> List[Tuple[datetime, datetime]]:
     """
@@ -327,7 +328,7 @@ def _condense_to_ranges(sorted_dates: List[datetime], interval_hours=6) -> List[
             ranges.append((start, prev))
             start = current
         prev = current
-    
+
     # Close the final range
     ranges.append((start, prev))
     return ranges

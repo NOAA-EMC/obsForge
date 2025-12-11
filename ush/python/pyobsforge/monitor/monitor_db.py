@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from typing import List, Tuple, Optional, Set
+from typing import Tuple, Optional, Set
+
 
 class MonitorDB:
     """
@@ -80,7 +81,7 @@ class MonitorDB:
             runtime_sec REAL,
             notes TEXT,
             FOREIGN KEY(task_id) REFERENCES tasks(id),
-            UNIQUE(task_id, date, cycle, run_type) 
+            UNIQUE(task_id, date, cycle, run_type)
         );
         """)
 
@@ -110,12 +111,13 @@ class MonitorDB:
 
     # -----------------------------------------------------
     # Helper methods (Get/Create IDs)
-    
+
     def get_or_create_task(self, name: str) -> int:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM tasks WHERE name=?", (name,))
         row = cur.fetchone()
-        if row: return row[0]
+        if row:
+            return row[0]
         cur.execute("INSERT INTO tasks(name) VALUES(?)", (name,))
         self.conn.commit()
         return cur.lastrowid
@@ -124,7 +126,8 @@ class MonitorDB:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM obs_space_categories WHERE name=?", (name,))
         row = cur.fetchone()
-        if row: return row[0]
+        if row:
+            return row[0]
         cur.execute("INSERT INTO obs_space_categories(name) VALUES(?)", (name,))
         self.conn.commit()
         return cur.lastrowid
@@ -133,14 +136,15 @@ class MonitorDB:
         cur = self.conn.cursor()
         cur.execute("SELECT id FROM obs_spaces WHERE name=?", (name,))
         row = cur.fetchone()
-        if row: return row[0]
+        if row:
+            return row[0]
         cur.execute(
             "INSERT INTO obs_spaces(name, category_id) VALUES(?,?)",
             (name, category_id)
         )
         self.conn.commit()
         return cur.lastrowid
-    
+
     def set_task_obs_space_mapping(self, task_id: int, obs_space_id: int):
         cur = self.conn.cursor()
         cur.execute(
@@ -211,7 +215,7 @@ class MonitorDB:
         cur = self.conn.cursor()
         try:
             cur.execute(
-                "SELECT DISTINCT date, cycle FROM task_runs WHERE run_type=?", 
+                "SELECT DISTINCT date, cycle FROM task_runs WHERE run_type=?",
                 (run_type,)
             )
             found = set()

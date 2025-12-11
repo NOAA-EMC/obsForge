@@ -11,7 +11,7 @@ import argparse
 from typing import Optional
 
 # Local imports (No matplotlib here!)
-from monitor_db import MonitorDB 
+from monitor_db import MonitorDB
 from monitor_db_util import (
     list_tables,
     print_table,
@@ -38,7 +38,7 @@ class MonitorReporter:
             formatter_class=argparse.RawDescriptionHelpFormatter
         )
         self.parser.add_argument("--db", required=True, help="Path to SQLite DB file")
-        
+
         subparsers = self.parser.add_subparsers(dest="command", required=True)
 
         # ----------------------------------------------------------------------
@@ -70,7 +70,7 @@ class MonitorReporter:
         g_obs = ps_obs.add_mutually_exclusive_group()
         g_obs.add_argument("--obs-space")
         g_obs.add_argument("--obs-category")
-        
+
         # ----------------------------------------------------------------------
         # COMMAND: PLOT (Visual Reports)
         # ----------------------------------------------------------------------
@@ -138,17 +138,19 @@ class MonitorReporter:
                 rows = obs_total(self.db, args.days)
                 print(f"\nTotal Obs by Space ({days_str}):")
                 print("-" * 40)
-                for name, tot in rows: print(f"{name:30s} {tot}")
+                for name, tot in rows:
+                    print(f"{name:30s} {tot}")
                 print("-" * 40)
             elif args.obs_space:
                 rows = fetch_obs_count_for_space_for_plot(self.db, args.obs_space, args.days)
                 print(f"\nObs Count: {args.obs_space} ({days_str}):")
-                for r in rows: print(f"{r['date']}.{r['cycle']:02d} : {r['obs_count']}")
+                for r in rows:
+                    print(f"{r['date']}.{r['cycle']:02d} : {r['obs_count']}")
             elif args.obs_category:
                 rows = fetch_obs_count_by_category_raw(self.db, args.obs_category, args.days)
                 print(f"\nObs Category: {args.obs_category} ({days_str}):")
                 # r structure: (cat, space, date, cycle, count, run_count)
-                for r in rows: 
+                for r in rows:
                     print(f"{r[1]} @ {r[2]}.{r[3]:02d} : {r[4]}")
 
     def handle_plot(self, args):
@@ -178,6 +180,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--db", required=True)
     temp_args, _ = parser.parse_known_args()
-    
+
     app = MonitorReporter(temp_args.db)
     app.run()

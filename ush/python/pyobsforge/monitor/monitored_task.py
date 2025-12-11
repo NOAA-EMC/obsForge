@@ -1,15 +1,12 @@
-import os
-from datetime import datetime
+import logging
+import sqlite3
 from typing import Dict
-import sqlite3 # Import sqlite3 to catch IntegrityError
 
-from logging import getLogger
-logger = getLogger("MonitoredTask")
-
-# Assuming the correct structure for imports
 from pyobsforge.monitor.monitor_db import MonitorDB
 import pyobsforge.monitor.log_file_parser as log_file_parser
 import pyobsforge.monitor.monitor_util as monitor_util
+
+logger = logging.getLogger("MonitoredTask")
 
 
 class MonitoredTask:
@@ -25,9 +22,9 @@ class MonitoredTask:
         self.logfile_template = logfile_template
         self.obs_path_template = obs_path_template
 
-    def log_task_run(self, db: MonitorDB, logfile: str, 
+    def log_task_run(self, db: MonitorDB, logfile: str,
                      logical_date: str, logical_cycle: str) -> int:
-        
+
         try:
             info = log_file_parser.parse_job_log(logfile, self.name)
         except Exception as e:
@@ -37,7 +34,7 @@ class MonitoredTask:
         # We trust the date/cycle that CycleMonitor gave us (from the directory structure)
         date = logical_date
         cycle = int(logical_cycle)
-        
+
         runtime_sec = log_file_parser.elapsed_to_seconds(info["elapsed_time"])
 
         task_id = db.get_or_create_task(self.name)
@@ -63,52 +60,12 @@ class MonitoredTask:
         return task_run_id
 
     # ---------------------------------------------------------
-    def old_log_task_run(self, db: MonitorDB, logfile: str) -> int:
-        """
-        Parse the log file and insert task_run.
-        """
-
-        try:
-            info = log_file_parser.parse_job_log(logfile, self.name)
-        except Exception as e:
-            logger.error(f"[{self.name}] Error parsing log file {logfile}: {e}")
-            raise
-
-        date = info["start_date"].strftime("%Y%m%d")
-        cycle = int(info["cycle"])
-        runtime_sec = log_file_parser.elapsed_to_seconds(info["elapsed_time"])
-
-        # Fetch/create task_id once
-        task_id = db.get_or_create_task(self.name)
-
-        try:
-            task_run_id = db.log_task_run(
-                task_id=task_id,
-                date=date,
-                cycle=cycle,
-                run_type=info["run_type"],
-                logfile=logfile,
-                start_time=info["start_date"].isoformat(),
-                end_time=info["end_date"].isoformat(),
-                runtime_sec=runtime_sec,
-            )
-        except sqlite3.IntegrityError as e:
-            # Catch duplicate task_run error (UNIQUE(task_id, date, cycle, run_type))
-            logger.warning(
-                f"[{self.name}] Skipping logging: Task run already exists for {date}/{cycle}. Error: {e}"
-            )
-            raise
-
-        logger.info(f"[{self.name}] Logged task_run id={task_run_id}")
-        return task_run_id
-
-    # ---------------------------------------------------------
     def log_task_run_details(self, db: MonitorDB, task_run_id: int,
                              category_map: Dict[str, str]):
         """
         For each category, parse obs-space dirs and insert task_run_details.
         """
-        
+
         # --- NEW: Get task_id for mapping enforcement ---
         # We need the task_id to set the disjoint mapping constraint.
         task_id = db.get_or_create_task(self.name)
@@ -128,9 +85,9 @@ class MonitoredTask:
             for obs_space, info in results.items():
                 obs_space_id = db.get_or_create_obs_space(obs_space, category_id)
                 # logger.debug(f"[{self.name}] {obs_space} -> id = {obs_space_id}")
-                
+
                 try:
-                    # 1. ENFORCE DISJOINT SETS: Map obs space to current task. 
+                    # 1. ENFORCE DISJOINT SETS: Map obs space to current task.
                     # If this obs space is already mapped to a different task, an IntegrityError occurs.
                     db.set_task_obs_space_mapping(task_id, obs_space_id)
 
@@ -142,7 +99,7 @@ class MonitoredTask:
                         runtime_sec=0.0,
                     )
                 except sqlite3.IntegrityError as e:
-                    # Catch violation of UNIQUE(obs_space_id) in task_obs_space_map 
+                    # Catch violation of UNIQUE(obs_space_id) in task_obs_space_map
                     # OR violation of UNIQUE(task_run_id, obs_space_id) in task_run_details
                     logger.error(
                         f"[{self.name}] Logging failed for obs space '{obs_space}': "
@@ -150,5 +107,5 @@ class MonitoredTask:
                         f"or duplicate detail entry for this run. Error: {e}"
                     )
                     # We continue to the next obs_space detail rather than crashing the whole run
-                    continue 
+                    continue
 

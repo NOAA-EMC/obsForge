@@ -1,27 +1,18 @@
 #!/usr/bin/env python3
 
-# this creates some dependency on the ??
-import logging
-logger = logging.getLogger(__name__)
-
 import os
 from os import path
-from os.path import join, basename
-import pathlib
-
-# from wxflow import logit
-
 import re
 from datetime import datetime, timedelta
-import math
-import statistics
+import logging
 
-import glob
+logger = logging.getLogger(__name__)
 
 
 # -------------------------------
 # Helper: Extract cycle
 # -------------------------------
+
 def extract_cycle_from_lines(lines):
     cycle_candidates = []
     valid_cycles = {"00", "06", "12", "18"}
@@ -73,6 +64,7 @@ def extract_cycle_from_lines(lines):
 # -------------------------------
 # Helper: Extract run_type
 # -------------------------------
+
 def extract_run_type_from_lines(lines):
     pattern = re.compile(r"export\s+RUN=['\"]?(gdas|gfs)['\"]?", re.IGNORECASE)
     run_types = []
@@ -94,6 +86,7 @@ def extract_run_type_from_lines(lines):
 # -------------------------------
 # Helper: Extract start/end/elapsed/error
 # -------------------------------
+
 def extract_job_times_from_lines(lines, job_script):
     begin_pattern = re.compile(rf"Begin {re.escape(job_script)} at (.+)")
     end_pattern = re.compile(
@@ -141,6 +134,7 @@ def extract_job_times_from_lines(lines, job_script):
 # -------------------------------
 # Main parse function
 # -------------------------------
+
 # @logit(logger)
 def parse_job_log(logfile_path: str, job_script_name: str):
     job_script = f'{job_script_name}.sh'
@@ -166,14 +160,14 @@ def parse_job_log(logfile_path: str, job_script_name: str):
         "run_type": run_type
     }
 
-'''
-helper function for parsing the log
-'''
 def elapsed_to_seconds(elapsed):
+
     if isinstance(elapsed, timedelta):
         return int(elapsed.total_seconds())
+
     if isinstance(elapsed, str):
         h, m, s = map(int, elapsed.split(":"))
-        return h*3600 + m*60 + s
+        return h * 3600 + m * 60 + s
+
     return None
 

@@ -1,36 +1,13 @@
 #!/usr/bin/env python3
 
-import logging
-logger = logging.getLogger(__name__)
-
-from os import path
-import pathlib
-from typing import Dict, Any
-from wxflow import (
-    AttrDict,
-    Executable,
-    FileHandler,
-    Task,
-    add_to_datetime,
-    to_isotime,
-    to_timedelta,
-    logit,
-    parse_j2yaml,
-    parse_yaml,
-    save_as_yaml,
-)
-import netCDF4
-from netCDF4 import Dataset
-
+# import logging
 import os
 import re
-from datetime import datetime, timedelta
-import math
-import statistics
 
+from netCDF4 import Dataset
+from wxflow import logit
 
-import glob
-from os.path import join, basename
+# logger = logging.getLogger(__name__)
 
 
 def read_number_of_ioda_obs(ncfile):
@@ -46,7 +23,6 @@ def read_number_of_ioda_obs(ncfile):
         if "Location" not in ds.dimensions:
             raise KeyError("The NetCDF file does not contain a 'Location' dimension.")
         return len(ds.dimensions["Location"])
-
 
 
 def check_ioda_structure(ncfile):
@@ -87,9 +63,9 @@ def check_ioda_structure(ncfile):
 
             # Shortcuts to group objects
             g_meta = ds.groups["MetaData"]
-            g_val  = ds.groups["ObsValue"]
-            g_err  = ds.groups["ObsError"]
-            g_pqc  = ds.groups["PreQC"]
+            g_val = ds.groups["ObsValue"]
+            g_err = ds.groups["ObsError"]
+            g_pqc = ds.groups["PreQC"]
 
             # ----------------------------
             # 3. Check required MetaData fields
@@ -127,7 +103,6 @@ def check_ioda_structure(ncfile):
         raise ValueError(f"Cannot open NetCDF file {ncfile}: {e}") from e
 
 
-
 def get_obs_space_from_filename(filename: str):
     """
     Extracts the obs-space name from filenames of the form:
@@ -155,7 +130,7 @@ def get_obs_space_from_filename(filename: str):
     if not m:
         raise ValueError(f"Filename does not match expected pattern: {filename}")
 
-    run_type = m.group(1).lower()
+    # run_type = m.group(1).lower()
     cyc = m.group(2)
     obs_space = m.group(3)
 
@@ -279,8 +254,6 @@ def parse_obs_dir(obs_type, obs_dir):
     return results
 
 
-
-
 def detect_categories(obs_root: str) -> dict:
     """
     Auto-discover categories under an obs_root directory.
@@ -305,4 +278,3 @@ def detect_categories(obs_root: str) -> dict:
             categories[name] = full
 
     return categories
-
