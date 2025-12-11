@@ -80,7 +80,7 @@ class ObsforgeMonitor:
 
         if sorted_cycles:
             first = f"{sorted_cycles[0][0]}.{sorted_cycles[0][1]}"
-            last  = f"{sorted_cycles[-1][0]}.{sorted_cycles[-1][1]}"
+            last = f"{sorted_cycles[-1][0]}.{sorted_cycles[-1][1]}"
             logger.info(
                 f"Scan complete. Found {len(sorted_cycles)} valid missing cycles. "
                 f"Processing range: {first} -> {last}"
@@ -154,4 +154,3 @@ class ObsforgeMonitor:
         # Execute
         for date, cycle in timestamps:
             self.cycle_monitor.run_cycle(date, cycle)
-

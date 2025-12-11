@@ -8,9 +8,7 @@
 
 import sys
 import argparse
-from typing import Optional
 
-# Local imports (No matplotlib here!)
 from monitor_db import MonitorDB
 from monitor_db_util import (
     list_tables,
@@ -29,6 +27,7 @@ ObsForge Monitor Reporter
 Inspects task runs, observation counts, and cycle continuity.
 Note: Plotting commands require 'matplotlib' and 'plotutil.py'.
 """
+
 
 class MonitorReporter:
     def __init__(self, db_path: str):

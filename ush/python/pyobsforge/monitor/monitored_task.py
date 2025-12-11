@@ -46,7 +46,7 @@ class MonitoredTask:
                 cycle=cycle,       # Inserting the LOGICAL cycle
                 run_type=info["run_type"],
                 logfile=logfile,
-                start_time=info["start_date"].isoformat(), # We still keep actual start time for metadata
+                start_time=info["start_date"].isoformat(),  # We still keep actual start time for metadata
                 end_time=info["end_date"].isoformat(),
                 runtime_sec=runtime_sec,
             )
@@ -108,4 +108,3 @@ class MonitoredTask:
                     )
                     # We continue to the next obs_space detail rather than crashing the whole run
                     continue
-

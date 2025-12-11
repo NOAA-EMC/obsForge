@@ -132,6 +132,7 @@ def obs_total(db: MonitorDB, days: Optional[int] = None) -> List[Tuple[str, int]
     )
     return cur.fetchall()
 
+
 # ---------------------------------------------------------------------
 # Data Fetching for CLI Output (Show/Plot)
 # ---------------------------------------------------------------------

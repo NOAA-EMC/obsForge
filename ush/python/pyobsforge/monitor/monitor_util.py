@@ -5,7 +5,6 @@ import os
 import re
 
 from netCDF4 import Dataset
-from wxflow import logit
 
 # logger = logging.getLogger(__name__)
 
@@ -81,7 +80,7 @@ def check_ioda_structure(ncfile):
             # ----------------------------
             obsvalue_vars = set(g_val.variables.keys())
             obserror_vars = set(g_err.variables.keys())
-            preqc_vars    = set(g_pqc.variables.keys())
+            preqc_vars = set(g_pqc.variables.keys())
 
             for var in obsvalue_vars:
                 missing = []

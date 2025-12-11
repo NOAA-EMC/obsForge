@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+import logging
 import os
-from os import path
 import re
 from datetime import datetime, timedelta
-import logging
+# from wxflow import logit
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,7 @@ def extract_cycle_from_lines(lines):
 
     return cycle_candidates[0]
 
+
 # -------------------------------
 # Helper: Extract run_type
 # -------------------------------
@@ -82,6 +83,7 @@ def extract_run_type_from_lines(lines):
         raise ValueError(f"Inconsistent run_type definitions found: {sorted(unique)}")
 
     return run_types[0]
+
 
 # -------------------------------
 # Helper: Extract start/end/elapsed/error
@@ -131,6 +133,7 @@ def extract_job_times_from_lines(lines, job_script):
 
     return start_date, end_date, elapsed_time, error_code
 
+
 # -------------------------------
 # Main parse function
 # -------------------------------
@@ -160,6 +163,7 @@ def parse_job_log(logfile_path: str, job_script_name: str):
         "run_type": run_type
     }
 
+
 def elapsed_to_seconds(elapsed):
 
     if isinstance(elapsed, timedelta):
@@ -170,4 +174,3 @@ def elapsed_to_seconds(elapsed):
         return h * 3600 + m * 60 + s
 
     return None
-
