@@ -1,45 +1,56 @@
-#!/bin/bash
+#!/bin/bash -l
+
+
+## #!/bin/bash
+## set +x
+## 
+## . $MODULESHOME/init/bash        2>/dev/null
+## module load core/rocoto/1.3.5   2>/dev/null
+## 
+## set -x
+## 
+
 
 # ------------------------------------------------------------------
-# HARDCODED PATHS
+# 1. PRE-FLIGHT SAFETY
 # ------------------------------------------------------------------
-# 1. Location of the source code
-export HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
+# Even in a login shell, we set these to prevent crashes in strict scripts.
+export PYTHONPATH="${PYTHONPATH:-}"
+set +u
+set +e
 
-# 2. Location of this runtime instance (DB, YAML, Logs)
-export RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitor_run"
+# ------------------------------------------------------------------
+# 2. LOAD OBSFORGE
+# ------------------------------------------------------------------
+# We use the reliable "Find my directory" one-liner you asked about.
+# It works perfectly here because we are in a normal shell environment.
+HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
 
-# 3. Log file for the cron execution
+# We can now source the setup script directly.
+# The 'bash -l' environment should have already loaded PrgEnv-intel 
+# or set the MODULEPATH so that 'module load' can find it.
+if [ -f "${HOMEobsforge}/ush/of_setup.sh" ]; then
+    source "${HOMEobsforge}/ush/of_setup.sh"
+else
+    echo "CRITICAL ERROR: Setup script not found."
+    exit 1
+fi
+
+# ------------------------------------------------------------------
+# 3. RUN MONITOR
+# ------------------------------------------------------------------
+RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitor_run"
 LOG_FILE="${RUN_DIR}/cron_update.log"
 
-# ------------------------------------------------------------------
-# EXECUTION
-# ------------------------------------------------------------------
-
-# Redirect all stdout and stderr to the log file
 {
     echo "=================================================="
     echo "Starting Monitor Update: $(date)"
-    echo "=================================================="
+    
+    # Debug: Show which python we found (should be from the module)
+    echo "Python executable: $(which python3)"
+    
+    cd "$RUN_DIR" || exit 1
 
-    # A. Load Environment
-    if [ -f "${HOMEobsforge}/ush/of_setup.sh" ]; then
-        source "${HOMEobsforge}/ush/of_setup.sh"
-    else
-        echo "CRITICAL ERROR: Setup script not found at ${HOMEobsforge}/ush/of_setup.sh"
-        exit 1
-    fi
-
-    # B. Set PYTHONPATH
-    # Ensure the python scripts in the repo are importable
-    export PYTHONPATH="${HOMEobsforge}/ush/python:${PYTHONPATH}"
-
-    # C. Go to Run Directory
-    # This ensures we find monitor_config.yaml in the current folder
-    cd "$RUN_DIR" || { echo "CRITICAL ERROR: Could not cd to $RUN_DIR"; exit 1; }
-
-    # D. Run the Python Driver
-    # We execute the script from the repo, pointing it to the local config
     PYTHON_SCRIPT="${HOMEobsforge}/ush/python/pyobsforge/monitor/monitor_update.py"
     
     echo "Executing: python3 $PYTHON_SCRIPT -c monitor_config.yaml"
