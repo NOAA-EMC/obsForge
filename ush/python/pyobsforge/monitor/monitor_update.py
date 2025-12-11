@@ -8,6 +8,7 @@ from pyobsforge.monitor.obsforge_monitor import ObsforgeMonitor
 
 logger = Logger(level='DEBUG', colored_log=True)
 
+
 def load_config(yaml_path):
     try:
         with open(yaml_path, 'r') as f:
@@ -16,6 +17,7 @@ def load_config(yaml_path):
         logger.error(f"Failed to load YAML: {e}")
         sys.exit(1)
     return AttrDict(raw['obsforgemonitor'])
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -32,6 +34,7 @@ def main():
 
     monitor = ObsforgeMonitor(config)
     monitor.run()
+
 
 if __name__ == "__main__":
     main()
