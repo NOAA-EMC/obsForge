@@ -1,8 +1,8 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /scratch3/NCEPDEV/stmp/Cory.R.Martin/sep2025/ObsForge/obsforge
-  SDATE: 202506011800
-  EDATE: 202506020000
+  HOMEobsforge: /scratch3/NCEPDEV/stmp/Cory.R.Martin/dec2025/end2end/obsforge
+  SDATE: 202510010000
+  EDATE: 202512010000
   COMROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/com
   DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
   DATAROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/RUNDIRS
@@ -21,6 +21,11 @@ atmosbufrdump:
   WALLTIME_ATMOS_BUFR_DUMP: '00:20:00'
   TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=80:tpp=1'
   MEMORY_ATMOS_BUFR_DUMP: 256GB
+
+gsitoioda:
+  WALLTIME_GSI_TO_IODA: '00:20:00'
+  TASK_GEOM_GSI_TO_IODA: '1:ppn=80:tpp=1'
+  MEMORY_GSI_TO_IODA: 256GB
 
 aoddump:
   provider: VIIRSAOD

@@ -3,6 +3,7 @@
 import os
 import glob
 import gsincdiag_to_ioda.proc_gsi_ncdiag as gsid
+import gsincdiag_to_ioda.combine_obsspace as gsid_combine
 import gzip
 import tarfile
 from logging import getLogger
@@ -122,7 +123,7 @@ class GsiToIoda(Task):
 
         # now we need to combine the two sets of ioda files into one file
         # by adding certain groups from the anl file to the ges file
-        ges_ioda_files = glob.glob(os.path.join(diag_ioda_dir_ges_path, '*nc4'))
+        ges_ioda_files = glob.glob(os.path.join(diag_ioda_dir_ges_path, '*nc'))
         for ges_ioda_file in ges_ioda_files:
             anl_ioda_file = ges_ioda_file.replace('_ges_', '_anl_').replace(diag_ioda_dir_ges_path, diag_ioda_dir_anl_path)
             if os.path.exists(anl_ioda_file):
@@ -132,6 +133,17 @@ class GsiToIoda(Task):
             else:
                 logger.warning(f"WARNING: {anl_ioda_file} does not exist to combine with {ges_ioda_file}")
                 logger.warning("Skipping this file ...")
+
+        # now run combine obsspace on conventional files to get final ioda files
+        conv_types = ['sondes','aircraft', 'sfc', 'sfcship']
+        for conv_type in conv_types:
+            conv_file_list = glob.glob(os.path.join(output_dir_path, f'*{conv_type}_*.nc'))
+            conv_output_file_path = os.path.join(output_dir_path, f'{conv_type}_gsi_{self.task_config.current_cycle.strftime("%Y%m%d%H")}.nc')
+            logger.info(f"Combining {len(conv_file_list)} {conv_type} files to {conv_output_file_path}")
+            gsid_combine.combine_obsspace(conv_file_list, conv_output_file_path, False)
+            # remove individual conv_type files
+            for conv_file in conv_file_list:
+                os.remove(conv_file)
 
         # Copy the output IODA files to COMOUT
         # define output COMOUT path
@@ -144,7 +156,7 @@ class GsiToIoda(Task):
             FileHandler({'mkdir': [comout]}).sync()
         copy_ioda_files = []
         # get list of output ioda files to copy to COMOUT
-        output_ioda_files = glob.glob(os.path.join(output_dir_path, '*nc4'))
+        output_ioda_files = glob.glob(os.path.join(output_dir_path, '*nc'))
         for ioda_file in output_ioda_files:
             dest = os.path.join(comout, os.path.basename(ioda_file))
             copy_ioda_files.append([ioda_file, dest])
@@ -177,3 +189,22 @@ class GsiToIoda(Task):
         # logger.info(f"Copying {iodastatzipfile} to {dest}")
         # FileHandler({'copy_opt': [[iodastatzipfile, dest]]}).sync()
         # logger.info("Finished copying GSI IODA tar file to COMOUT")
+
+    def convert_bias_correction_files(self) -> None:
+        """Convert bias correction files to UFO readable netCDF files
+
+        This method will convert bias correction files to UFO readable netCDF files.
+        This includes:
+        - copying bias correction files to DATA path
+        - converting bias correction files to UFO readable netCDF files
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        """
+        logger.info("Converting bias correction files to UFO readable netCDF files")
+        
