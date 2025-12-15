@@ -140,6 +140,7 @@ def extract_job_times_from_lines(lines, job_script):
 
 # @logit(logger)
 def parse_job_log(logfile_path: str, job_script_name: str):
+    # print(f'LLLLLLLL {logfile_path}       {job_script_name}')
     job_script = f'{job_script_name}.sh'
     if not os.path.isfile(logfile_path):
         raise FileNotFoundError(f"Log file does not exist: {logfile_path}")
@@ -153,6 +154,17 @@ def parse_job_log(logfile_path: str, job_script_name: str):
 
     if start_date is None and end_date is None and cycle is None and run_type is None:
         return None
+
+
+    # RESULT = {
+        # "start_date": start_date,
+        # "end_date": end_date,
+        # "elapsed_time": elapsed_time,
+        # "error_code": error_code,
+        # "cycle": cycle,
+        # "run_type": run_type
+    # }
+    # print(f'LLLLLLLL     {RESULT}')
 
     return {
         "start_date": start_date,

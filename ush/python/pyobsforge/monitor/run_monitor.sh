@@ -1,16 +1,5 @@
 #!/bin/bash -l
 
-
-## #!/bin/bash
-## set +x
-## 
-## . $MODULESHOME/init/bash        2>/dev/null
-## module load core/rocoto/1.3.5   2>/dev/null
-## 
-## set -x
-## 
-
-
 # ------------------------------------------------------------------
 # 1. PRE-FLIGHT SAFETY
 # ------------------------------------------------------------------
@@ -22,13 +11,8 @@ set +e
 # ------------------------------------------------------------------
 # 2. LOAD OBSFORGE
 # ------------------------------------------------------------------
-# We use the reliable "Find my directory" one-liner you asked about.
-# It works perfectly here because we are in a normal shell environment.
 HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
 
-# We can now source the setup script directly.
-# The 'bash -l' environment should have already loaded PrgEnv-intel 
-# or set the MODULEPATH so that 'module load' can find it.
 if [ -f "${HOMEobsforge}/ush/of_setup.sh" ]; then
     source "${HOMEobsforge}/ush/of_setup.sh"
 else
@@ -39,7 +23,7 @@ fi
 # ------------------------------------------------------------------
 # 3. RUN MONITOR
 # ------------------------------------------------------------------
-RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitor_run"
+RUN_DIR="/lfs/h2/emc/da/noscrub/hyundeok.choi/monitoring"
 LOG_FILE="${RUN_DIR}/cron_update.log"
 
 {

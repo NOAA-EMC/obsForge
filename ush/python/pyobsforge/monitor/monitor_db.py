@@ -74,7 +74,7 @@ class MonitorDB:
             task_id INTEGER NOT NULL,
             date TEXT NOT NULL,
             cycle INTEGER NOT NULL,
-            run_type TEXT,
+            run_type TEXT NOT NULL DEFAULT 'unknown',
             logfile TEXT,
             start_time TEXT,
             end_time TEXT,
@@ -158,27 +158,63 @@ class MonitorDB:
     # Logging methods
 
     def log_task_run(self, task_id: int, date: str, cycle: int, run_type: str,
-                     logfile: str, start_time: str, end_time: str,
-                     runtime_sec: float, notes: Optional[str] = None) -> int:
-        cur = self.conn.cursor()
-        cur.execute("""
-            INSERT INTO task_runs(task_id, date, cycle, run_type, logfile,
-                                  start_time, end_time, runtime_sec, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (task_id, date, cycle, run_type, logfile,
-              start_time, end_time, runtime_sec, notes))
-        self.conn.commit()
-        return cur.lastrowid
+                     logfile: str = None, start_time: str = None,
+                     end_time: str = None, runtime_sec: float = None,
+                     notes: str = None) -> tuple[int, str]:
+        
+        with self.conn:
+            # Check if row exists to determine status (Insert vs Update)
+            cursor = self.conn.execute("""
+                SELECT id FROM task_runs 
+                WHERE task_id=? AND date=? AND cycle=? AND run_type=?
+            """, (task_id, date, cycle, run_type))
+            existing = cursor.fetchone()
+            
+            action = "UPDATED" if existing else "INSERTED"
 
-    def log_task_run_detail(self, task_run_id: int, obs_space_id: int,
-                            obs_count: int, runtime_sec: float):
-        cur = self.conn.cursor()
-        cur.execute("""
-            INSERT INTO task_run_details(task_run_id, obs_space_id,
-                                         obs_count, runtime_sec)
-            VALUES (?, ?, ?, ?)
-        """, (task_run_id, obs_space_id, obs_count, runtime_sec))
-        self.conn.commit()
+            # Execute the Upsert
+            cur = self.conn.execute("""
+                INSERT INTO task_runs (
+                    task_id, date, cycle, run_type, 
+                    logfile, start_time, end_time, runtime_sec, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(task_id, date, cycle, run_type) 
+                DO UPDATE SET
+                    logfile = excluded.logfile,
+                    start_time = excluded.start_time,
+                    end_time = excluded.end_time,
+                    runtime_sec = excluded.runtime_sec,
+                    notes = excluded.notes
+            """, (task_id, date, cycle, run_type, logfile, start_time, 
+                  end_time, runtime_sec, notes))
+            
+            row_id = cur.lastrowid if cur.lastrowid else (existing[0] if existing else 0)
+            
+            # If we missed the ID fetch (sqlite quirk on update), fetch it now
+            if not row_id:
+                 cursor = self.conn.execute("""
+                    SELECT id FROM task_runs 
+                    WHERE task_id=? AND date=? AND cycle=? AND run_type=?
+                """, (task_id, date, cycle, run_type))
+                 row_id = cursor.fetchone()[0]
+
+            return row_id, action
+
+    def log_task_run_detail(self, task_run_id: int, obs_space_id: int, 
+                            obs_count: int, runtime_sec: float = 0.0):
+        """
+        Logs observation stats. If the record exists, it updates the counts.
+        """
+        with self.conn:
+            self.conn.execute("""
+                INSERT INTO task_run_details (
+                    task_run_id, obs_space_id, obs_count, runtime_sec
+                ) VALUES (?, ?, ?, ?)
+                ON CONFLICT(task_run_id, obs_space_id) 
+                DO UPDATE SET 
+                    obs_count = excluded.obs_count,
+                    runtime_sec = excluded.runtime_sec
+            """, (task_run_id, obs_space_id, obs_count, runtime_sec))
 
     # -----------------------------------------------------
     # Inspection Methods (For Monitor Logic)
@@ -225,3 +261,15 @@ class MonitorDB:
             return found
         except Exception:
             return set()
+
+    def get_all_run_cycles(self) -> set:
+        """
+        Returns a set of (run_type, date, cycle) tuples for ALL recorded runs.
+        Used by the Scanner to skip directories that are already fully processed.
+        """
+        with self.conn:
+            cur = self.conn.execute("SELECT run_type, date, cycle FROM task_runs")
+            # Returns: {('gdas', '20251210', 12), ('gfs', '20251210', 12), ...}
+            rows = cur.fetchall()
+            # Ensure cycle is int for consistent comparison
+            return {(row[0], row[1], int(row[2])) for row in rows}
