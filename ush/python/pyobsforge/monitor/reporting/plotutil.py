@@ -1,21 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Optional, List
+from typing import Optional, List, Dict
 
-# Local imports for data fetching
-from monitor_db_util import (
-    fetch_task_timings_for_plot,
-    fetch_obs_count_for_space_for_plot,
-    fetch_obs_count_by_category_for_plot
-)
-
+# NEW: Import DBReader for data fetching
+# (We assume the caller passes a DBReader instance or we wrap the DB connection)
+from pyobsforge.monitor.database.db_reader import DBReader
 
 class MonitorPlotter:
-    def __init__(self, db_instance):
-        self.db = db_instance
+    def __init__(self, db_connection_or_reader):
+        """
+        Accepts either a MonitorDB instance (legacy compat) or DBReader.
+        """
+        if hasattr(db_connection_or_reader, 'get_task_timings'):
+            self.reader = db_connection_or_reader
+        else:
+            # Fallback: Create a reader on the fly if passed a raw DB object
+            # This assumes db_connection_or_reader has a .db_path attribute or similar
+            # For safety, let's just assume the caller passes the right object or path
+            self.reader = DBReader(db_connection_or_reader.db_path)
 
     def plot_timings(self, task: Optional[str], days: Optional[int], output: Optional[str]):
-        rows = fetch_task_timings_for_plot(self.db, days, task_name=task)
+        # Use DBReader to fetch standardized dicts
+        rows = self.reader.get_task_timings(days, task_name=task)
+        
         if not rows:
             print("No data found for plotting.")
             return
@@ -27,8 +34,9 @@ class MonitorPlotter:
 
         if task:
             # Single Task Mode
+            # DBReader returns dicts with keys: date, cycle, run_type, task, duration
             x = [f"{r['date']} {r['cycle']:02d}Z" for r in rows]
-            y = [r["runtime_sec"] for r in rows]
+            y = [r["duration"] for r in rows]
             color = plt.rcParams['axes.prop_cycle'].by_key()['color'][0]
 
             self._plot_with_mean_std(x, y, task, color)
@@ -37,12 +45,12 @@ class MonitorPlotter:
             # Compare All Tasks Mode
             task_groups = {}
             for r in rows:
-                tname = r["name"]
+                tname = r["task"]
                 if tname not in task_groups:
                     task_groups[tname] = {"x": [], "y": []}
 
                 task_groups[tname]["x"].append(f"{r['date']} {r['cycle']:02d}Z")
-                task_groups[tname]["y"].append(r["runtime_sec"])
+                task_groups[tname]["y"].append(r["duration"])
 
             colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
             for idx, (tname, data) in enumerate(task_groups.items()):
@@ -56,17 +64,21 @@ class MonitorPlotter:
     def plot_obs(self, obs_space: Optional[str], obs_category: Optional[str], days: Optional[int], output: Optional[str]):
         plt.figure(figsize=(12, 6))
 
+        rows = []
+        title = ""
+        label = ""
+        key = "count" # DBReader standardizes count key to 'count'
+
         if obs_space:
-            rows = fetch_obs_count_for_space_for_plot(self.db, obs_space, days)
+            rows = self.reader.get_obs_counts_by_space(obs_space, days)
             title = f"Obs Count: {obs_space}"
             label = obs_space
-            key = "obs_count"
         elif obs_category:
-            rows = fetch_obs_count_by_category_for_plot(self.db, obs_category, days)
+            rows = self.reader.get_obs_counts_by_category(obs_category, days)
             title = f"Total Obs Count: {obs_category}"
             label = f"Total {obs_category}"
-            key = "total_obs"
         else:
+            print("Error: Must specify --obs-space or --obs-category")
             return
 
         if not rows:
@@ -82,7 +94,7 @@ class MonitorPlotter:
 
         self._finalize_plot(output, "Cycle", "Count")
 
-    # --- Internal Helpers ---
+    # --- Internal Helpers (Preserved logic) ---
 
     def _plot_with_mean_std(self, x: List, y: List, label: str, color):
         """Helper to plot a line with mean and std dev shading."""

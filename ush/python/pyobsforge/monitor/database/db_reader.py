@@ -265,3 +265,30 @@ class DBReader:
         with self.db.conn:
             cur = self.db.conn.execute(query, tuple(params))
             return cur.fetchall()
+
+    def get_all_categories(self) -> List[str]:
+        """Returns a list of all category names defined in the DB."""
+        try:
+            with self.db.conn:
+                cur = self.db.conn.execute("SELECT name FROM obs_space_categories ORDER BY name")
+                return [r[0] for r in cur.fetchall()]
+        except Exception:
+            return []
+
+    def get_all_spaces(self) -> List[Tuple[str, str]]:
+        """
+        Returns list of (space_name, category_name).
+        Useful for iterating over all spaces.
+        """
+        try:
+            with self.db.conn:
+                sql = """
+                    SELECT s.name, c.name 
+                    FROM obs_spaces s 
+                    JOIN obs_space_categories c ON s.category_id = c.id 
+                    ORDER BY s.name
+                """
+                cur = self.db.conn.execute(sql)
+                return cur.fetchall()
+        except Exception:
+            return []
