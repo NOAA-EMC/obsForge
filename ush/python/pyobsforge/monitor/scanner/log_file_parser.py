@@ -186,3 +186,78 @@ def elapsed_to_seconds(elapsed):
         return h * 3600 + m * 60 + s
 
     return None
+
+
+def parse_master_log(filepath):
+    """
+    Parses the Workflow master log to find task execution details.
+    Target Line Format:
+    YYYY-MM-DD HH:MM:SS ... :: host :: Task NAME, jobid=ID, in state STATE, ran for SEC seconds...
+    """
+    tasks = []
+    pattern = re.compile(
+        r"^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}).*?::\s+(\w+)\s+::\s+"
+        r"Task\s+([\w_]+),\s+jobid=(\d+),\s+in\s+state\s+([A-Z]+).*?"
+        r"ran\s+for\s+([\d\.]+)\s+seconds,\s+exit\s+status=(\d+),\s+try=(\d+)"
+    )
+
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                clean_line = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', line)
+                match = pattern.search(clean_line)
+                if match:
+                    tasks.append({
+                        "timestamp": match.group(1),
+                        "host": match.group(2),
+                        "task_name": match.group(3),
+                        "job_id": match.group(4),
+                        "status": match.group(5),
+                        "duration": float(match.group(6)),
+                        "exit_code": int(match.group(7)),
+                        "attempt": int(match.group(8))
+                    })
+    except Exception as e:
+        logger.error(f"Error reading master log {filepath}: {e}")
+        
+    return tasks
+
+# -------------------------------
+# 2. NEW: Output File Parser
+# -------------------------------
+def parse_output_files_from_log(filepath, data_root):
+    """
+    Scans a task log for 'file_utils' copies to find output files.
+    Returns a list of relative paths found in the log.
+    """
+    files_found = set()
+    abs_root = os.path.abspath(data_root)
+    
+    # Matches: "... - file_utils : Copied /src/file.nc to /dest/file.nc"
+    copy_pattern = re.compile(r"file_utils\s+:\s+Copied\s+.*?\s+to\s+([^\s]+)")
+    # Matches: "... - file_utils : Created /dest/dir"
+    create_pattern = re.compile(r"file_utils\s+:\s+Created\s+([^\s]+)")
+
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                # Clean ANSI codes
+                clean_line = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', line).strip()
+                
+                m = copy_pattern.search(clean_line)
+                if not m:
+                    m = create_pattern.search(clean_line)
+
+                if m:
+                    dest_path = m.group(1).rstrip(".,;:'\"")
+                    
+                    if not os.path.isabs(dest_path): continue
+                        
+                    abs_dest = os.path.abspath(dest_path)
+                    if abs_dest.startswith(abs_root):
+                        rel_path = os.path.relpath(abs_dest, abs_root)
+                        files_found.add(rel_path)
+    except Exception:
+        pass
+
+    return list(files_found)
