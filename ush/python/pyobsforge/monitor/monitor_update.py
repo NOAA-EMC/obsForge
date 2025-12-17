@@ -3,8 +3,8 @@ import logging
 import sys
 import yaml
 import os
-from pyobsforge.monitor.monitor_db import MonitorDB
-from pyobsforge.monitor.scanner import ObsForgeScanner
+from pyobsforge.monitor.database.monitor_db import MonitorDB
+from pyobsforge.monitor.scanner.scanner import ObsForgeScanner
 
 # Configure logging to show timestamps and levels clearly
 logging.basicConfig(

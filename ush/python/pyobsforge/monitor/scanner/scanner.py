@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from netCDF4 import Dataset
 
 # Import the legacy parser
-from pyobsforge.monitor.log_file_parser import parse_job_log
+from pyobsforge.monitor.scanner.log_file_parser import parse_job_log
 
 logger = logging.getLogger("ObsForgeScanner")
 

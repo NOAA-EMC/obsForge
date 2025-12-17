@@ -1,16 +1,10 @@
 #!/bin/bash -l
 
-# ------------------------------------------------------------------
-# 1. PRE-FLIGHT SAFETY
-# ------------------------------------------------------------------
 # Even in a login shell, we set these to prevent crashes in strict scripts.
 export PYTHONPATH="${PYTHONPATH:-}"
 set +u
 set +e
 
-# ------------------------------------------------------------------
-# 2. LOAD OBSFORGE
-# ------------------------------------------------------------------
 HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
 
 if [ -f "${HOMEobsforge}/ush/of_setup.sh" ]; then
@@ -20,9 +14,6 @@ else
     exit 1
 fi
 
-# ------------------------------------------------------------------
-# 3. RUN MONITOR
-# ------------------------------------------------------------------
 RUN_DIR="/lfs/h2/emc/da/noscrub/hyundeok.choi/monitoring"
 LOG_FILE="${RUN_DIR}/cron_update.log"
 
