@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import csv
 import os
 import glob
 import gsincdiag_to_ioda.proc_gsi_ncdiag as gsid
@@ -12,12 +13,29 @@ from typing import Optional, Dict, Any
 
 from wxflow import (AttrDict,
                     FileHandler,
+                    Executable,
+                    WorkflowException,
                     add_to_datetime, to_timedelta,
                     Task,
                     parse_j2yaml,
                     logit)
 
 logger = getLogger(__name__.split('.')[-1])
+
+predictors = [
+    'constant',
+    'zenith_angle',
+    'cloud_liquid_water',
+    'lapseRate_order_2',
+    'lapseRate',
+    'cosine_of_latitude_times_orbit_node',
+    'sine_of_latitude',
+    'emissivityJacobian',
+    'sensorScanAngle_order_4',
+    'sensorScanAngle_order_3',
+    'sensorScanAngle_order_2',
+    'sensorScanAngle',
+]
 
 class GsiToIoda(Task):
     """
@@ -196,12 +214,92 @@ class GsiToIoda(Task):
                 abias_copy_list.append([input_file, dest])
         FileHandler({'copy_opt': abias_copy_list}).sync()
 
-        # Check if there are NaNs in the bias correction files and replace them with zeros
+        # Check if there are NaNs in the abias file and if so, error here
+        abias_file_path = os.path.join(bias_dir_path, f"{self.task_config.APREFIX}abias")
+        if os.path.exists(abias_file_path):
+            try:
+                with open(abias_file_path, 'r') as f:
+                    content = f.read()
+                    if 'NaN' in content:
+                        logger.error(f"Found NaN values in abias file: {abias_file_path}")
+                        raise ValueError(f"NaN values detected in abias file: {abias_file_path}")
+                    logger.info(f"NaN check passed for abias file: {abias_file_path}")
+            except Exception as e:
+                logger.error(f"Error reading abias file {abias_file_path}: {e}")
+                raise
+        else:
+            raise FileNotFoundError(f"abias file does not exist at expected path: {abias_file_path}") 
 
         # Get instruments from the input file
+        satlist = []
+        with open(abias_file_path) as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                splitrow = row[0].split()
+                if splitrow[1] not in satlist:
+                    try:
+                        a = float(splitrow[1])
+                    except ValueError:
+                        if len(splitrow[1]) > 0:
+                            satlist.append(splitrow[1])
 
-        # Loop over instruments, run executable to convert to UFO readable files
+        # loop through satellites/sensors to write tlapmean txt file
+        for sat in satlist:
+            outstr = ''
+            outfile = os.path.join(bias_dir_path, f'{sat}_tlapmean.txt')
+            with open(abias_file_path) as csvfile:
+                reader = csv.reader(csvfile)
+                for row in reader:
+                    splitrow = row[0].split()
+                    if splitrow[1] == sat:
+                        outstr = outstr + f'{sat} {splitrow[2]} {splitrow[3]}\n'
+            with open(outfile, 'w') as f:
+                f.write(outstr)
+
+        # create YAML for input to converter
+        # create YAML for input to converter
+        outyaml = os.path.join(bias_dir_path, 'satbias_converter.yaml')
+        with open(outyaml, 'w') as f:
+            f.write('input coeff file: satbias_crtm_in\n')
+            f.write('input err file: satbias_crtm_pc\n')
+            f.write('default predictors: &default_preds\n')
+            for pred in predictors:
+                f.write(f'- {pred}\n')
+            f.write('output:\n')
+            for sat in satlist:
+                f.write(f'- sensor: {sat}\n')
+                f.write(f'  output file: {sat}_satbias.nc\n')
+                f.write('  predictors: *default_preds\n')
+
+        # Run executable to convert to UFO readable files
+        satbias_converter_exe = os.path.join(self.task_config.HOMEobsforge,
+                                             'build', 'bin', 'satbias2ioda.x')
+        FileHandler({'copy': [[satbias_converter_exe,
+                                      os.path.join(bias_dir_path, 'satbias2ioda.x')]]}).sync()
+
+        exec_cmd = Executable(os.path.join(bias_dir_path, 'satbias2ioda.x'))
+        exec_cmd.add_default_arg(outyaml)
+        try:
+            exec_cmd()
+        except Exception as e:
+            raise WorkflowException(f"An error occurred during execution of {exec_cmd}:\n{e}") from e
 
         # Create tarball and copy to COMOUT
-
+        comout = os.path.join(self.task_config['COMROOT'],
+                        self.task_config['PSLOT'],
+                        f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                        f"{self.task_config.cyc:02d}",
+                        'atmos_gsi')
+        if not os.path.exists(comout):
+            FileHandler({'mkdir': [comout]}).sync()
+        tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")
+        with tarfile.open(tarball_out, "w") as tar:
+            for sat in satlist:
+                bias_file = os.path.join(bias_dir_path, f'{sat}_satbias.nc')
+                if os.path.exists(bias_file):
+                    tar.add(bias_file, arcname=os.path.basename(bias_file))
+                tlapse_file = os.path.join(bias_dir_path, f'{sat}_tlapmean.txt')
+                if os.path.exists(tlapse_file):
+                    tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
+        logger.info(f"Finished creating bias correction tarball at {tarball_out}")
      
