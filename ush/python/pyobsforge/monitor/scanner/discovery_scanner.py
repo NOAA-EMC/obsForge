@@ -1,170 +1,207 @@
 import os
 import glob
+import re
+import logging
 from collections import defaultdict
 from netCDF4 import Dataset
 
+# Import parsers
 from .log_file_parser import parse_master_log, parse_output_files_from_log
 
+# Import Data Classes to maintain compatibility with monitor_update.py
+from .scanner import CycleData, TaskRunData
+
+logger = logging.getLogger("DiscoveryScanner")
+
 class DiscoveryScanner:
-    def __init__(self, data_root):
+    def __init__(self, data_root, task_configs=None):
         self.data_root = os.path.abspath(data_root)
+        logger.debug(f"Initialized DiscoveryScanner with root: {self.data_root}")
 
-    def scan_cycle(self, date_str, cycle_str):
-        cycle = int(cycle_str)
-        print(f"\n{'='*60}\nSCANNING CYCLE: {date_str} {cycle_str}\n{'='*60}")
+    def scan_filesystem(self, known_cycles: set = None) -> list:
+        """
+        Main entry point for monitor_update.py.
+        """
+        logs_root = os.path.join(self.data_root, "logs")
+        if not os.path.isdir(logs_root):
+            logger.error(f"Logs directory not found: {logs_root}")
+            return []
 
-        # 1. Master Log Parsing
-        master_log_name = f"{date_str}{cycle_str}.log"
-        master_log_path = os.path.join(self.data_root, "logs", master_log_name)
+        # Find all Master Logs
+        pattern = os.path.join(logs_root, "[0-9]*.log")
+        logger.debug(f"Searching for Master Logs with pattern: {pattern}")
+        master_logs = sorted(glob.glob(pattern))
+        logger.debug(f"Found {len(master_logs)} master log files.")
         
-        if not os.path.exists(master_log_path):
-            print(f"  [WRN] Master Log missing: {master_log_path}")
-            return {}
+        for m_log_path in master_logs:
+            filename = os.path.basename(m_log_path)
+            
+            # Parse Date/Cycle from filename
+            m = re.match(r"(\d{8})(\d{2})\.log", filename)
+            if not m: 
+                logger.debug(f"Skipping non-conforming log file: {filename}")
+                continue
+            
+            date_str = m.group(1)
+            cycle_int = int(m.group(2))
+            
+            # Optimization check (optional)
+            if known_cycles:
+                if ('gdas', date_str, cycle_int) in known_cycles:
+                    logger.debug(f"Skipping known cycle: {date_str} {cycle_int}")
+                    # continue 
 
-        tasks_found = parse_master_log(master_log_path)
-        cycle_inventory = {}  # Map: TaskName -> {Categories -> [Files]}
+            logger.info(f"Scanning Cycle via Master Log: {filename}")
+            
+            cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
+            if cycle_obj.tasks:
+                yield cycle_obj
 
-        # 2. Per-Task Discovery
-        cycle_log_dir = os.path.join(self.data_root, "logs", f"{date_str}{cycle_str}")
+    def _process_cycle(self, date_str, cycle_int, master_log_path):
+        cycle_obj = CycleData(date=date_str, cycle=cycle_int)
         
-        for t in tasks_found:
+        logger.debug(f"Parsing Master Log: {master_log_path}")
+        raw_tasks = parse_master_log(master_log_path)
+        logger.debug(f"Found {len(raw_tasks)} raw task entries.")
+
+        # --- POLITENESS FILTER (New) ---
+        # Keep only the LATEST attempt for each task.
+        # Since the log is parsed sequentially, overwriting the dict key
+        # naturally keeps the last one found.
+        unique_tasks = {}
+        for t in raw_tasks:
+            unique_tasks[t['task_name']] = t
+        
+        final_tasks = list(unique_tasks.values())
+        logger.debug(f"Filtered to {len(final_tasks)} unique tasks (latest attempts only).")
+        # -------------------------------
+
+        cycle_log_dir = os.path.join(self.data_root, "logs", f"{date_str}{cycle_int:02d}")
+        logger.debug(f"Looking for individual task logs in: {cycle_log_dir}")
+
+        for t in final_tasks:
             t_name = t['task_name']
             
-            # Find Log
+            parts = t_name.split('_')
+            run_type = parts[0] if parts[0] in ['gdas', 'gfs', 'gcdas'] else 'unknown'
+
+            task_data = TaskRunData(
+                task_name=t_name,
+                run_type=run_type,
+                logfile="missing",
+                runtime_sec=t['duration'],
+                notes=f"JobId:{t['job_id']} Stat:{t['status']}"
+            )
+
+            # Find Individual Task Log
             candidates = [f"{t_name}_prep.log", f"{t_name}.log"]
-            log_path = None
+            task_log_path = None
+            
             for c in candidates:
                 p = os.path.join(cycle_log_dir, c)
                 if os.path.exists(p):
-                    log_path = p
+                    task_log_path = p
                     break
             
-            print(f"    -> Task: {t_name:<30} | Status: {t['status']}")
-            
-            task_files = []
-            if log_path:
-                # A. Parse Log for "Intention" (Files it claims to create)
-                claimed_files = parse_output_files_from_log(log_path, self.data_root)
+            if task_log_path:
+                logger.debug(f"  [{t_name}] Log found: {os.path.basename(task_log_path)}")
+                task_data.logfile = task_log_path
                 
-                # B. Expand Directories if log pointed to a folder
-                # If log said "Created .../chem", we scan that folder for .nc files
+                # A. Parse Log for paths
+                claimed_files = parse_output_files_from_log(task_log_path, self.data_root)
+                logger.debug(f"  [{t_name}] Log claims {len(claimed_files)} output paths.")
+                
+                # B. Expand Directories
                 expanded_files = self._expand_directories(claimed_files)
+                logger.debug(f"  [{t_name}] Expanded to {len(expanded_files)} total files.")
                 
-                # C. Validate Existence & Integrity (The Cross-Check)
-                task_files = self.validate_file_inventory(expanded_files)
+                # C. Validate
+                validated_files = self.validate_file_inventory(expanded_files)
+                
+                # D. Map
+                self._map_inventory_to_task_data(task_data, validated_files)
             else:
-                print("       [WRN] No individual log found.")
+                logger.debug(f"  [{t_name}] No individual log found. Candidates: {candidates}")
 
-            # D. Build Dynamic Map (Task -> Category -> ObsSpace)
-            if task_files:
-                cycle_inventory[t_name] = self._organize_by_category(task_files)
-                self._print_inventory_summary(cycle_inventory[t_name])
-            else:
-                if log_path: print("       [OUT] No output files detected in log.")
+            cycle_obj.tasks.append(task_data)
 
-        return {"tasks": tasks_found, "inventory": cycle_inventory}
+        return cycle_obj
+
+    def _map_inventory_to_task_data(self, task_data, validated_files):
+        for f in validated_files:
+            rel_path = f['path']
+            status = f['status']
+            
+            logger.debug(f"    File: {rel_path} -> {status} ({f['meta']})")
+
+            if status != "OK":
+                continue
+
+            path_parts = rel_path.split(os.sep)
+            if len(path_parts) < 2: continue
+            
+            category = path_parts[-2]
+            filename = path_parts[-1]
+            obs_space = filename 
+
+            n_obs = f['meta'].get('obs', 0)
+            
+            if category not in task_data.detailed_counts:
+                task_data.detailed_counts[category] = {}
+            
+            task_data.detailed_counts[category][obs_space] = n_obs
+            task_data.obs_counts[category] = task_data.obs_counts.get(category, 0) + n_obs
 
     def _expand_directories(self, rel_paths):
-        """
-        If a path points to a directory, find all .nc/.bufr files inside.
-        If it's a file, keep it.
-        """
         expanded = set()
         for rel in rel_paths:
             full = os.path.join(self.data_root, rel)
             if os.path.isdir(full):
-                # It's a directory, scan it
+                logger.debug(f"    Expanding directory: {rel}")
+                count = 0
                 for root, _, files in os.walk(full):
                     for f in files:
-                        if f.endswith(('.nc', '.bufr', '.txt')): # Add extensions as needed
-                            # Add relative path
-                            f_abs = os.path.join(root, f)
-                            expanded.add(os.path.relpath(f_abs, self.data_root))
+                        if f.endswith(('.nc', '.bufr')): 
+                            expanded.add(os.path.relpath(os.path.join(root, f), self.data_root))
+                            count += 1
+                logger.debug(f"      -> Found {count} files inside.")
             else:
-                # It's a file (or missing path), keep as is
                 expanded.add(rel)
         return list(expanded)
 
     def validate_file_inventory(self, rel_paths):
-        """
-        Cross-checks the list of paths against the filesystem.
-        Returns list of dicts with status metadata.
-        """
         results = []
         for rel in rel_paths:
             full_path = os.path.join(self.data_root, rel)
             
-            # 1. Existence / Size
+            status = "UNKNOWN"
+            meta = {}
+
             if not os.path.exists(full_path):
                 status = "MISSING"
                 meta = {}
             else:
                 try:
                     size = os.path.getsize(full_path)
-                    if size == 0:
-                        status = "EMPTY"
-                        meta = {"size": 0}
-                    else:
-                        # 2. Content Validation
+                    if size == 0: 
+                        status, meta = "EMPTY", {"size": 0}
+                    else: 
                         status, meta = self._check_content_integrity(full_path)
                         meta['size'] = size
-                except OSError:
-                    status = "ERR_ACC"
-                    meta = {}
-
-            results.append({
-                "path": rel,
-                "status": status,
-                "meta": meta
-            })
+                except OSError as e:
+                    status, meta = "ERR_ACC", {"err": str(e)}
+            
+            results.append({"path": rel, "status": status, "meta": meta})
         return results
 
     def _check_content_integrity(self, filepath):
-        """Checks internal file structure (NetCDF headers, etc)."""
         if filepath.endswith(".nc"):
             try:
                 with Dataset(filepath, 'r') as ds:
-                    n_obs = 0
-                    if "Location" in ds.dimensions: n_obs = len(ds.dimensions["Location"])
-                    elif "nlocs" in ds.dimensions: n_obs = len(ds.dimensions["nlocs"])
-                    return "OK", {"obs_count": n_obs}
-            except Exception as e:
-                return "CORRUPT", {"error": str(e)[:30]}
-        
-        # Add BUFR or other checks here
-        return "OK", {}
-
-    def _organize_by_category(self, validated_files):
-        """
-        Groups files by Category (parent folder) and deduces Obs Space (filename).
-        Returns: {Category: {ObsSpace: FileData}}
-        """
-        organized = defaultdict(dict)
-        for f in validated_files:
-            # Logic: 
-            # Path: .../gdas.20251209/18/chem/aod_viirs.nc
-            # Category = 'chem' (parent dir)
-            # Obs Space = 'aod_viirs' (filename minus extension/prefix)
-            
-            path_parts = f['path'].split(os.sep)
-            if len(path_parts) < 2: continue
-            
-            category = path_parts[-2]
-            filename = path_parts[-1]
-            
-            # Simple Obs Space extraction (remove .nc, remove run_type prefix if standard)
-            # e.g. "gdas.t12z.aod.nc" -> "aod"
-            # Adjust regex as needed for your naming convention
-            obs_space = filename
-            
-            organized[category][obs_space] = f
-            
-        return dict(organized)
-
-    def _print_inventory_summary(self, category_map):
-        for cat, spaces in category_map.items():
-            print(f"       Category: [{cat}]")
-            for space, data in spaces.items():
-                s = data['status']
-                meta = data['meta']
-                print(f"         - {space:<30} : {s:<8} {meta}")
+                    n = 0
+                    if "Location" in ds.dimensions: n = len(ds.dimensions["Location"])
+                    elif "nlocs" in ds.dimensions: n = len(ds.dimensions["nlocs"])
+                    return "OK", {"obs": n}
+            except Exception as e: 
+                return "CORRUPT", {"err": str(e)}
+        return "OK", {"obs": 0}
