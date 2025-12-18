@@ -60,6 +60,7 @@ class GsiToIoda(Task):
         - copying GSI diag files to DATA path
         - untarring and gunzipping GSI diag files
         - converting GSI diag files to ioda files using gsincdiag2ioda converter scripts
+        - saving output IODA files to COMOUT
 
         Parameters
         ----------
@@ -162,33 +163,7 @@ class GsiToIoda(Task):
             copy_ioda_files.append([ioda_file, dest])
         logger.info(f"Copying {len(copy_ioda_files)} GSI IODA files to {comout}")
         FileHandler({'copy_opt': copy_ioda_files}).sync()
-        
-
-        # # Tar up the ioda files
-        # iodastatzipfile = os.path.join(self.task_config.DATA, 'atmos_gsi_ioda',
-        #                                f"{self.task_config.APREFIX}atmos_gsi_ioda_diags.tar.gz")
-        # logger.info(f"Compressing GSI IODA files to {iodastatzipfile}")
-        # # get list of iodastat files to put in tarball
-        # iodastatfiles = glob.glob(os.path.join(output_dir_path, '*nc4'))
-        # logger.info(f"Gathering {len(iodastatfiles)} GSI IODA files to {iodastatzipfile}")
-        # with tarfile.open(iodastatzipfile, "w|gz") as archive:
-        #     for targetfile in iodastatfiles:
-        #         # gzip the file before adding to tar
-        #         with open(targetfile, 'rb') as f_in:
-        #             with gzip.open(f"{targetfile}.gz", 'wb') as f_out:
-        #                 f_out.writelines(f_in)
-        #         os.remove(targetfile)
-        #         targetfile = f"{targetfile}.gz"
-        #         archive.add(targetfile, arcname=os.path.basename(targetfile))
-        # logger.info(f"Finished compressing GSI IODA files to {iodastatzipfile}")
-        # # copy to COMOUT
-        # outdir = self.task_config.COMOUT_ATMOS_ANALYSIS
-        # if not os.path.exists(outdir):
-        #     FileHandler({'mkdir': [outdir]}).sync()
-        # dest = os.path.join(outdir, os.path.basename(iodastatzipfile))
-        # logger.info(f"Copying {iodastatzipfile} to {dest}")
-        # FileHandler({'copy_opt': [[iodastatzipfile, dest]]}).sync()
-        # logger.info("Finished copying GSI IODA tar file to COMOUT")
+        logger.info(f"Finished copying GSI IODA files to {comout}")
 
     def convert_bias_correction_files(self) -> None:
         """Convert bias correction files to UFO readable netCDF files
@@ -207,4 +182,26 @@ class GsiToIoda(Task):
         None
         """
         logger.info("Converting bias correction files to UFO readable netCDF files")
-        
+        # copy GSI bias correction files to DATA path
+        bias_dir_path = os.path.join(self.task_config.DATA, 'atmos_gsi_varbc')
+        FileHandler({'mkdir': [bias_dir_path]}).sync()
+        abias_files = ['abias', 'abias_air', 'abias_int', 'abias_pc']
+        abias_copy_list = []
+        for abias in abias_files:
+            input_file_basename = f"{self.task_config.APREFIX}{abias}"
+            input_file = os.path.join(self.task_config.COMIN_ATMOS_ANALYSIS,
+                                     input_file_basename)
+            dest = os.path.join(bias_dir_path, input_file_basename)
+            if os.path.exists(input_file):
+                abias_copy_list.append([input_file, dest])
+        FileHandler({'copy_opt': abias_copy_list}).sync()
+
+        # Check if there are NaNs in the bias correction files and replace them with zeros
+
+        # Get instruments from the input file
+
+        # Loop over instruments, run executable to convert to UFO readable files
+
+        # Create tarball and copy to COMOUT
+
+     
