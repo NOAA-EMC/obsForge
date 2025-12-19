@@ -300,4 +300,3 @@ class GsiToIoda(Task):
                 if os.path.exists(tlapse_file):
                     tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
         logger.info(f"Finished creating bias correction tarball at {tarball_out}")
-     
