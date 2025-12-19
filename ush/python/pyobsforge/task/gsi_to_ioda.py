@@ -260,8 +260,8 @@ class GsiToIoda(Task):
         # create YAML for input to converter
         outyaml = os.path.join(bias_dir_path, 'satbias_converter.yaml')
         with open(outyaml, 'w') as f:
-            f.write('input coeff file: satbias_crtm_in\n')
-            f.write('input err file: satbias_crtm_pc\n')
+            f.write(f'input coeff file: {self.task_config.APREFIX}abias\n')
+            f.write(f'input err file: {self.task_config.APREFIX}abias_pc\n')
             f.write('default predictors: &default_preds\n')
             for pred in predictors:
                 f.write(f'- {pred}\n')
@@ -274,10 +274,8 @@ class GsiToIoda(Task):
         # Run executable to convert to UFO readable files
         satbias_converter_exe = os.path.join(self.task_config.HOMEobsforge,
                                              'build', 'bin', 'satbias2ioda.x')
-        FileHandler({'copy': [[satbias_converter_exe,
-                                      os.path.join(bias_dir_path, 'satbias2ioda.x')]]}).sync()
 
-        exec_cmd = Executable(os.path.join(bias_dir_path, 'satbias2ioda.x'))
+        exec_cmd = Executable(satbias_converter_exe)
         exec_cmd.add_default_arg(outyaml)
         try:
             exec_cmd()
