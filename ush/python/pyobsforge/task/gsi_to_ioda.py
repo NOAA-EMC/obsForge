@@ -260,8 +260,8 @@ class GsiToIoda(Task):
         # create YAML for input to converter
         outyaml = os.path.join(bias_dir_path, 'satbias_converter.yaml')
         with open(outyaml, 'w') as f:
-            f.write(f'input coeff file: {self.task_config.APREFIX}abias\n')
-            f.write(f'input err file: {self.task_config.APREFIX}abias_pc\n')
+            f.write(f'input coeff file: {bias_dir_path}/{self.task_config.APREFIX}abias\n')
+            f.write(f'input err file: {bias_dir_path}/{self.task_config.APREFIX}abias_pc\n')
             f.write('default predictors: &default_preds\n')
             for pred in predictors:
                 f.write(f'- {pred}\n')
