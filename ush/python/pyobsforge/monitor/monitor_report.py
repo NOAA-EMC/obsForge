@@ -4,28 +4,38 @@
 
 import sys
 import argparse
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # --- ARCHITECTURE IMPORTS ---
 from pyobsforge.monitor.database.db_reader import DBReader
 from pyobsforge.monitor.reporting.inventory_report import InventoryReport
+
+# Optional plotting import
+try:
+    from pyobsforge.monitor.reporting.plotutil import MonitorPlotter
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 
 DESCRIPTION = """
 ObsForge Monitor Reporter
 
 Inspects task runs, observation counts, and cycle continuity.
 Commands:
-  inventory   Show matrix of task status per cycle
-  show        Show text reports (ranges, time, obs)
-  plot        Generate plots (time, obs)
-  tables      Inspect raw DB tables
+  inventory    Show matrix of task status per cycle
+  show         Show text reports (ranges, time, obs)
+  plot         Generate plots (time, obs)
+  tables       Inspect raw DB tables
 """
 
 class MonitorReporter:
     def __init__(self, db_path: str):
         # Initialize Data Access Layer
-        # This is now the ONLY connection to the database used by this tool.
-        self.reader = DBReader(db_path)
+        try:
+            self.reader = DBReader(db_path)
+        except Exception as e:
+            print(f"Error opening DB: {e}")
+            sys.exit(1)
         
         self.parser = argparse.ArgumentParser(
             description=DESCRIPTION,
@@ -40,14 +50,14 @@ class MonitorReporter:
         # ----------------------------------------------------------------------
         p_inv = subparsers.add_parser("inventory", help="Show matrix of task status.")
         p_inv.add_argument("--limit", type=int, default=50, help="Number of cycles to show")
-        p_inv.add_argument("--run-type", help="Filter by run type (e.g. gdas, gfs)")
+        p_inv.add_argument("--type", dest="run_type", help="Filter by run type (e.g. gdas, gfs)")
 
         # ----------------------------------------------------------------------
         # COMMAND: TABLES
         # ----------------------------------------------------------------------
         p_tables = subparsers.add_parser("tables", help="List or inspect raw DB tables.")
         p_tables.add_argument("table_name", nargs="?", help="Table name")
-        p_tables.add_argument("--limit", type=int, default=None, help="Limit rows printed")
+        p_tables.add_argument("--limit", type=int, default=20, help="Limit rows printed")
         p_tables.add_argument("--filter", default=None, help="SQL WHERE clause")
 
         # ----------------------------------------------------------------------
@@ -104,7 +114,7 @@ class MonitorReporter:
         elif args.command == "show":
             self.handle_show(args)
         elif args.command == "plot":
-            self.handle_plot(args) # FIX: Matches method name below
+            self.handle_plot(args)
         else:
             self.parser.print_help()
 
@@ -115,7 +125,6 @@ class MonitorReporter:
         print(report.render_cli())
 
     def handle_tables(self, args):
-        """Uses DBReader to inspect tables."""
         if not args.table_name:
             tables = self.reader.fetch_table_names()
             print("\nDatabase Tables:")
@@ -123,24 +132,26 @@ class MonitorReporter:
             print("\n".join(tables))
             print("-" * 20)
         else:
-            rows = self.reader.get_raw_table_rows(args.table_name, limit=args.limit, filter_sql=args.filter)
-            cols = self.reader.get_table_schema(args.table_name)
-            
+            tname = args.table_name
+            cols = self.reader.get_table_schema(tname)
             if not cols:
-                print(f"Table '{args.table_name}' not found or empty.")
+                print(f"Table '{tname}' not found or empty.")
                 return
 
-            print(f"Table: {args.table_name}")
-            print("-" * 100)
+            rows = self.reader.get_raw_table_rows(tname, limit=args.limit, filter_sql=args.filter)
+            
+            print(f"Table: {tname}")
+            sep = "-" * (len(" | ".join(cols)) + 5)
+            print(sep)
             print(" | ".join(cols))
-            print("-" * 100)
+            print(sep)
             
             if not rows:
                 print("(no rows)")
             else:
                 for r in rows:
                     print(" | ".join(str(x) for x in r))
-            print("-" * 100)
+            print(sep)
 
     def handle_show(self, args):
         if args.show_command == "ranges":
@@ -158,7 +169,7 @@ class MonitorReporter:
                 return
             print(f"\nTask Runtimes ({days_str}):")
             print("-" * 65)
-            print("Date        Cycle | Task             | Runtime (s)")
+            print("Date         Cycle | Task             | Runtime (s)")
             print("-" * 65)
             for r in rows:
                 print(f"{r['date']} {r['cycle']:02d}    | {r['task']:15s} | {r['duration']:.2f}")
@@ -181,19 +192,35 @@ class MonitorReporter:
                 rows = self.reader.get_obs_counts_by_category(args.obs_category, args.days, run_type=args.run_type)
                 print(f"\nObs Category: {args.obs_category} ({days_str}):")
                 for r in rows:
-                    print(f"{r['entity']} @ {r['date']}.{r['cycle']:02d} : {r['count']}")
+                    print(f"{r['date']}.{r['cycle']:02d} : {r['count']}")
 
     def _print_ranges(self, data):
+        # data is {run_type: [(date, cyc), ...]} or similar depending on DBReader impl
+        # We need to adapt the reader output to datetime objects for gap logic
         print("\nAvailable Cycle Ranges per Run Type")
         print("=" * 60)
+        
         for r_type in sorted(data.keys()):
-            dts = sorted(data[r_type])
+            # Assuming DBReader might return empty list if not implemented fully yet
+            raw_tuples = self.reader.conn.execute(
+                "SELECT date, cycle FROM task_runs WHERE run_type=? ORDER BY date, cycle", 
+                (r_type,)
+            ).fetchall()
+            
+            dts = []
+            for r in raw_tuples:
+                try:
+                    dts.append(datetime.strptime(f"{r[0]}{r[1]:02d}", "%Y%m%d%H"))
+                except: pass
+            
             print(f"\nRun Type: {r_type}")
             if not dts: 
                 print("  (No data)")
                 continue
             
-            start, prev, gap = dts[0], dts[0], timedelta(hours=6)
+            start, prev = dts[0], dts[0]
+            gap = timedelta(hours=6) # Standard cycle gap
+            
             for curr in dts[1:]:
                 if curr - prev > gap:
                     self._print_range_line(start, prev)
@@ -210,16 +237,12 @@ class MonitorReporter:
             print(f"  - {s_str} through {e_str}")
 
     def handle_plot(self, args):
-        """Passes control to the Matplotlib helper."""
-        try:
-            # Import from the new location in 'reporting'
-            from pyobsforge.monitor.reporting.plotutil import MonitorPlotter
-        except ImportError as e:
-            print(f"\n[Error] Plotting unavailable.\nReason: {e}")
+        if not HAS_MATPLOTLIB:
+            print("[Error] Plotting unavailable. Matplotlib not installed.")
             sys.exit(1)
 
-        # Bridge: Pass the connection from DBReader to the Plotter
-        plotter = MonitorPlotter(self.reader.db)
+        # Pass the Reader (which contains the connection logic)
+        plotter = MonitorPlotter(self.reader)
 
         if args.plot_command == "time":
             plotter.plot_timings(args.task, args.days, args.output)
@@ -227,13 +250,29 @@ class MonitorReporter:
             plotter.plot_obs(args.obs_space, args.obs_category, args.days, args.output)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--db", required=True)
-    temp_args, _ = parser.parse_known_args()
-
-    if not temp_args.db:
+    # Pre-parse just for DB path to init the object
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--db", required=True)
+    try:
+        temp_args, _ = pre_parser.parse_known_args()
+    except argparse.ArgumentError:
+        # Let main parser handle help/error
+        pass
+        
+    # Main execution logic is inside the class to keep it clean
+    # But we need args to init. So let's just parse fully in __init__? 
+    # Or cleaner: Just check sys.argv for --db before class init if needed, 
+    # but argparse handles requirement well enough.
+    
+    # Simple fix: Let the class parse args. 
+    # Note: We need db path to init DBReader BEFORE parsing commands 
+    # because subcommands might depend on DB introspection (though not currently).
+    
+    # Robust Entry:
+    if "--db" not in sys.argv:
         print("Error: --db argument is required")
         sys.exit(1)
-
-    app = MonitorReporter(temp_args.db)
+        
+    db_val = sys.argv[sys.argv.index("--db") + 1]
+    app = MonitorReporter(db_val)
     app.run()
