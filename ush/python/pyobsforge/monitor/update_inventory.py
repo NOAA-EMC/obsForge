@@ -5,8 +5,8 @@ import logging
 import json
 
 from pyobsforge.monitor.database.monitor_db import MonitorDB
-from pyobsforge.monitor.database.db_reader import DBReader
-from pyobsforge.monitor.scanner.discovery_scanner import DiscoveryScanner
+from pyobsforge.monitor.scanner.persistence import ScannerStateReader
+from pyobsforge.monitor.scanner.inventory_scanner import InventoryScanner
 
 def configure_logging(debug_mode: bool):
     root = logging.getLogger()
@@ -20,34 +20,34 @@ def configure_logging(debug_mode: bool):
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 def main():
-    parser = argparse.ArgumentParser(description="Step 1: Scan Filesystem & Record Physical Inventory")
-    parser.add_argument("--db", required=True, help="Path to SQLite DB file")
-    parser.add_argument("--data-root", required=True, help="Root directory of the data")
-    parser.add_argument("--debug", action="store_true", help="Enable verbose logging")
+    parser = argparse.ArgumentParser(description="Step 1: Scan & Register Inventory")
+    parser.add_argument("--db", required=True)
+    parser.add_argument("--data-root", required=True)
+    parser.add_argument("--debug", action="store_true")
     
     args = parser.parse_args()
     configure_logging(args.debug)
     logger = logging.getLogger("UpdateInventory")
 
-    logger.info(f"Initializing DB Connection: {args.db}")
+    logger.info(f"DB: {args.db}")
     db_writer = MonitorDB(args.db)
-    db_reader = DBReader(args.db) # New Read-Only connection
+    state_reader = ScannerStateReader(args.db)
     
-    logger.info(f"Scanning Root: {args.data_root}")
-    scanner = DiscoveryScanner(args.data_root)
+    # 1. Fetch State (For Incremental Scanning)
+    logger.info("Fetching state...")
+    known_mtimes = state_reader.get_known_mtimes()
     
-    # Optional Optimization: Pass existing cycles to skip parsing old logs
-    # existing = db_reader.get_all_run_cycles_set()
+    # 2. Scan
+    logger.info(f"Scanning: {args.data_root}")
+    scanner = InventoryScanner(args.data_root, known_mtimes=known_mtimes)
     
     new_count = 0
-    # Note: Pass known_cycles=existing if you want to enable skipping
-    for cycle_data in scanner.scan_filesystem(known_cycles=None): 
-        logger.info(f"Persisting Cycle: {cycle_data.date} {cycle_data.cycle:02d}")
+    for cycle_data in scanner.scan_filesystem(): 
+        logger.info(f"Persisting: {cycle_data.date} {cycle_data.cycle:02d}")
         
         for task in cycle_data.tasks:
             t_id = db_writer.get_or_create_task(task.task_name)
-            
-            tr_id, action = db_writer.log_task_run(
+            tr_id, _ = db_writer.log_task_run(
                 task_id=t_id, date=cycle_data.date, cycle=cycle_data.cycle, 
                 run_type=task.run_type, job_id=task.job_id, status=task.status, 
                 exit_code=task.exit_code, attempt=task.attempt, host=task.host, 
@@ -59,24 +59,39 @@ def main():
                 cat_id = db_writer.get_or_create_category(f.category)
                 s_id = db_writer.get_or_create_obs_space(f.obs_space_name, cat_id)
                 
-                meta_json = json.dumps(f.properties) if f.properties else None
-                
-                db_writer.log_file_inventory(
+                # 3. Log Header & Lineage
+                # Note: We pass properties so it can extract 'obs_source_files'
+                file_id = db_writer.log_file_inventory(
                     task_run_id=tr_id,
                     obs_space_id=s_id,
                     path=f.rel_path,
                     integrity=f.integrity,
                     size=f.size_bytes,
+                    mtime=f.mtime,
                     obs_count=f.obs_count,
                     error_msg=f.error_msg,
-                    metadata_json=meta_json
+                    properties=f.properties 
                 )
+                
+                # 4. INSTANT LEARNING (This is the missing link!)
+                # Directly registers variables, units, and dims from this file
+                if f.properties and 'schema' in f.properties:
+                    db_writer.register_file_schema(s_id, f.properties['schema'])
+                
+                # 5. Log Metrics
+                if f.domain:
+                    db_writer.log_file_domain(
+                        file_id, f.domain.get('start'), f.domain.get('end'),
+                        f.domain.get('min_lat'), f.domain.get('max_lat'),
+                        f.domain.get('min_lon'), f.domain.get('max_lon')
+                    )
+                if f.stats:
+                    db_writer.log_variable_statistics(file_id, f.stats)
         
-        # Batch Commit per cycle
         db_writer.commit()
         new_count += 1
 
-    logger.info(f"Scan Complete. Processed {new_count} cycles.")
+    logger.info(f"Done. Cycles: {new_count}")
 
 if __name__ == "__main__":
     main()

@@ -2,12 +2,18 @@
 import argparse
 import sys
 import os
+import traceback
 
-# Ensure the package path is available if running from the script directory
-# (Optional safety measure, though standard python path usually handles it)
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
-
-from pyobsforge.monitor.reporting.site_generator import SiteGenerator
+# --- ARCHITECTURE IMPORTS ---
+# Assumes PYTHONPATH includes the directory containing 'pyobsforge'
+try:
+    from pyobsforge.monitor.reporting.website_generator import WebsiteGenerator
+except ImportError as e:
+    print("\n[ERROR] Could not import project modules.")
+    print(f"Details: {e}")
+    print("\nPlease ensure PYTHONPATH is set correctly.")
+    print("Example: export PYTHONPATH=$PYTHONPATH:/path/to/ush/python\n")
+    sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -29,23 +35,23 @@ def main():
     
     args = parser.parse_args()
     
-    # Validation
+    # 1. Validate Input
     if not os.path.exists(args.db):
         print(f"Error: Database file not found at {args.db}")
         sys.exit(1)
 
     try:
-        # Initialize and Run the Generator
-        generator = SiteGenerator(args.db, args.out)
-        generator.build()
+        # 2. Run Generator
+        print(f"Reading Database: {args.db} ...")
+        generator = WebsiteGenerator(args.db, args.out)
         
-        print(f"\nSuccess! Website generated at:")
+        generator.generate()
+        
+        print(f"\n[SUCCESS] Website generated at:")
         print(f"  {os.path.abspath(os.path.join(args.out, 'index.html'))}")
         
     except Exception as e:
         print(f"\n[FATAL ERROR] Failed to generate site: {e}")
-        # Print stack trace for debugging
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 

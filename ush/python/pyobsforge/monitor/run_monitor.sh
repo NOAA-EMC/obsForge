@@ -60,7 +60,7 @@ PY_MON="${HOMEobsforge}/ush/python/pyobsforge/monitor"
     echo "[STEP 2] Learning Metadata Truth..."
     # Analyzes history to decide what variables belong in which Obs Space.
     # min-samples=3 means we need 3 agreeing files before locking in the truth.
-    python3 "${PY_MON}/learn_properties.py" \
+    python3 "${PY_MON}/learn_schema.py" \
         --db "$DATABASE" \
         --min-samples 3
 

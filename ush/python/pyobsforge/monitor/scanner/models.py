@@ -7,32 +7,35 @@ class FileInventoryData:
     rel_path: str
     category: str
     obs_space_name: str
-    integrity: str      # OK, CORRUPT, MISSING, EMPTY
+    
+    integrity: str         # OK, CORRUPT, MISSING
     size_bytes: int
-    obs_count: int = 0
+    mtime: int             # Last Modified Time (Unix Epoch)
+    obs_count: int
     error_msg: Optional[str] = None
-    properties: Dict[str, Any] = field(default_factory=dict) # Learned metadata
+    
+    # Raw metadata (Attributes, Schema)
+    properties: Dict[str, Any] = field(default_factory=dict)
+    
+    # Deep Metrics (Calculated only if file changed)
+    stats: List[Dict] = field(default_factory=list)  # Min/Max/Std per variable
+    domain: Optional[Dict] = None                    # Lat/Lon/Time bounds
 
 @dataclass
 class TaskRunData:
-    """Represents a single execution of a task."""
+    """Represents the execution of a specific task."""
     task_name: str
     run_type: str
     logfile: str
-    
-    # Execution Details
     job_id: Optional[str] = None
     status: Optional[str] = None
     exit_code: Optional[int] = None
     attempt: Optional[int] = None
     host: Optional[str] = None
-    
-    # Timing
     start_time: Optional[str] = None
     end_time: Optional[str] = None
-    runtime_sec: float = 0.0
+    runtime_sec: Optional[float] = None
     
-    # Inventory
     files: List[FileInventoryData] = field(default_factory=list)
 
 @dataclass
