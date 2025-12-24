@@ -57,17 +57,32 @@ PY_MON="${HOMEobsforge}/ush/python/pyobsforge/monitor"
 
     echo ""
     echo "[STEP 2] Inspecting Logical Integrity..."
-    # Checks file metadata against the Learned Truth. Flags BAD_META if mismatch.
+    # Checks file metadata against the Learned Truth.
     python3 "${PY_MON}/inspect_inventory.py" \
         --db "$DATABASE"
 
     # --- STEP 3: GENERATE WEBSITE (The Reporter) ---
     echo ""
     echo "[STEP 3] Generating Static Website..."
-    # Uses the Reader to build HTML/CSS report
-    python3 "${PY_MON}/generate_site.py" \
-        --db "$DATABASE" \
-        --out "$WEB_DIR"
+    
+    # Attempt to load plotting library.
+    # We treat this as optional: if it fails, we skip web generation but don't fail the pipeline.
+    if module load py-matplotlib 2>/dev/null; then
+        echo "Module 'py-matplotlib' loaded successfully."
+        
+        python3 "${PY_MON}/generate_site.py" \
+            --db "$DATABASE" \
+            --out "$WEB_DIR"
+            
+        if [ $? -ne 0 ]; then
+            echo "Error: Website generation script failed."
+        else
+            echo "Website generated successfully."
+        fi
+    else
+        echo "WARNING: Could not load 'py-matplotlib'. Skipping website generation step."
+        echo "To generate the website later, run: ./generate_website.sh"
+    fi
 
     echo "--------------------------------------------------"
     echo "Pipeline Complete: $(date)"
