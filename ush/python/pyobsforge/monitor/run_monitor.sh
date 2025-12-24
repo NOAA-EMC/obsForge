@@ -55,25 +55,15 @@ PY_MON="${HOMEobsforge}/ush/python/pyobsforge/monitor"
 
     if [ $? -ne 0 ]; then echo "Error in Step 1 (Scan). Stopping."; exit 1; fi
 
-    # --- STEP 2: LEARN PROPERTIES (The Judge) ---
     echo ""
-    echo "[STEP 2] Learning Metadata Truth..."
-    # Analyzes history to decide what variables belong in which Obs Space.
-    # min-samples=3 means we need 3 agreeing files before locking in the truth.
-    python3 "${PY_MON}/learn_schema.py" \
-        --db "$DATABASE" \
-        --min-samples 3
-
-    # --- STEP 3: VALIDATE INVENTORY (The Enforcer) ---
-    echo ""
-    echo "[STEP 3] Validating Logical Integrity..."
+    echo "[STEP 2] Inspecting Logical Integrity..."
     # Checks file metadata against the Learned Truth. Flags BAD_META if mismatch.
-    python3 "${PY_MON}/validate_inventory.py" \
+    python3 "${PY_MON}/inspect_inventory.py" \
         --db "$DATABASE"
 
-    # --- STEP 4: GENERATE WEBSITE (The Reporter) ---
+    # --- STEP 3: GENERATE WEBSITE (The Reporter) ---
     echo ""
-    echo "[STEP 4] Generating Static Website..."
+    echo "[STEP 3] Generating Static Website..."
     # Uses the Reader to build HTML/CSS report
     python3 "${PY_MON}/generate_site.py" \
         --db "$DATABASE" \
