@@ -3,7 +3,7 @@ import glob
 import re
 import logging
 import numpy as np
-from netCDF4 import Dataset
+from netCDF4 import Dataset, num2date
 
 from .log_file_parser import parse_master_log, parse_output_files_from_log
 from .models import CycleData, TaskRunData, FileInventoryData
@@ -11,12 +11,16 @@ from .models import CycleData, TaskRunData, FileInventoryData
 logger = logging.getLogger("InventoryScanner")
 
 class InventoryScanner:
+    """
+    Scans the filesystem for tasks and files.
+    Extracts Metadata, Physical Statistics (Sanitized), and Quality Flags.
+    """
     
     VALID_PREFIXES = {'gdas', 'gfs', 'gcdas'}
 
-    def __init__(self, data_root, known_mtimes: dict = None):
+    def __init__(self, data_root, known_state: dict = None):
         self.data_root = os.path.abspath(data_root)
-        self.known_mtimes = known_mtimes or {}
+        self.known_state = known_state or {}
         logger.debug(f"INIT: InventoryScanner root={self.data_root}")
 
     def scan_filesystem(self, known_cycles: set = None) -> list:
@@ -35,19 +39,16 @@ class InventoryScanner:
             
             date_str, cycle_int = m.group(1), int(m.group(2))
             logger.info(f"Scanning Cycle via Master Log: {filename}")
-            cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
             
+            cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
             if cycle_obj.tasks:
                 yield cycle_obj
 
     def _process_cycle(self, date_str, cycle_int, master_log_path):
         cycle_obj = CycleData(date=date_str, cycle=cycle_int)
         raw_tasks = parse_master_log(master_log_path)
-        
-        unique_tasks = {}
-        for t in raw_tasks: unique_tasks[t['task_name']] = t
+        unique_tasks = {t['task_name']: t for t in raw_tasks}
         final_tasks = list(unique_tasks.values())
-        
         cycle_log_dir = os.path.join(self.data_root, "logs", f"{date_str}{cycle_int:02d}")
 
         for t in final_tasks:
@@ -130,16 +131,27 @@ class InventoryScanner:
                     if size == 0: 
                         integrity = "EMPTY"
                     else:
-                        prev_mtime = self.known_mtimes.get(rel, 0)
+                        history = self.known_state.get(rel)
+                        prev_mtime = history['mtime'] if history else 0
+                        
                         if mtime > prev_mtime:
-                            integrity, meta, deep_stats, deep_domain = self._check_content_integrity(full_path)
+                            # File Changed: Deep Scan
+                            integrity, meta, deep_stats, deep_domain, anomalies = self._check_content_integrity(full_path)
                             obs_count = meta.get('obs', 0)
                             error = meta.get('err')
                             props = meta 
+                            
+                            # Inject anomaly flags into properties for the Inspector
+                            if anomalies:
+                                props['outliers'] = anomalies
+                                
                             stats = deep_stats
                             domain = deep_domain
                         else:
-                            integrity = "OK"
+                            # File Unchanged: Restore Metadata
+                            integrity = history.get('integrity', 'OK')
+                            obs_count = history.get('obs_count', 0)
+                            
                 except OSError as e:
                     integrity = "ERR_ACC"
                     error = str(e)
@@ -162,135 +174,137 @@ class InventoryScanner:
         return name
 
     def _check_content_integrity(self, filepath):
+        """
+        Returns: (status, properties, stats_list, domain_dict, anomalies_list)
+        """
         if not filepath.endswith(".nc"):
-            return "OK", {"obs": 0}, [], None
+            return "OK", {"obs": 0}, [], None, []
 
         try:
             meta = {}
-            stats = []
-            domain = {}
-            
             with Dataset(filepath, 'r') as ds:
+                # 1. Obs Count
                 n = 0
                 if "Location" in ds.dimensions: n = len(ds.dimensions["Location"])
                 elif "nlocs" in ds.dimensions: n = len(ds.dimensions["nlocs"])
+                
+                if n == 0 and 'ObsValue' in ds.groups:
+                    grp = ds.groups['ObsValue']
+                    for var_name in grp.variables:
+                        if grp.variables[var_name].dimensions:
+                            dim_name = grp.variables[var_name].dimensions[0]
+                            if dim_name in ds.dimensions:
+                                n = len(ds.dimensions[dim_name])
+                                break
+                
                 meta['obs'] = n
                 
-                # Global Attributes
+                # 2. Attributes & Schema
                 for attr in ds.ncattrs():
-                    try:
-                        val = getattr(ds, attr)
-                        meta[attr] = str(val)
+                    try: meta[attr] = str(getattr(ds, attr))
                     except: pass
                 
-                # Schema Extraction
                 meta['schema'] = self._extract_full_schema(ds)
-                
-                # --- INFER SEMANTIC DIMENSIONS (Added Logic) ---
                 self._infer_dimensionality(meta['schema'])
-                # -----------------------------------------------
                 
+                # 3. Domain & Stats (with Anomaly Detection)
                 domain = self._extract_domain(ds)
-                stats = self._calculate_statistics(ds)
+                stats, anomalies = self._calculate_statistics(ds)
 
-                return "OK", meta, stats, domain
+                return "OK", meta, stats, domain, anomalies
         except Exception as e: 
-            return "CORRUPT", {"err": str(e)}, [], None
+            return "CORRUPT", {"err": str(e)}, [], None, []
 
     def _extract_full_schema(self, ds_or_group, parent_path=""):
         schema = {}
         for var_name, var_obj in ds_or_group.variables.items():
             full_name = f"{parent_path}/{var_name}" if parent_path else var_name
-            schema[full_name] = {
-                'type': str(var_obj.dtype),
-                'dims': ",".join(var_obj.dimensions),
-                'ndim': 1 # Default, will be updated by inference
-            }
+            schema[full_name] = {'type': str(var_obj.dtype), 'dims': ",".join(var_obj.dimensions), 'ndim': 1}
         for group_name, group_obj in ds_or_group.groups.items():
             new_path = f"{parent_path}/{group_name}" if parent_path else group_name
             schema.update(self._extract_full_schema(group_obj, new_path))
         return schema
 
     def _infer_dimensionality(self, schema):
-        """
-        Updates 'ndim' based on semantic rules.
-        Priority 1: Name contains 'Surface' -> 2D
-        Priority 2: File has Depth/Pressure -> 3D
-        Priority 3: Default -> 2D
-        """
         vertical_coords = {'MetaData/depth', 'MetaData/air_pressure', 'MetaData/pressure', 'MetaData/height'}
-        
-        # Heuristic 1: Does the file support vertical profiles?
         has_vertical = any(v in schema for v in vertical_coords)
         default_dim = 3 if has_vertical else 2
-        
         for path, meta in schema.items():
-            var_name = path.split('/')[-1] if '/' in path else path
-            
-            # Heuristic 2: Force Metadata to 1D
-            if path.startswith("MetaData/"):
-                meta['ndim'] = 1
-                
-            # Heuristic 3: Force 'Surface' variables to 2D (Overrides file structure)
-            elif "Surface" in var_name:
-                meta['ndim'] = 2
-                
-            # Heuristic 4: Standard Variables use file default
-            elif path.startswith("ObsValue/") or path.startswith("ObsError/") or path.startswith("PreQC/"):
-                meta['ndim'] = default_dim
-                
-            else:
-                meta['ndim'] = 1
+            if path.startswith("MetaData/"): meta['ndim'] = 1
+            elif "Surface" in path: meta['ndim'] = 2
+            elif path.startswith(("ObsValue/", "ObsError/", "PreQC/")): meta['ndim'] = default_dim
+            else: meta['ndim'] = 1
 
     def _extract_domain(self, ds):
         d = {}
         try:
-            if 'MetaData' in ds.groups and 'dateTime' in ds.groups['MetaData'].variables:
-                times = ds.groups['MetaData'].variables['dateTime'][:]
-                if np.ma.is_masked(times): times = times.compressed()
-                if len(times) > 0:
-                    d['start'] = int(np.min(times))
-                    d['end'] = int(np.max(times))
-            
             if 'MetaData' in ds.groups:
                 md = ds.groups['MetaData']
-                if 'latitude' in md.variables:
-                    lats = md.variables['latitude'][:]
-                    if np.ma.is_masked(lats): lats = lats.compressed()
-                    if len(lats) > 0:
-                        d['min_lat'] = float(np.min(lats))
-                        d['max_lat'] = float(np.max(lats))
+                # Time
+                if 'dateTime' in md.variables:
+                    t_var = md.variables['dateTime']
+                    times = t_var[:]
+                    if np.ma.is_masked(times): times = times.compressed()
+                    if len(times) > 0:
+                        min_t, max_t = np.min(times), np.max(times)
+                        if hasattr(t_var, 'units'):
+                            try:
+                                d['start'] = int(num2date(min_t, units=t_var.units, calendar=getattr(t_var, 'calendar', 'standard')).timestamp())
+                                d['end'] = int(num2date(max_t, units=t_var.units, calendar=getattr(t_var, 'calendar', 'standard')).timestamp())
+                            except: d['start'], d['end'] = int(min_t), int(max_t)
+                        else: d['start'], d['end'] = int(min_t), int(max_t)
                 
-                if 'longitude' in md.variables:
-                    lons = md.variables['longitude'][:]
-                    if np.ma.is_masked(lons): lons = lons.compressed()
-                    if len(lons) > 0:
-                        d['min_lon'] = float(np.min(lons))
-                        d['max_lon'] = float(np.max(lons))
+                # Spatial
+                for ax, key_min, key_max in [('latitude', 'min_lat', 'max_lat'), ('longitude', 'min_lon', 'max_lon')]:
+                    if ax in md.variables:
+                        data = md.variables[ax][:]
+                        if np.ma.is_masked(data): data = data.compressed()
+                        data = data[np.abs(data) < 1000] # Simple outlier filter for coords
+                        if len(data) > 0:
+                            d[key_min], d[key_max] = float(np.min(data)), float(np.max(data))
         except: pass
         return d
 
     def _calculate_statistics(self, ds):
+        """
+        Calculates statistics. 
+        Filters out Unmasked Fill Values (> 1.5e9) for DB stats.
+        Returns (stats_list, anomalies_list).
+        """
         stats = []
-        if 'ObsValue' not in ds.groups:
-            return stats
-            
-        grp = ds.groups['ObsValue']
-        for var_name, var_obj in grp.variables.items():
-            if var_obj.dtype == np.str_: continue
-            
-            try:
-                data = var_obj[:]
-                if np.ma.is_masked(data): data = data.compressed()
+        anomalies = []
+        target_groups = ['ObsValue', 'MetaData']
+        
+        # 1.5e9 threshold catches 2^31 (2.14e9) but keeps Epoch Seconds (1.7e9)
+        # Note: We skip Time variables for stats to avoid flagging valid epochs as outliers
+        GENERIC_THRESHOLD = 1.5e9 
+        
+        for g in target_groups:
+            if g not in ds.groups: continue
+            grp = ds.groups[g]
+            for v_name, v_obj in grp.variables.items():
+                if v_obj.dtype == np.str_ or v_obj.dtype == np.object_: continue
                 
-                if len(data) > 0:
-                    s = {
-                        'name': f"ObsValue/{var_name}",
-                        'min': float(np.min(data)),
-                        'max': float(np.max(data)),
-                        'mean': float(np.mean(data)),
-                        'std': float(np.std(data))
-                    }
-                    stats.append(s)
-            except: pass
-        return stats
+                # Skip Time variables (handled in Domain)
+                if 'dateTime' in v_name or 'time' in v_name.lower(): continue
+
+                try:
+                    d = v_obj[:]
+                    if np.ma.is_masked(d): d = d.compressed()
+                    
+                    # 1. Detect Anomalies (Dirty Check)
+                    if np.any(np.abs(d) > GENERIC_THRESHOLD):
+                        anomalies.append(f"Unmasked Fill Value in {v_name}")
+                    
+                    # 2. Filter for Stats (Clean Stats)
+                    d = d[np.abs(d) < GENERIC_THRESHOLD]
+                    
+                    if len(d) > 0:
+                        stats.append({
+                            'name': f"{g}/{v_name}", 
+                            'min': float(np.min(d)), 'max': float(np.max(d)), 
+                            'mean': float(np.mean(d)), 'std': float(np.std(d))
+                        })
+                except: pass
+                
+        return stats, anomalies

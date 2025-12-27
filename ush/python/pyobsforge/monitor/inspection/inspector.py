@@ -1,49 +1,74 @@
 import logging
 from .data_service import InspectionDataService
+from .rules import (
+    IodaStructureRule, ZeroObsRule, VolumeAnomalyRule, 
+    GeoSpatialRule, DataQualityRule, TimeConsistencyRule
+)
+from pyobsforge.monitor.database.monitor_db import MonitorDB
 
 logger = logging.getLogger("Inspector")
 
 class InventoryInspector:
-    """
-    Performs high-level logical assessment of the inventory.
-    Detects anomalies like zero-observation files or sudden volume drops.
-    """
     def __init__(self, db_path):
-        self.db = InspectionDataService(db_path)
+        self.db_read = InspectionDataService(db_path)
+        self.db_write = MonitorDB(db_path)
+        
+        # REGISTER RULES
+        self.rules = [
+            IodaStructureRule(),
+            ZeroObsRule(),
+            VolumeAnomalyRule(),
+            GeoSpatialRule(),
+            DataQualityRule(),
+            TimeConsistencyRule()
+        ]
 
     def run_checks(self):
-        logger.info("Starting Inventory Inspection...")
+        logger.info("Starting Systematic Inspection...")
         
-        files = self.db.get_recent_files(days=1)
+        # 1. Find Files
+        files = self.db_read.get_recent_files(days=1)
         if not files:
-            logger.info("No recent files found to inspect.")
+            logger.info("No recent files found.")
             return
 
-        issues = 0
-        baselines = {} # Cache to avoid repetitive DB hits
-
+        # 2. Pre-fetch Baselines
+        baselines = {}
         for f in files:
             key = (f['obs_space'], f['run_type'])
-            
-            # --- RULE 1: Zero Observations ---
-            # A file exists (physically OK), but contains no data.
-            # This is often a configuration error or upstream outage.
-            if f['obs_count'] == 0:
-                logger.warning(f"[ZERO OBS] {f['file_path']} is valid NetCDF but empty.")
-                issues += 1
-                continue
-
-            # --- RULE 2: Volume Anomaly ---
-            # The file has data, but significantly less than usual.
             if key not in baselines:
-                stats = self.db.get_baseline_stats(f['obs_space'], f['run_type'])
-                baselines[key] = stats['threshold'] if stats['threshold'] else 0
-            
-            threshold = baselines[key]
-            
-            # Only flag if we have a valid baseline (> 0) and count is low
-            if threshold > 0 and f['obs_count'] < threshold:
-                logger.warning(f"[LOW VOL] {f['file_path']} has {f['obs_count']} obs (Normal > {threshold*2})")
-                issues += 1
+                baselines[key] = self.db_read.get_baseline_stats(f['obs_space'], f['run_type'])
+        
+        # 3. Context for Rules
+        context = {
+            'baselines': baselines,
+            'stats_loader': self.db_read.get_file_stats
+        }
+        
+        issues = 0
 
+        # 4. Check Loop
+        for f in files:
+            file_errors = []
+            
+            for rule in self.rules:
+                error = rule.check(f, context)
+                if error:
+                    file_errors.append(error)
+            
+            # Status Determination
+            status = 'OK'
+            msg = None
+            if file_errors:
+                status = 'WARNING'
+                msg = "; ".join(file_errors)
+                logger.warning(f"[{status}] {f['file_path']} -> {msg}")
+                issues += 1
+            
+            # 5. Persist Result
+            self.db_write.update_file_status(f['id'], status, msg)
+
+        if issues > 0:
+            self.db_write.commit()
+            
         logger.info(f"Inspection Complete. Found {issues} anomalies.")

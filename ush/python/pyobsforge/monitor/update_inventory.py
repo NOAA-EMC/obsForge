@@ -2,7 +2,6 @@
 import sys
 import argparse
 import logging
-import json
 
 from pyobsforge.monitor.database.monitor_db import MonitorDB
 from pyobsforge.monitor.scanner.persistence import ScannerStateReader
@@ -31,23 +30,27 @@ def main():
 
     logger.info(f"DB: {args.db}")
     db_writer = MonitorDB(args.db)
-    state_reader = ScannerStateReader(args.db)
     
-    # 1. Fetch State (For Incremental Scanning)
     logger.info("Fetching state...")
-    known_mtimes = state_reader.get_known_mtimes()
+    state_reader = ScannerStateReader(args.db)
+    # 1. Fetch Rich State
+    known_state = state_reader.get_known_state() 
     
-    # 2. Scan
     logger.info(f"Scanning: {args.data_root}")
-    scanner = InventoryScanner(args.data_root, known_mtimes=known_mtimes)
+    # 2. Pass State to Scanner
+    scanner = InventoryScanner(args.data_root, known_state=known_state)
     
-    new_count = 0
+    cycles_found = 0
+    new_cycles_count = 0
+    
     for cycle_data in scanner.scan_filesystem(): 
-        logger.info(f"Persisting: {cycle_data.date} {cycle_data.cycle:02d}")
+        cycles_found += 1
+        cycle_is_new = False
+        logger.info(f"Processing: {cycle_data.date} {cycle_data.cycle:02d}")
         
         for task in cycle_data.tasks:
             t_id = db_writer.get_or_create_task(task.task_name)
-            tr_id, _ = db_writer.log_task_run(
+            tr_id, action = db_writer.log_task_run(
                 task_id=t_id, date=cycle_data.date, cycle=cycle_data.cycle, 
                 run_type=task.run_type, job_id=task.job_id, status=task.status, 
                 exit_code=task.exit_code, attempt=task.attempt, host=task.host, 
@@ -55,43 +58,42 @@ def main():
                 end_time=task.end_time, runtime_sec=task.runtime_sec
             )
             
+            if action == 'inserted':
+                cycle_is_new = True
+            
             for f in task.files:
                 cat_id = db_writer.get_or_create_category(f.category)
                 s_id = db_writer.get_or_create_obs_space(f.obs_space_name, cat_id)
                 
-                # 3. Log Header & Lineage
-                # Note: We pass properties so it can extract 'obs_source_files'
+                # Always update the main record (Last Seen, Obs Count)
                 file_id = db_writer.log_file_inventory(
-                    task_run_id=tr_id,
-                    obs_space_id=s_id,
-                    path=f.rel_path,
-                    integrity=f.integrity,
-                    size=f.size_bytes,
-                    mtime=f.mtime,
-                    obs_count=f.obs_count,
-                    error_msg=f.error_msg,
-                    properties=f.properties 
+                    task_run_id=tr_id, obs_space_id=s_id, path=f.rel_path,
+                    integrity=f.integrity, size=f.size_bytes, mtime=f.mtime,
+                    obs_count=f.obs_count, error_msg=f.error_msg, properties=f.properties 
                 )
                 
-                # 4. INSTANT LEARNING (This is the missing link!)
-                # Directly registers variables, units, and dims from this file
                 if f.properties and 'schema' in f.properties:
                     db_writer.register_file_schema(s_id, f.properties['schema'])
                 
-                # 5. Log Metrics
+                # --- 3. CONDITIONAL WRITE ---
+                # Only update child tables if we actually extracted new data.
+                # If scanner skipped this file, these are None/Empty, so we do nothing,
+                # preserving the existing rows in the DB.
                 if f.domain:
                     db_writer.log_file_domain(
                         file_id, f.domain.get('start'), f.domain.get('end'),
                         f.domain.get('min_lat'), f.domain.get('max_lat'),
                         f.domain.get('min_lon'), f.domain.get('max_lon')
                     )
+                
                 if f.stats:
                     db_writer.log_variable_statistics(file_id, f.stats)
         
         db_writer.commit()
-        new_count += 1
+        if cycle_is_new:
+            new_cycles_count += 1
 
-    logger.info(f"Done. Cycles: {new_count}")
+    logger.info(f"Done. Found {cycles_found} cycles ({new_cycles_count} new).")
 
 if __name__ == "__main__":
     main()
