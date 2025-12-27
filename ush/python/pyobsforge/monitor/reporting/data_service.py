@@ -150,24 +150,33 @@ class ReportDataService:
         
     def get_obs_space_domains(self, run_type, space):
         """
-        Fetches Lat/Lon bounds AND Depth/Pressure bounds for the most recent cycle.
+        Fetches Lat/Lon bounds AND Depth/Pressure bounds for the LATEST available cycle.
+        Uses explicit ordering to find the last update for THIS sensor.
         """
         # 1. Get Spatial/Time Bounds (from file_domains table)
         sql_domain = """
             SELECT 
-                MIN(fd.min_lat) as min_lat, MAX(fd.max_lat) as max_lat,
-                MIN(fd.min_lon) as min_lon, MAX(fd.max_lon) as max_lon
+                fd.min_lat, fd.max_lat,
+                fd.min_lon, fd.max_lon,
+                tr.date, tr.cycle
             FROM file_domains fd
             JOIN file_inventory fi ON fd.file_id = fi.id
             JOIN task_runs tr ON fi.task_run_id = tr.id
             JOIN obs_spaces os ON fi.obs_space_id = os.id
             WHERE tr.run_type = ? AND os.name = ?
-            AND tr.date = (SELECT MAX(date) FROM task_runs WHERE run_type=?)
+            ORDER BY tr.date DESC, tr.cycle DESC
+            LIMIT 1
         """
-        res = self.conn.fetch_one(sql_domain, (run_type, space, run_type))
+        res = self.conn.fetch_one(sql_domain, (run_type, space))
         domain = dict(res) if res else {}
 
+        if not domain: return {}
+
         # 2. Get Vertical Bounds (Depth/Pressure from statistics table)
+        # Must match the EXACT same cycle we found above
+        latest_date = domain['date']
+        latest_cycle = domain['cycle']
+
         sql_vert = """
             SELECT v.name, MIN(s.min_val) as min_v, MAX(s.max_val) as max_v
             FROM file_variable_statistics s
@@ -177,10 +186,10 @@ class ReportDataService:
             JOIN obs_spaces os ON fi.obs_space_id = os.id
             WHERE tr.run_type = ? AND os.name = ?
             AND (v.name = 'depth' OR v.name = 'pressure' OR v.name = 'air_pressure')
-            AND tr.date = (SELECT MAX(date) FROM task_runs WHERE run_type=?)
+            AND tr.date = ? AND tr.cycle = ?
             GROUP BY v.name
         """
-        vert_rows = self.conn.fetch_all(sql_vert, (run_type, space, run_type))
+        vert_rows = self.conn.fetch_all(sql_vert, (run_type, space, latest_date, latest_cycle))
         
         for r in vert_rows:
             # Map to readable keys like 'depth_min', 'pressure_max'
@@ -256,6 +265,7 @@ class ReportDataService:
         return self.get_compressed_inventory(*args, **kwargs)
 
     def _flush(self, result, group, data):
+        """Helper to write a group (or singles) to the result list."""
         if not group: return
         if len(group) < 3:
             for k in group:
@@ -269,9 +279,9 @@ class ReportDataService:
     # ==========================================================================
 
     def get_task_timing_series(self, run_type: str, task: str, days: int = None):
-        """Returns runtime series. days=None means full history."""
+        """Returns aggregated runtime stats (Mean & StdDev)."""
         sql = """
-            SELECT tr.date, tr.cycle, tr.runtime_sec 
+            SELECT tr.date, tr.cycle, AVG(tr.runtime_sec) as mean_runtime, AVG(tr.runtime_sec * tr.runtime_sec) as mean_sq_runtime
             FROM task_runs tr JOIN tasks t ON tr.task_id = t.id 
             WHERE tr.run_type = ? AND t.name = ? AND tr.runtime_sec > 0
         """
@@ -280,8 +290,14 @@ class ReportDataService:
             sql += " AND tr.date >= strftime('%Y%m%d', date('now', ?))"
             params.append(f"-{days} days")
             
-        sql += " ORDER BY tr.date, tr.cycle"
-        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
+        sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
+        
+        rows = self.conn.fetch_all(sql, tuple(params))
+        results = []
+        for r in rows:
+            var = r['mean_sq_runtime'] - (r['mean_runtime'] ** 2)
+            results.append({'date': r['date'], 'cycle': r['cycle'], 'runtime_sec': r['mean_runtime'], 'std_dev': math.sqrt(var) if var > 0 else 0})
+        return results
 
     def get_task_timings(self, days=None, task_name=None, run_type=None):
         """CLI Adapter."""
@@ -317,7 +333,6 @@ class ReportDataService:
         rows = self.conn.fetch_all(sql, tuple(params))
         results = []
         for r in rows:
-            # Variance = E[X^2] - (E[X])^2
             mean = r['mean_obs']
             variance = r['mean_sq_obs'] - (mean * mean)
             std_dev = math.sqrt(variance) if variance > 0 else 0.0
@@ -339,9 +354,13 @@ class ReportDataService:
         return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['total_obs']} for r in data]
 
     def get_obs_space_counts(self, run_type: str, obs_space: str, days: int = None):
-        """Returns simple Total Obs Counts for a specific Obs Space."""
+        """Returns Total/Mean/Std Obs Counts for a specific Obs Space (Band Plot Ready)."""
         sql = """
-            SELECT tr.date, tr.cycle, SUM(fi.obs_count) as count
+            SELECT 
+                tr.date, tr.cycle, 
+                SUM(fi.obs_count) as total_obs,
+                AVG(fi.obs_count) as mean_obs,
+                AVG(fi.obs_count * fi.obs_count) as mean_sq_obs
             FROM file_inventory fi
             JOIN task_runs tr ON fi.task_run_id = tr.id
             JOIN obs_spaces os ON fi.obs_space_id = os.id
@@ -353,7 +372,20 @@ class ReportDataService:
             params.append(f"-{days} days")
         
         sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
-        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
+        
+        rows = self.conn.fetch_all(sql, tuple(params))
+        results = []
+        for r in rows:
+            mean = r['mean_obs']
+            variance = r['mean_sq_obs'] - (mean * mean)
+            std_dev = math.sqrt(variance) if variance > 0 else 0.0
+            results.append({
+                'date': r['date'], 'cycle': r['cycle'], 
+                'count': r['total_obs'], 
+                'file_mean': mean, 
+                'file_std': std_dev
+            })
+        return results
 
     def get_obs_counts_by_space(self, space, days, run_type):
         """CLI Adapter."""
@@ -361,7 +393,7 @@ class ReportDataService:
         return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['count']} for r in data]
 
     def get_variable_physics_series(self, run_type: str, space: str, var: str, days: int = None):
-        """Fetches stats for a specific variable."""
+        """Fetches Mean/StdDev for physical variables."""
         sql = """
             SELECT tr.date, tr.cycle, s.mean_val, s.std_dev
             FROM file_variable_statistics s 

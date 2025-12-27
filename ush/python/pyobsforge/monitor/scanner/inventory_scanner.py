@@ -12,15 +12,15 @@ logger = logging.getLogger("InventoryScanner")
 
 class InventoryScanner:
     """
-    Scans the filesystem for tasks and files.
-    Extracts Metadata, Physical Statistics (Sanitized), and Quality Flags.
+    Scans the filesystem.
+    Incremental Logic: Only opens NetCDF files if mtime > known_state.
     """
     
     VALID_PREFIXES = {'gdas', 'gfs', 'gcdas'}
 
     def __init__(self, data_root, known_state: dict = None):
         self.data_root = os.path.abspath(data_root)
-        self.known_state = known_state or {}
+        self.known_state = known_state or {} # Path -> {mtime}
         logger.debug(f"INIT: InventoryScanner root={self.data_root}")
 
     def scan_filesystem(self, known_cycles: set = None) -> list:
@@ -48,45 +48,35 @@ class InventoryScanner:
         cycle_obj = CycleData(date=date_str, cycle=cycle_int)
         raw_tasks = parse_master_log(master_log_path)
         unique_tasks = {t['task_name']: t for t in raw_tasks}
-        final_tasks = list(unique_tasks.values())
+        
         cycle_log_dir = os.path.join(self.data_root, "logs", f"{date_str}{cycle_int:02d}")
 
-        for t in final_tasks:
+        for t in unique_tasks.values():
             raw_name = t['task_name']
             run_type, task_name = self._normalize_task_name(raw_name)
 
             task_data = TaskRunData(
-                task_name=task_name,
-                run_type=run_type,
-                logfile="missing",
+                task_name=task_name, run_type=run_type, logfile="missing",
                 job_id=t['job_id'], status=t['status'], exit_code=t['exit_code'],
                 attempt=t['attempt'], host=t['host'], runtime_sec=t['duration'],
                 start_time=t.get('start_time'), end_time=t.get('end_time')
             )
 
-            candidates = [f"{raw_name}_prep.log", f"{raw_name}.log"]
-            task_log_path = None
-            for c in candidates:
+            for c in [f"{raw_name}_prep.log", f"{raw_name}.log"]:
                 p = os.path.join(cycle_log_dir, c)
                 if os.path.exists(p):
-                    task_log_path = p
+                    task_data.logfile = p
+                    files = parse_output_files_from_log(p, self.data_root)
+                    task_data.files = self.validate_file_inventory(self._expand_directories(files))
                     break
             
-            if task_log_path:
-                task_data.logfile = task_log_path
-                claimed_files = parse_output_files_from_log(task_log_path, self.data_root)
-                expanded_files = self._expand_directories(claimed_files)
-                task_data.files = self.validate_file_inventory(expanded_files)
-
             cycle_obj.tasks.append(task_data)
-
         return cycle_obj
 
     def _normalize_task_name(self, raw_name):
         parts = raw_name.split('_')
         prefix = parts[0]
-        if prefix in self.VALID_PREFIXES:
-            return prefix, raw_name[len(prefix)+1:]
+        if prefix in self.VALID_PREFIXES: return prefix, raw_name[len(prefix)+1:]
         return 'unknown', raw_name
 
     def _expand_directories(self, rel_paths):
@@ -98,8 +88,7 @@ class InventoryScanner:
                     for f in files:
                         if f.endswith(('.nc', '.bufr')): 
                             expanded.add(os.path.relpath(os.path.join(root, f), self.data_root))
-            else:
-                expanded.add(rel)
+            else: expanded.add(rel)
         return list(expanded)
 
     def validate_file_inventory(self, rel_paths):
@@ -112,13 +101,8 @@ class InventoryScanner:
             obs_space = self._clean_obs_space_name(filename)
 
             integrity = "UNKNOWN"
-            size = 0
-            obs_count = 0
-            mtime = 0
-            error = None
-            props = {}
-            stats = []
-            domain = None
+            size = 0; obs_count = 0; mtime = 0
+            error = None; props = {}; stats = []; domain = None
 
             if not os.path.exists(full_path):
                 integrity = "MISSING"
@@ -131,26 +115,21 @@ class InventoryScanner:
                     if size == 0: 
                         integrity = "EMPTY"
                     else:
+                        # INCREMENTAL CHECK
                         history = self.known_state.get(rel)
                         prev_mtime = history['mtime'] if history else 0
                         
                         if mtime > prev_mtime:
-                            # File Changed: Deep Scan
-                            integrity, meta, deep_stats, deep_domain, anomalies = self._check_content_integrity(full_path)
+                            # CHANGED: Deep Scan
+                            integrity, meta, stats, domain, anomalies = self._check_content_integrity(full_path)
                             obs_count = meta.get('obs', 0)
                             error = meta.get('err')
                             props = meta 
-                            
-                            # Inject anomaly flags into properties for the Inspector
-                            if anomalies:
-                                props['outliers'] = anomalies
-                                
-                            stats = deep_stats
-                            domain = deep_domain
+                            if anomalies: props['outliers'] = anomalies
                         else:
-                            # File Unchanged: Restore Metadata
-                            integrity = history.get('integrity', 'OK')
-                            obs_count = history.get('obs_count', 0)
+                            # UNCHANGED: Skip Parsing
+                            # We send placeholder data. The DB Gatekeeper will ignore this.
+                            integrity = "OK_SKIPPED" 
                             
                 except OSError as e:
                     integrity = "ERR_ACC"
@@ -162,58 +141,39 @@ class InventoryScanner:
                 obs_count=obs_count, error_msg=error, 
                 properties=props, stats=stats, domain=domain
             ))
-            
         return inventory_list
 
     def _clean_obs_space_name(self, filename):
         prefixes = "|".join(self.VALID_PREFIXES)
-        pattern = rf"^(?:{prefixes})\.t[0-9]{{2}}z\.(.+)\.(?:nc|bufr)$"
-        m = re.match(pattern, filename, re.IGNORECASE)
+        m = re.match(rf"^(?:{prefixes})\.t[0-9]{{2}}z\.(.+)\.(?:nc|bufr)$", filename, re.IGNORECASE)
         if m: return m.group(1)
-        name, _ = os.path.splitext(filename)
-        return name
+        return os.path.splitext(filename)[0]
 
     def _check_content_integrity(self, filepath):
-        """
-        Returns: (status, properties, stats_list, domain_dict, anomalies_list)
-        """
-        if not filepath.endswith(".nc"):
-            return "OK", {"obs": 0}, [], None, []
-
+        if not filepath.endswith(".nc"): return "OK", {"obs": 0}, [], None, []
         try:
-            meta = {}
             with Dataset(filepath, 'r') as ds:
-                # 1. Obs Count
+                meta = {}
                 n = 0
                 if "Location" in ds.dimensions: n = len(ds.dimensions["Location"])
                 elif "nlocs" in ds.dimensions: n = len(ds.dimensions["nlocs"])
-                
                 if n == 0 and 'ObsValue' in ds.groups:
                     grp = ds.groups['ObsValue']
                     for var_name in grp.variables:
                         if grp.variables[var_name].dimensions:
-                            dim_name = grp.variables[var_name].dimensions[0]
-                            if dim_name in ds.dimensions:
-                                n = len(ds.dimensions[dim_name])
-                                break
-                
+                            n = len(ds.dimensions[grp.variables[var_name].dimensions[0]])
+                            break
                 meta['obs'] = n
-                
-                # 2. Attributes & Schema
                 for attr in ds.ncattrs():
                     try: meta[attr] = str(getattr(ds, attr))
                     except: pass
                 
                 meta['schema'] = self._extract_full_schema(ds)
                 self._infer_dimensionality(meta['schema'])
-                
-                # 3. Domain & Stats (with Anomaly Detection)
                 domain = self._extract_domain(ds)
                 stats, anomalies = self._calculate_statistics(ds)
-
                 return "OK", meta, stats, domain, anomalies
-        except Exception as e: 
-            return "CORRUPT", {"err": str(e)}, [], None, []
+        except Exception as e: return "CORRUPT", {"err": str(e)}, [], None, []
 
     def _extract_full_schema(self, ds_or_group, parent_path=""):
         schema = {}
@@ -226,13 +186,10 @@ class InventoryScanner:
         return schema
 
     def _infer_dimensionality(self, schema):
-        vertical_coords = {'MetaData/depth', 'MetaData/air_pressure', 'MetaData/pressure', 'MetaData/height'}
-        has_vertical = any(v in schema for v in vertical_coords)
-        default_dim = 3 if has_vertical else 2
         for path, meta in schema.items():
             if path.startswith("MetaData/"): meta['ndim'] = 1
             elif "Surface" in path: meta['ndim'] = 2
-            elif path.startswith(("ObsValue/", "ObsError/", "PreQC/")): meta['ndim'] = default_dim
+            elif path.startswith(("ObsValue/", "ObsError/", "PreQC/")): meta['ndim'] = 3 if any(v in schema for v in ['MetaData/depth', 'MetaData/pressure']) else 2
             else: meta['ndim'] = 1
 
     def _extract_domain(self, ds):
@@ -240,7 +197,6 @@ class InventoryScanner:
         try:
             if 'MetaData' in ds.groups:
                 md = ds.groups['MetaData']
-                # Time
                 if 'dateTime' in md.variables:
                     t_var = md.variables['dateTime']
                     times = t_var[:]
@@ -253,58 +209,32 @@ class InventoryScanner:
                                 d['end'] = int(num2date(max_t, units=t_var.units, calendar=getattr(t_var, 'calendar', 'standard')).timestamp())
                             except: d['start'], d['end'] = int(min_t), int(max_t)
                         else: d['start'], d['end'] = int(min_t), int(max_t)
-                
-                # Spatial
-                for ax, key_min, key_max in [('latitude', 'min_lat', 'max_lat'), ('longitude', 'min_lon', 'max_lon')]:
+                for ax, k_min, k_max in [('latitude', 'min_lat', 'max_lat'), ('longitude', 'min_lon', 'max_lon')]:
                     if ax in md.variables:
-                        data = md.variables[ax][:]
-                        if np.ma.is_masked(data): data = data.compressed()
-                        data = data[np.abs(data) < 1000] # Simple outlier filter for coords
-                        if len(data) > 0:
-                            d[key_min], d[key_max] = float(np.min(data)), float(np.max(data))
+                        vals = md.variables[ax][:]
+                        if np.ma.is_masked(vals): vals = vals.compressed()
+                        vals = vals[np.abs(vals) < 1000]
+                        if len(vals) > 0: d[k_min], d[k_max] = float(np.min(vals)), float(np.max(vals))
         except: pass
         return d
 
     def _calculate_statistics(self, ds):
-        """
-        Calculates statistics. 
-        Filters out Unmasked Fill Values (> 1.5e9) for DB stats.
-        Returns (stats_list, anomalies_list).
-        """
         stats = []
         anomalies = []
-        target_groups = ['ObsValue', 'MetaData']
-        
-        # 1.5e9 threshold catches 2^31 (2.14e9) but keeps Epoch Seconds (1.7e9)
-        # Note: We skip Time variables for stats to avoid flagging valid epochs as outliers
-        GENERIC_THRESHOLD = 1.5e9 
-        
-        for g in target_groups:
+        THRESHOLD = 1.5e9
+        groups = ['ObsValue', 'MetaData']
+        for g in groups:
             if g not in ds.groups: continue
             grp = ds.groups[g]
             for v_name, v_obj in grp.variables.items():
                 if v_obj.dtype == np.str_ or v_obj.dtype == np.object_: continue
-                
-                # Skip Time variables (handled in Domain)
                 if 'dateTime' in v_name or 'time' in v_name.lower(): continue
-
                 try:
                     d = v_obj[:]
                     if np.ma.is_masked(d): d = d.compressed()
-                    
-                    # 1. Detect Anomalies (Dirty Check)
-                    if np.any(np.abs(d) > GENERIC_THRESHOLD):
-                        anomalies.append(f"Unmasked Fill Value in {v_name}")
-                    
-                    # 2. Filter for Stats (Clean Stats)
-                    d = d[np.abs(d) < GENERIC_THRESHOLD]
-                    
+                    if np.any(np.abs(d) > THRESHOLD): anomalies.append(f"Unmasked Fill Value in {v_name}")
+                    d = d[np.abs(d) < THRESHOLD]
                     if len(d) > 0:
-                        stats.append({
-                            'name': f"{g}/{v_name}", 
-                            'min': float(np.min(d)), 'max': float(np.max(d)), 
-                            'mean': float(np.mean(d)), 'std': float(np.std(d))
-                        })
+                        stats.append({'name': f"{g}/{v_name}", 'min': float(np.min(d)), 'max': float(np.max(d)), 'mean': float(np.mean(d)), 'std': float(np.std(d))})
                 except: pass
-                
         return stats, anomalies

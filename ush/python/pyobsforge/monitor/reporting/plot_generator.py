@@ -1,124 +1,151 @@
 import os
 import logging
-import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# --- OPTIONAL DEPENDENCY: MATPLOTLIB ---
+# --- FAIL-SOFT IMPORTS ---
+# We wrap imports to allow the pipeline to run even if plotting libs are missing.
 try:
+    import matplotlib
+    matplotlib.use('Agg') # Force Headless mode (no GUI)
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    import matplotlib.ticker as ticker
-    # Force non-interactive backend
-    plt.switch_backend('Agg')
+    import numpy as np
     HAS_MATPLOTLIB = True
-except ImportError:
+except ImportError as e:
     HAS_MATPLOTLIB = False
+    MISSING_LIB_MSG = str(e)
 
 logger = logging.getLogger("PlotGenerator")
 
 class PlotGenerator:
     """
-    Generates static PNG plots.
-    If Matplotlib is missing, it skips generation safely.
+    Generates static PNG plots for the dashboard.
+    
+    Capabilities:
+    - Graceful degradation (returns None if no Matplotlib).
+    - Dual Plot generation (Full History + 7 Day Zoom).
+    - Band Plots (Mean +/- StdDev).
+    - Smart Date Axis formatting.
     """
     
     def __init__(self, output_dir):
         self.output_dir = output_dir
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-            
-        # Colors
-        self.c_mean = '#1f77b4'
-        self.c_band = '#a6cee3'
-        self.c_vol  = '#2ca02c'
-        self.c_vol_fill = '#98df8a'
-
         if not HAS_MATPLOTLIB:
-            logger.warning("Matplotlib not found. Plot generation will be skipped.")
+            logger.warning(f"Plotting disabled: {MISSING_LIB_MSG}")
 
-    def generate_dual_plots(self, title, data, value_key, std_key, base_filename, y_label):
-        if not HAS_MATPLOTLIB: return None, None
-        
-        f_full = f"{base_filename}_all.png"
-        self._create_band_plot(title + " (Full)", data, value_key, std_key, f_full, y_label, None)
-        
-        f_7d = f"{base_filename}_7d.png"
-        self._create_band_plot(title + " (7 Days)", data, value_key, std_key, f_7d, y_label, 7)
-        
-        return f_full, f_7d
+    def generate_dual_plots(self, title, data, val_key, std_key, fname_base, y_label):
+        """
+        Generates two plots: Full History and Last 7 Days.
+        Returns tuple of filenames (f_full, f_7d) or (None, None).
+        """
+        # 1. Dependency Check
+        if not HAS_MATPLOTLIB:
+            return None, None
 
-    def generate_dual_volume_plots(self, title, data, value_key, base_filename, y_label):
-        if not HAS_MATPLOTLIB: return None, None
+        if not data:
+            return None, None
         
-        f_full = f"{base_filename}_all.png"
-        self._create_volume_plot(title + " (Full)", data, value_key, f_full, y_label, None)
-        
-        f_7d = f"{base_filename}_7d.png"
-        self._create_volume_plot(title + " (7 Days)", data, value_key, f_7d, y_label, 7)
-        
-        return f_full, f_7d
-
-    # --- INTERNAL ---
-
-    def _prepare_data(self, data_list, days_filter=None):
+        # 2. Data Preparation
         dates = []
-        clean_data = []
-        cutoff = datetime.now() - timedelta(days=days_filter) if days_filter else None
-
-        for r in data_list:
+        values = []
+        stds = []
+        
+        for r in data:
             try:
-                dt_str = f"{r['date']}{int(r['cycle']):02d}"
+                # Expects date='YYYYMMDD', cycle=HH (int)
+                dt_str = f"{r['date']}{r['cycle']:02d}"
                 dt = datetime.strptime(dt_str, "%Y%m%d%H")
-                if cutoff and dt < cutoff: continue
+                
+                v = r.get(val_key)
+                if v is None: continue
+                
+                s = r.get(std_key, 0.0) if std_key else 0.0
+                
                 dates.append(dt)
-                clean_data.append(r)
-            except: continue
-        return dates, clean_data
+                values.append(v)
+                stds.append(s)
+            except Exception:
+                continue
 
-    def _create_band_plot(self, title, raw_data, val_key, std_key, filename, y_label, days_limit):
-        dates, subset = self._prepare_data(raw_data, days_limit)
-        if not dates: return
+        if not dates:
+            return None, None
 
-        values = np.array([r[val_key] for r in subset], dtype=float)
-        upper = values
-        lower = values
+        # 3. Generate Full Plot
+        f_full = f"{fname_base}_all.png"
+        full_path = os.path.join(self.output_dir, f_full)
+        success = self._plot_series(dates, values, stds, title, y_label, full_path)
+        if not success: return None, None
+
+        # 4. Generate Zoom Plot (Last 28 cycles ~= 7 days)
+        f_7d = f"{fname_base}_7d.png"
+        zoom_path = os.path.join(self.output_dir, f_7d)
         
-        if std_key:
-            stds = np.array([r.get(std_key, 0.0) for r in subset], dtype=float)
-            upper = values + stds
-            lower = values - stds
+        cutoff = -28 if len(dates) > 28 else 0
+        if cutoff != 0:
+            self._plot_series(dates[cutoff:], values[cutoff:], stds[cutoff:], title, y_label, zoom_path)
+        else:
+            # Not enough data for a distinct zoom, copy full plot
+            import shutil
+            shutil.copy(full_path, zoom_path)
 
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.plot(dates, values, color=self.c_mean, linewidth=1.5, label='Mean')
-        if std_key:
-            ax.fill_between(dates, lower, upper, color=self.c_band, alpha=0.4, label='±1 \u03C3')
-            ax.legend(loc='upper right', fontsize=8)
+        return f_full, f_7d
 
-        self._format_axis(ax, title, y_label, dates)
-        plt.savefig(os.path.join(self.output_dir, filename), dpi=80, bbox_inches='tight')
-        plt.close(fig)
+    def generate_dual_volume_plots(self, title, data, val_key, fname_base, y_label):
+        """
+        Wrapper for Volume plots.
+        Uses the same Band Plot logic (since we now have Mean/Std for volumes).
+        """
+        return self.generate_dual_plots(title, data, val_key, "file_std", fname_base, y_label)
 
-    def _create_volume_plot(self, title, raw_data, val_key, filename, y_label, days_limit):
-        dates, subset = self._prepare_data(raw_data, days_limit)
-        if not dates: return
+    def _plot_series(self, dates, values, stds, title, y_label, out_path):
+        """Internal plotting logic."""
+        try:
+            fig, ax = plt.subplots(figsize=(10, 4))
+            
+            # Convert to numpy for vector operations
+            d_arr = np.array(dates)
+            v_arr = np.array(values)
+            s_arr = np.array(stds)
 
-        values = np.array([r[val_key] for r in subset], dtype=float)
-        fig, ax = plt.subplots(figsize=(6, 3))
-        ax.plot(dates, values, color=self.c_vol, linewidth=1.5)
-        ax.fill_between(dates, 0, values, color=self.c_vol_fill, alpha=0.3)
-        
-        self._format_axis(ax, title, y_label, dates)
-        ax.yaxis.set_major_formatter(ticker.EngFormatter())
-        plt.savefig(os.path.join(self.output_dir, filename), dpi=80, bbox_inches='tight')
-        plt.close(fig)
+            # --- PLOT LINE ---
+            label = 'Mean' if np.any(s_arr > 0) else 'Value'
+            ax.plot(d_arr, v_arr, color='#2980b9', linewidth=2, label=label, marker='.', markersize=4)
+            
+            # --- PLOT BAND ---
+            if np.any(s_arr > 0):
+                lower = v_arr - s_arr
+                upper = v_arr + s_arr
+                # Clamp lower bound to 0 for physical variables
+                lower[lower < 0] = 0
+                ax.fill_between(d_arr, lower, upper, color='#3498db', alpha=0.2, label='±1 \u03C3') # Sigma symbol
 
-    def _format_axis(self, ax, title, y_label, dates):
-        ax.set_title(title, fontsize=10, fontweight='bold', pad=10)
-        ax.set_ylabel(y_label, fontsize=8)
-        ax.tick_params(axis='both', which='major', labelsize=8)
-        ax.grid(True, linestyle=':', alpha=0.6)
-        fig = ax.get_figure()
-        fig.autofmt_xdate()
-        span = (max(dates) - min(dates)).days
-        fmt = '%H:%M' if span <= 2 else '%m-%d'
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+            # --- FORMATTING ---
+            ax.set_title(title, fontsize=10, fontweight='bold', color='#333')
+            ax.set_ylabel(y_label, fontsize=9)
+            ax.grid(True, which='major', linestyle='--', alpha=0.6)
+            ax.grid(True, which='minor', linestyle=':', alpha=0.3)
+            
+            # --- DATE AXIS HANDLING (Restored) ---
+            # Smart locator: ticks every day, or every few hours depending on zoom
+            if len(d_arr) > 14: # More than ~3 days of data (4 cycles/day)
+                ax.xaxis.set_major_locator(mdates.DayLocator())
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+                ax.xaxis.set_minor_locator(mdates.HourLocator(byhour=[0, 6, 12, 18]))
+            else:
+                ax.xaxis.set_major_locator(mdates.HourLocator(byhour=[0, 6, 12, 18]))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+                
+            fig.autofmt_xdate()
+            
+            # Legend
+            ax.legend(loc='upper left', fontsize='small', frameon=True)
+
+            # Save
+            plt.tight_layout()
+            plt.savefig(out_path, dpi=100)
+            plt.close(fig)
+            return True
+            
+        except Exception as e:
+            logger.error(f"Render failed for {out_path}: {e}")
+            return False
