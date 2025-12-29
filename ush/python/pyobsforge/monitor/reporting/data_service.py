@@ -59,7 +59,7 @@ class ReportDataService:
             return {}
 
     # ==========================================================================
-    # 2. SCHEMA & STATS
+    # 2. SCHEMA & STATS (For detailed inspection)
     # ==========================================================================
 
     def get_obs_space_schema_details(self, obs_space_name: str):
@@ -101,7 +101,7 @@ class ReportDataService:
         return [dict(r) for r in self.conn.fetch_all(sql, (space,))]
 
     # ==========================================================================
-    # 3. DASHBOARD METADATA
+    # 3. DASHBOARD METADATA & ANOMALIES
     # ==========================================================================
 
     def get_all_run_types(self) -> List[str]:
@@ -296,7 +296,11 @@ class ReportDataService:
         results = []
         for r in rows:
             var = r['mean_sq_runtime'] - (r['mean_runtime'] ** 2)
-            results.append({'date': r['date'], 'cycle': r['cycle'], 'runtime_sec': r['mean_runtime'], 'std_dev': math.sqrt(var) if var > 0 else 0})
+            results.append({
+                'date': r['date'], 'cycle': r['cycle'], 
+                'runtime_sec': r['mean_runtime'], 
+                'std_dev': math.sqrt(var) if var > 0 else 0
+            })
         return results
 
     def get_task_timings(self, days=None, task_name=None, run_type=None):
@@ -333,15 +337,12 @@ class ReportDataService:
         rows = self.conn.fetch_all(sql, tuple(params))
         results = []
         for r in rows:
-            mean = r['mean_obs']
-            variance = r['mean_sq_obs'] - (mean * mean)
-            std_dev = math.sqrt(variance) if variance > 0 else 0.0
-            
+            var = r['mean_sq_obs'] - (r['mean_obs'] ** 2)
             results.append({
                 'date': r['date'], 'cycle': r['cycle'], 
                 'total_obs': r['total_obs'], 
-                'file_mean': mean, 
-                'file_std': std_dev
+                'file_mean': r['mean_obs'], 
+                'file_std': math.sqrt(var) if var > 0 else 0
             })
         return results
 
@@ -354,7 +355,9 @@ class ReportDataService:
         return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['total_obs']} for r in data]
 
     def get_obs_space_counts(self, run_type: str, obs_space: str, days: int = None):
-        """Returns Total/Mean/Std Obs Counts for a specific Obs Space (Band Plot Ready)."""
+        """
+        UPDATED: Calculates Mean/StdDev for specific Obs Space (Band Plot Ready).
+        """
         sql = """
             SELECT 
                 tr.date, tr.cycle, 
@@ -376,14 +379,12 @@ class ReportDataService:
         rows = self.conn.fetch_all(sql, tuple(params))
         results = []
         for r in rows:
-            mean = r['mean_obs']
-            variance = r['mean_sq_obs'] - (mean * mean)
-            std_dev = math.sqrt(variance) if variance > 0 else 0.0
+            var = r['mean_sq_obs'] - (r['mean_obs'] ** 2)
             results.append({
                 'date': r['date'], 'cycle': r['cycle'], 
                 'count': r['total_obs'], 
-                'file_mean': mean, 
-                'file_std': std_dev
+                'file_mean': r['mean_obs'], 
+                'file_std': math.sqrt(var) if var > 0 else 0
             })
         return results
 
@@ -393,9 +394,15 @@ class ReportDataService:
         return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['count']} for r in data]
 
     def get_variable_physics_series(self, run_type: str, space: str, var: str, days: int = None):
-        """Fetches Mean/StdDev for physical variables."""
+        """
+        UPDATED: Aggregates multiple files per cycle into a single Mean/Std point.
+        This prevents 'messy' plots where multiple points exist for one timestamp.
+        """
         sql = """
-            SELECT tr.date, tr.cycle, s.mean_val, s.std_dev
+            SELECT 
+                tr.date, tr.cycle, 
+                AVG(s.mean_val) as avg_mean, 
+                AVG(s.std_dev) as avg_std 
             FROM file_variable_statistics s 
             JOIN file_inventory fi ON s.file_id = fi.id
             JOIN task_runs tr ON fi.task_run_id = tr.id
@@ -408,8 +415,9 @@ class ReportDataService:
             sql += " AND tr.date >= strftime('%Y%m%d', date('now', ?))"
             params.append(f"-{days} days")
             
-        sql += " ORDER BY tr.date, tr.cycle"
-        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
+        sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
+        
+        return [dict(date=r['date'], cycle=r['cycle'], mean_val=r['avg_mean'], std_dev=r['avg_std']) for r in self.conn.fetch_all(sql, tuple(params))]
 
     def get_physics_series(self, *args, **kwargs):
         return self.get_variable_physics_series(*args, **kwargs)
