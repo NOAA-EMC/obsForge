@@ -279,9 +279,9 @@ class ReportDataService:
     # ==========================================================================
 
     def get_task_timing_series(self, run_type: str, task: str, days: int = None):
-        """Returns aggregated runtime stats (Mean & StdDev)."""
+        """Returns simple average runtime per cycle. Plotter handles temporal variance."""
         sql = """
-            SELECT tr.date, tr.cycle, AVG(tr.runtime_sec) as mean_runtime, AVG(tr.runtime_sec * tr.runtime_sec) as mean_sq_runtime
+            SELECT tr.date, tr.cycle, AVG(tr.runtime_sec) as mean_runtime
             FROM task_runs tr JOIN tasks t ON tr.task_id = t.id 
             WHERE tr.run_type = ? AND t.name = ? AND tr.runtime_sec > 0
         """
@@ -292,35 +292,24 @@ class ReportDataService:
             
         sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
         
-        rows = self.conn.fetch_all(sql, tuple(params))
-        results = []
-        for r in rows:
-            var = r['mean_sq_runtime'] - (r['mean_runtime'] ** 2)
-            results.append({
-                'date': r['date'], 'cycle': r['cycle'], 
-                'runtime_sec': r['mean_runtime'], 
-                'std_dev': math.sqrt(var) if var > 0 else 0
-            })
-        return results
+        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
 
     def get_task_timings(self, days=None, task_name=None, run_type=None):
         """CLI Adapter."""
         if task_name and run_type:
             series = self.get_task_timing_series(run_type, task_name, days)
-            return [{'date': r['date'], 'cycle': r['cycle'], 'task': task_name, 'duration': r['runtime_sec']} for r in series]
+            return [{'date': r['date'], 'cycle': r['cycle'], 'task': task_name, 'duration': r['mean_runtime']} for r in series]
         return []
 
     def get_category_counts(self, run_type: str, category: str, days: int = None):
         """
-        Calculates Total Obs, Mean per File, and StdDev per File.
-        Used for 'Band Plots' (Mean line with +/- Sigma shading).
+        Calculates Total Obs per cycle for the Category.
+        Plotter calculates Historical Mean/StdDev.
         """
         sql = """
             SELECT 
                 tr.date, tr.cycle, 
-                SUM(fi.obs_count) as total_obs,
-                AVG(fi.obs_count) as mean_obs,
-                AVG(fi.obs_count * fi.obs_count) as mean_sq_obs
+                SUM(fi.obs_count) as total_obs
             FROM file_inventory fi 
             JOIN task_runs tr ON fi.task_run_id = tr.id
             JOIN obs_spaces os ON fi.obs_space_id = os.id
@@ -334,17 +323,7 @@ class ReportDataService:
             
         sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
         
-        rows = self.conn.fetch_all(sql, tuple(params))
-        results = []
-        for r in rows:
-            var = r['mean_sq_obs'] - (r['mean_obs'] ** 2)
-            results.append({
-                'date': r['date'], 'cycle': r['cycle'], 
-                'total_obs': r['total_obs'], 
-                'file_mean': r['mean_obs'], 
-                'file_std': math.sqrt(var) if var > 0 else 0
-            })
-        return results
+        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
 
     def get_category_obs_sums(self, *args, **kwargs):
         return self.get_category_counts(*args, **kwargs)
@@ -356,14 +335,13 @@ class ReportDataService:
 
     def get_obs_space_counts(self, run_type: str, obs_space: str, days: int = None):
         """
-        UPDATED: Calculates Mean/StdDev for specific Obs Space (Band Plot Ready).
+        Calculates Total Obs per cycle for the Obs Space.
+        Plotter calculates Historical Mean/StdDev.
         """
         sql = """
             SELECT 
                 tr.date, tr.cycle, 
-                SUM(fi.obs_count) as total_obs,
-                AVG(fi.obs_count) as mean_obs,
-                AVG(fi.obs_count * fi.obs_count) as mean_sq_obs
+                SUM(fi.obs_count) as total_obs
             FROM file_inventory fi
             JOIN task_runs tr ON fi.task_run_id = tr.id
             JOIN obs_spaces os ON fi.obs_space_id = os.id
@@ -376,27 +354,17 @@ class ReportDataService:
         
         sql += " GROUP BY tr.date, tr.cycle ORDER BY tr.date, tr.cycle"
         
-        rows = self.conn.fetch_all(sql, tuple(params))
-        results = []
-        for r in rows:
-            var = r['mean_sq_obs'] - (r['mean_obs'] ** 2)
-            results.append({
-                'date': r['date'], 'cycle': r['cycle'], 
-                'count': r['total_obs'], 
-                'file_mean': r['mean_obs'], 
-                'file_std': math.sqrt(var) if var > 0 else 0
-            })
-        return results
+        return [dict(r) for r in self.conn.fetch_all(sql, tuple(params))]
 
     def get_obs_counts_by_space(self, space, days, run_type):
         """CLI Adapter."""
         data = self.get_obs_space_counts(run_type, space, days)
-        return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['count']} for r in data]
+        return [{'date': r['date'], 'cycle': r['cycle'], 'count': r['total_obs']} for r in data]
 
     def get_variable_physics_series(self, run_type: str, space: str, var: str, days: int = None):
         """
-        UPDATED: Aggregates multiple files per cycle into a single Mean/Std point.
-        This prevents 'messy' plots where multiple points exist for one timestamp.
+        Aggregates multiple files per cycle into a single spatial Mean/Std point.
+        This enables 'Spatial Variance' plotting.
         """
         sql = """
             SELECT 

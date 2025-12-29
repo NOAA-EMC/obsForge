@@ -5,6 +5,7 @@ from datetime import datetime
 from pyobsforge.monitor.reporting.data_service import ReportDataService
 from pyobsforge.monitor.reporting.plot_generator import PlotGenerator
 
+# Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("WebGen")
 
@@ -65,7 +66,7 @@ th { background: #f8f9fa; color: #7f8c8d; }
 .toggle-label:hover { color: #2980b9; }
 input[type="checkbox"].history-toggle { display: none; }
 
-/* Visibility Logic: Unchecked (Default) = Show All */
+/* Visibility Logic */
 .plot-img-all { display: block; } 
 .plot-img-7d { display: none; }
 .toggle-text-all { display: inline; } 
@@ -98,7 +99,7 @@ class WebsiteGenerator:
         """Main execution method."""
         logger.info("Starting Website Generation...")
         
-        run_types = self.reader.get_all_run_types() # e.g., ['gdas', 'gfs']
+        run_types = self.reader.get_all_run_types()
         if not run_types:
             logger.warning("No run types found. DB might be empty.")
             return
@@ -115,24 +116,20 @@ class WebsiteGenerator:
         logger.info(f"Complete. Open {self.output_dir}/index.html")
 
     def _generate_dashboard(self, current_run, all_runs):
-        """Builds the main dashboard HTML for a specific run type."""
+        """Builds the main dashboard HTML."""
         
-        # HTML Header
         html = f"<!DOCTYPE html><html><head><title>ObsForge: {current_run.upper()}</title><style>{CSS_STYLES}</style></head><body>"
         html += f"<header><h1>ObsForge Monitor <span style='font-weight:normal; opacity:0.8'>| {current_run.upper()}</span></h1><span>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</span></header>"
         
-        # Navigation Tabs
+        # Navigation
         html += "<div class='nav-tabs'>"
         for rt in all_runs:
             cls = "active" if rt == current_run else ""
             html += f"<a href='{rt}.html' class='nav-btn {cls}'>{rt.upper()}</a>"
         html += "</div>"
 
-        # Global Toggle Checkbox
-        html += "<input type='checkbox' id='global-history-toggle' class='history-toggle'>"
-        html += "<div class='container'>"
-        
-        # Toggle Switch UI
+        # Content Wrapper & Toggle
+        html += "<input type='checkbox' id='global-history-toggle' class='history-toggle'><div class='container'>"
         html += """
         <div class='toggle-control'>
             <label for='global-history-toggle' class='toggle-label'>
@@ -143,9 +140,16 @@ class WebsiteGenerator:
         </div>
         """
 
+        # Section 1: Flagged Files (Anomalies)
         html += self._render_flagged_section(current_run)
+
+        # Section 2: Inventory Matrix
         html += self._render_inventory_section(current_run)
+
+        # Section 3: Task Performance Plots
         html += self._render_timing_section(current_run)
+
+        # Section 4: Category Observation Plots
         html += self._render_category_section(current_run)
 
         html += "</div></body></html>"
@@ -174,8 +178,6 @@ class WebsiteGenerator:
     def _render_inventory_section(self, run_type):
         """Generates the task status matrix with Legend."""
         html = "<div class='section'><h2>Inventory Status</h2>"
-        
-        # Legend
         html += """
         <div class='legend'>
             <span class='status-OK'><span class='dot' style='background:#27ae60'></span>OK</span>
@@ -184,7 +186,6 @@ class WebsiteGenerator:
             <span class='status-MIS'><span class='dot' style='background:#95a5a6'></span>Missing/Unknown</span>
         </div>
         """
-        
         html += "<div style='overflow-x:auto'><table class='matrix'>"
         html += "<thead><tr><th style='width:150px'>Cycle</th><th>Task Details</th></tr></thead><tbody>"
         
@@ -201,14 +202,12 @@ class WebsiteGenerator:
                     status = row['tasks'][t_name]
                     cls = f"status-{status}" if status in ['OK', 'FAIL', 'WARNING'] else "status-MIS"
                     task_html.append(f"<span class='{cls}'>{t_name}</span>")
-                
                 html += f"<tr><td><b>{cycle_str}</b></td><td>{' &nbsp;|&nbsp; '.join(task_html)}</td></tr>"
-        
         html += "</tbody></table></div></div>"
         return html
 
     def _render_timing_section(self, run_type):
-        """Generates Runtime performance plots (Mean ± σ)."""
+        """Generates Runtime performance plots (Temporal Mode)."""
         html = "<div class='section'><h2>Task Performance (Mean ± σ)</h2><div class='plot-grid'>"
         tasks = self.reader.get_all_task_names(run_type)
         count = 0
@@ -216,34 +215,29 @@ class WebsiteGenerator:
             data = self.reader.get_task_timing_series(run_type, task, days=None)
             if not data: continue
             
+            # Pass std_key=None to force Temporal (Historical) bands
             f_full, f_7d = self.plotter.generate_dual_plots(
-                f"{task}", data, "runtime_sec", "std_dev", f"time_{run_type}_{task}", "Seconds"
+                f"{task}", data, "mean_runtime", None, f"time_{run_type}_{task}", "Seconds"
             )
-            
-            html += f"<div class='plot-card'><h3>{task}</h3>"
-            if f_full:
-                html += f"<img src='plots/{f_full}' class='plot-img-all'><img src='plots/{f_7d}' class='plot-img-7d'>"
-            else:
-                html += "<div class='no-plot'>Plot unavailable</div>"
-            html += "</div>"
+            html += f"<div class='plot-card'><h3>{task}</h3><img src='plots/{f_full}' class='plot-img-all'><img src='plots/{f_7d}' class='plot-img-7d'></div>"
             count += 1
-            
         if count == 0: html += "<p>No timing data available.</p>"
         html += "</div></div>"
         return html
 
     def _render_category_section(self, run_type):
-        """Generates Observation Category plots (Mean ± StdDev)."""
-        html = "<div class='section'><h2>Observation Categories (Avg per File)</h2><div class='plot-grid'>"
+        """Generates Observation Category plots (Temporal Mode)."""
+        html = "<div class='section'><h2>Observation Categories (Total Obs)</h2><div class='plot-grid'>"
         cats = self.reader.get_all_categories()
         
         for cat in cats:
             data = self.reader.get_category_counts(run_type, cat, days=None)
             if not data: continue
             
+            # Pass std_key=None to force Temporal (Historical) bands
             fname_base = f"cat_{run_type}_{cat}"
             f_full, f_7d = self.plotter.generate_dual_plots(
-                f"{cat} Obs/File", data, "file_mean", "file_std", fname_base, "Count"
+                f"{cat} Total Obs", data, "total_obs", None, fname_base, "Count"
             )
             
             detail_filename = f"detail_{run_type}_{cat}.html"
@@ -263,7 +257,7 @@ class WebsiteGenerator:
         return html
 
     def _generate_detail_page(self, run_type, category, filename):
-        """Generates the detail page for a category, listing all Obs Spaces."""
+        """Generates the detail page for a category."""
         obs_spaces = self.reader.get_obs_spaces_for_category(category)
         
         html = f"<!DOCTYPE html><html><head><title>{category}</title><style>{CSS_STYLES}</style></head><body>"
@@ -274,63 +268,45 @@ class WebsiteGenerator:
             # 1. Domain Info Logic
             dom = self.reader.get_obs_space_domains(run_type, space)
             domain_html = ""
-            
-            # Check 3D status to conditionally show depth
             schema_info = self.reader.get_obs_space_schema_details(space)
             is_3d_profile = any(r['dimensionality'] >= 3 for r in schema_info)
 
             if dom:
                 parts = []
                 if dom.get('min_lat') is not None:
-                    parts.append(f"<b>Lat:</b> [{dom['min_lat']:.1f}, {dom['max_lat']:.1f}]")
-                    parts.append(f"<b>Lon:</b> [{dom['min_lon']:.1f}, {dom['max_lon']:.1f}]")
-                
-                # Show depth only if 3D
+                    parts.append(f"<b>Lat:</b> [{dom['min_lat']:.1f}, {dom['max_lat']:.1f}] &nbsp; <b>Lon:</b> [{dom['min_lon']:.1f}, {dom['max_lon']:.1f}]")
                 if is_3d_profile and dom.get('depth_min') is not None:
                     parts.append(f"<b>Depth:</b> [{dom['depth_min']:.1f}, {dom['depth_max']:.1f}]")
-                
                 p_min = dom.get('pressure_min') if dom.get('pressure_min') is not None else dom.get('air_pressure_min')
                 p_max = dom.get('pressure_max') if dom.get('pressure_max') is not None else dom.get('air_pressure_max')
-                
                 if p_min is not None:
                     parts.append(f"<b>Pressure:</b> [{p_min:.1f}, {p_max:.1f}]")
-                
                 if parts:
                     domain_html = f"<div class='domain-info'>{' &nbsp;|&nbsp; '.join(parts)}</div>"
 
             html += f"<div class='section'><h2>{space}</h2>{domain_html}<div class='plot-grid'>"
             
-            # 2. Volume Plot (With Band)
+            # 2. Volume Plot (TEMPORAL BAND)
             c_data = self.reader.get_obs_space_counts(run_type, space, days=None)
             if c_data:
+                # std_key=None -> Calculates Temporal Variance
                 f_c_full, f_c_7d = self.plotter.generate_dual_plots(
-                    "Obs/File (Mean ± σ)", c_data, "file_mean", "file_std", f"{run_type}_{space}_cnt", "Count"
+                    "Total Obs (± Historical \u03C3)", c_data, "total_obs", None, f"{run_type}_{space}_cnt", "Count"
                 )
-                html += f"<div class='plot-card'><h3>Volume</h3>"
-                if f_c_full:
-                    html += f"<img src='plots/{f_c_full}' class='plot-img-all'><img src='plots/{f_c_7d}' class='plot-img-7d'>"
-                else:
-                    html += "<div class='no-plot'>No plot</div>"
-                html += "</div>"
-
-            # 3. Physics Plot (With Band)
+                html += f"<div class='plot-card'><h3>Volume</h3><img src='plots/{f_c_full}' class='plot-img-all'><img src='plots/{f_c_7d}' class='plot-img-7d'></div>"
+            
+            # 3. Physics Plot (SPATIAL BAND)
             schema = self.reader.get_obs_space_schema(space)
             phys_var = next((r['name'] for r in schema if r['group_name'] == 'ObsValue'), None)
-            
             if phys_var:
                 p_data = self.reader.get_variable_physics_series(run_type, space, phys_var, days=None)
                 if p_data:
-                    # clamp_bottom=False allows negative values (Lat/Temp)
+                    # std_key='std_dev' -> Uses DB spatial stats
                     f_p_full, f_p_7d = self.plotter.generate_dual_plots(
-                        f"{phys_var} (Mean ± σ)", p_data, "mean_val", "std_dev", 
+                        f"{phys_var} (Mean ± Spatial \u03C3)", p_data, "mean_val", "std_dev", 
                         f"{run_type}_{space}_phys", "Value", clamp_bottom=False
                     )
-                    html += f"<div class='plot-card'><h3>{phys_var}</h3>"
-                    if f_p_full:
-                        html += f"<img src='plots/{f_p_full}' class='plot-img-all'><img src='plots/{f_p_7d}' class='plot-img-7d'>"
-                    else:
-                        html += "<div class='no-plot'>No plot</div>"
-                    html += "</div>"
+                    html += f"<div class='plot-card'><h3>{phys_var}</h3><img src='plots/{f_p_full}' class='plot-img-all'><img src='plots/{f_p_7d}' class='plot-img-7d'></div>"
             
             html += "</div></div>"
 
