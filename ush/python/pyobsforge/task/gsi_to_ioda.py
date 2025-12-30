@@ -8,7 +8,7 @@ import gsincdiag_to_ioda.combine_obsspace as gsid_combine
 import gzip
 import tarfile
 from logging import getLogger
-
+from typing import Dict, Any
 from wxflow import (AttrDict,
                     FileHandler,
                     Executable,
