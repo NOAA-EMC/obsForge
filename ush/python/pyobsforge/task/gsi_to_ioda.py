@@ -8,8 +8,6 @@ import gsincdiag_to_ioda.combine_obsspace as gsid_combine
 import gzip
 import tarfile
 from logging import getLogger
-from pprint import pformat
-from typing import Optional, Dict, Any
 
 from wxflow import (AttrDict,
                     FileHandler,
@@ -17,7 +15,6 @@ from wxflow import (AttrDict,
                     WorkflowException,
                     add_to_datetime, to_timedelta,
                     Task,
-                    parse_j2yaml,
                     logit)
 
 logger = getLogger(__name__.split('.')[-1])
@@ -36,6 +33,7 @@ predictors = [
     'sensorScanAngle_order_2',
     'sensorScanAngle',
 ]
+
 
 class GsiToIoda(Task):
     """
@@ -154,10 +152,11 @@ class GsiToIoda(Task):
                 logger.warning("Skipping this file ...")
 
         # now run combine obsspace on conventional files to get final ioda files
-        conv_types = ['sondes','aircraft', 'sfc', 'sfcship']
+        conv_types = ['sondes', 'aircraft', 'sfc', 'sfcship']
         for conv_type in conv_types:
             conv_file_list = glob.glob(os.path.join(output_dir_path, f'*{conv_type}_*.nc'))
-            conv_output_file_path = os.path.join(output_dir_path, f'{conv_type}_gsi_{self.task_config.current_cycle.strftime("%Y%m%d%H")}.nc')
+            conv_output_file_path = os.path.join(output_dir_path,
+                                                 f'{conv_type}_gsi_{self.task_config.current_cycle.strftime("%Y%m%d%H")}.nc')
             logger.info(f"Combining {len(conv_file_list)} {conv_type} files to {conv_output_file_path}")
             gsid_combine.combine_obsspace(conv_file_list, conv_output_file_path, False)
             # remove individual conv_type files
@@ -167,10 +166,10 @@ class GsiToIoda(Task):
         # Copy the output IODA files to COMOUT
         # define output COMOUT path
         comout = os.path.join(self.task_config['COMROOT'],
-                        self.task_config['PSLOT'],
-                        f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                        f"{self.task_config.cyc:02d}",
-                        'atmos_gsi')
+                              self.task_config['PSLOT'],
+                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                              f"{self.task_config.cyc:02d}",
+                              'atmos_gsi')
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
         copy_ioda_files = []
@@ -208,7 +207,7 @@ class GsiToIoda(Task):
         for abias in abias_files:
             input_file_basename = f"{self.task_config.APREFIX}{abias}"
             input_file = os.path.join(self.task_config.COMIN_ATMOS_ANALYSIS,
-                                     input_file_basename)
+                                      input_file_basename)
             dest = os.path.join(bias_dir_path, input_file_basename)
             if os.path.exists(input_file):
                 abias_copy_list.append([input_file, dest])
@@ -228,7 +227,7 @@ class GsiToIoda(Task):
                 logger.error(f"Error reading abias file {abias_file_path}: {e}")
                 raise
         else:
-            raise FileNotFoundError(f"abias file does not exist at expected path: {abias_file_path}") 
+            raise FileNotFoundError(f"abias file does not exist at expected path: {abias_file_path}")
 
         # Get instruments from the input file
         satlist = []
@@ -238,7 +237,7 @@ class GsiToIoda(Task):
                 splitrow = row[0].split()
                 if splitrow[1] not in satlist:
                     try:
-                        a = float(splitrow[1])
+                        float(splitrow[1])
                     except ValueError:
                         if len(splitrow[1]) > 0:
                             satlist.append(splitrow[1])
@@ -284,10 +283,10 @@ class GsiToIoda(Task):
 
         # Create tarball and copy to COMOUT
         comout = os.path.join(self.task_config['COMROOT'],
-                        self.task_config['PSLOT'],
-                        f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                        f"{self.task_config.cyc:02d}",
-                        'atmos_gsi')
+                              self.task_config['PSLOT'],
+                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                              f"{self.task_config.cyc:02d}",
+                              'atmos_gsi')
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
         tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")
