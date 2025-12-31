@@ -256,7 +256,6 @@ class GsiToIoda(Task):
                 f.write(outstr)
 
         # create YAML for input to converter
-        # create YAML for input to converter
         outyaml = os.path.join(bias_dir_path, 'satbias_converter.yaml')
         with open(outyaml, 'w') as f:
             f.write(f'input coeff file: {bias_dir_path}/{self.task_config.APREFIX}abias\n')

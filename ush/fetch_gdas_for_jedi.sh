@@ -1,8 +1,6 @@
 #!/bin/bash
 # This script fetches GDAS data for JEDI from HPSS
 # and prepares it for conversion
-# set -e
-# set -u
 
 # Get arguments from command line
 if [[ "${#}" -ne 2 ]]; then
