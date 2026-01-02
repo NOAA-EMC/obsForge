@@ -4,7 +4,7 @@ obsforge:
   SDATE: 202510010000
   EDATE: 202512010000
   COMROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/com
-  DCOMROOT: /scratch1/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
+  DCOMROOT: /scratch3/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom
   DATAROOT: /scratch4/NCEPDEV/stmp/Cory.R.Martin/ObsForge/RUNDIRS
   OBSPROC_COMROOT: /scratch3/NCEPDEV/global/role.glopara/dump/
 #  OBSPROC_COMROOT: /scratch1/NCEPDEV/da/common/ # for Marine
