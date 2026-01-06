@@ -13,6 +13,7 @@ add_library(netcdf2ioda
     InsituAll2ioda.h
     IcecMirs2Ioda.h
     IcecJpssrr2Ioda.h
+    Tmsrad2Ioda.h
     rtofs/util.h
     rtofs/RTOFSOb.h
     rtofs/RTOFSOb.cc

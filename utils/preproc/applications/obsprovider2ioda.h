@@ -18,6 +18,7 @@
 #include "../Smap2Ioda.h"
 #include "../Smos2Ioda.h"
 #include "../Viirsaod2Ioda.h"
+#include "../Tmsrad2Ioda.h"
 
 namespace obsforge {
   class ObsProvider2IodaApp : public oops::Application {
@@ -68,6 +69,9 @@ namespace obsforge {
         conv2ioda.writeToIoda();
       } else if (provider == "INSITUOBS") {
         InsituAll2Ioda conv2ioda(fullConfig, this->getComm());
+        conv2ioda.writeToIoda();
+      } else if (provider == "TMSRAD") {
+        Tmsrad2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
       } else {
         oops::Log::info() << "Provider not implemented" << std::endl;

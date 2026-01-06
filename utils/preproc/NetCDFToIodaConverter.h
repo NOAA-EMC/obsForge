@@ -57,6 +57,7 @@ namespace obsforge {
       // Extract ioda variables from the provider's files
       int myrank  = comm_.rank();
       int nobs(0);
+      int nchan(0);
 
       // Currently need the PE count to be less than the number of files
       ASSERT(comm_.size() <= inputFilenames_.size());
@@ -71,12 +72,14 @@ namespace obsforge {
         oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
       }
       nobs = iodaVars.location_;
+      nchan = iodaVars.channel_;
 
 
       // Get the total number of obs across pe's
       int nobsAll(0);
       comm_.allReduce(nobs, nobsAll, eckit::mpi::sum());
       obsforge::preproc::iodavars::IodaVars iodaVarsAll(nobsAll,
+                                    nchan,
                                     iodaVars.floatMetadataName_,
                                     iodaVars.intMetadataName_);
 
