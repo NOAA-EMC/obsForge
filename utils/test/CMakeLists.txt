@@ -12,6 +12,7 @@ list( APPEND utils_test_input
   testinput/obsforge_icecjpssrr2ioda.yaml
   testinput/obsforge_insituall2ioda.yaml
   testinput/obsforge_viirsaod2ioda.yaml
+  testinput/obsforge_tmsrad2ioda.yaml
 )
 
 set( obsforge_utils_test_ref
@@ -27,6 +28,7 @@ set( obsforge_utils_test_ref
   testref/icecjpssrr2ioda.test
   testref/insituall2ioda.test
   testref/viirsaod2ioda.test
+  testref/tmsrad2ioda.test
 )
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
@@ -188,6 +190,14 @@ ecbuild_add_test( TARGET  test_obsforge_util_icecjpssrr2ioda
 ecbuild_add_test( TARGET  test_obsforge_util_insituall2ioda
 	          COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
                   ARGS    "../testinput/obsforge_insituall2ioda.yaml"
+                  LIBS    obsforge-utils
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
+                  TEST_DEPENDS test_obsforge_util_prepdata)
+
+# Test the TMS to IODA converter
+ecbuild_add_test( TARGET  test_obsforge_util_tmsrad2ioda
+	          COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
+                  ARGS    "../testinput/obsforge_tmsrad2ioda.yaml"
                   LIBS    obsforge-utils
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
                   TEST_DEPENDS test_obsforge_util_prepdata)
