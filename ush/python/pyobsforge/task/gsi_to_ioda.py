@@ -178,7 +178,7 @@ class GsiToIoda(Task):
         for ioda_file in output_ioda_files:
             gsi_suffix = f"_gsi_{self.task_config.current_cycle.strftime('%Y%m%d%H')}"
             basename = (f"{self.task_config.OPREFIX}"
-                       f"{os.path.basename(ioda_file).replace(gsi_suffix, '')}")
+                        f"{os.path.basename(ioda_file).replace(gsi_suffix, '')}")
             dest = os.path.join(comout, basename)
             copy_ioda_files.append([ioda_file, dest])
         logger.info(f"Copying {len(copy_ioda_files)} GSI IODA files to {comout}")
