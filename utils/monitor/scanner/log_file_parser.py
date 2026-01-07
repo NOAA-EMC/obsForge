@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
-
 import logging
 import os
 import re
 from datetime import datetime, timedelta
-# from wxflow import logit
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +17,9 @@ def extract_cycle_from_lines(lines):
     p_tXXz = re.compile(r"\bcycle\s*=\s*t([0-9]{2})z\b")
     p_export_tXXz = re.compile(r"\bexport\s+cycle\s*=\s*t([0-9]{2})z\b")
     p_export_cyc = re.compile(r"\bexport\s+cyc=['\"]?([0-9]{2})['\"]?")
-    p_current_cycle_dt = re.compile(r"current cycle:\s*([0-9\-]+\s+[0-9:]+)")
+    p_current_cycle_dt = re.compile(
+        r"current cycle:\s*([0-9\-]+\s+[0-9:]+)"
+    )
     p_previous_cycle = re.compile(r"previous cycle:", re.IGNORECASE)
 
     for line in lines:
@@ -57,7 +56,9 @@ def extract_cycle_from_lines(lines):
 
     unique = set(cycle_candidates)
     if len(unique) > 1:
-        raise ValueError(f"Inconsistent cycle definitions found: {sorted(unique)}")
+        raise ValueError(
+            f"Inconsistent cycle definitions found: {sorted(unique)}"
+        )
 
     return cycle_candidates[0]
 
@@ -67,7 +68,9 @@ def extract_cycle_from_lines(lines):
 # -------------------------------
 
 def extract_run_type_from_lines(lines):
-    pattern = re.compile(r"export\s+RUN=['\"]?(gdas|gfs)['\"]?", re.IGNORECASE)
+    pattern = re.compile(
+        r"export\s+RUN=['\"]?(gdas|gfs)['\"]?", re.IGNORECASE
+    )
     run_types = []
 
     for line in lines:
@@ -80,7 +83,9 @@ def extract_run_type_from_lines(lines):
 
     unique = set(run_types)
     if len(unique) > 1:
-        raise ValueError(f"Inconsistent run_type definitions found: {sorted(unique)}")
+        raise ValueError(
+            f"Inconsistent run_type definitions found: {sorted(unique)}"
+        )
 
     return run_types[0]
 
@@ -92,7 +97,8 @@ def extract_run_type_from_lines(lines):
 def extract_job_times_from_lines(lines, job_script):
     begin_pattern = re.compile(rf"Begin {re.escape(job_script)} at (.+)")
     end_pattern = re.compile(
-        rf"End {re.escape(job_script)} at ([0-9:]+).*?error code (\d+).*?\(time elapsed: ([0-9:]+)\)"
+        rf"End {re.escape(job_script)} at ([0-9:]+).*?"
+        rf"error code (\d+).*?\(time elapsed: ([0-9:]+)\)"
     )
 
     start_date = end_date = elapsed_time = error_code = None
@@ -102,10 +108,14 @@ def extract_job_times_from_lines(lines, job_script):
         if m:
             start_str = m.group(1).strip()
             try:
-                start_date = datetime.strptime(start_str, "%a %b %d %H:%M:%S %Z %Y")
+                start_date = datetime.strptime(
+                    start_str, "%a %b %d %H:%M:%S %Z %Y"
+                )
             except ValueError:
                 try:
-                    start_date = datetime.strptime(start_str, "%a %b %d %H:%M:%S %Y")
+                    start_date = datetime.strptime(
+                        start_str, "%a %b %d %H:%M:%S %Y"
+                    )
                 except ValueError:
                     start_date = start_str
             continue
@@ -138,9 +148,7 @@ def extract_job_times_from_lines(lines, job_script):
 # Main parse function
 # -------------------------------
 
-# @logit(logger)
 def parse_job_log(logfile_path: str, job_script_name: str):
-    # print(f'LLLLLLLL {logfile_path}       {job_script_name}')
     job_script = f'{job_script_name}.sh'
     if not os.path.isfile(logfile_path):
         raise FileNotFoundError(f"Log file does not exist: {logfile_path}")
@@ -150,21 +158,12 @@ def parse_job_log(logfile_path: str, job_script_name: str):
 
     cycle = extract_cycle_from_lines(lines)
     run_type = extract_run_type_from_lines(lines)
-    start_date, end_date, elapsed_time, error_code = extract_job_times_from_lines(lines, job_script)
+    start_date, end_date, elapsed_time, error_code = \
+        extract_job_times_from_lines(lines, job_script)
 
-    if start_date is None and end_date is None and cycle is None and run_type is None:
+    if (start_date is None and end_date is None and
+            cycle is None and run_type is None):
         return None
-
-
-    # RESULT = {
-        # "start_date": start_date,
-        # "end_date": end_date,
-        # "elapsed_time": elapsed_time,
-        # "error_code": error_code,
-        # "cycle": cycle,
-        # "run_type": run_type
-    # }
-    # print(f'LLLLLLLL     {RESULT}')
 
     return {
         "start_date": start_date,
@@ -177,7 +176,6 @@ def parse_job_log(logfile_path: str, job_script_name: str):
 
 
 def elapsed_to_seconds(elapsed):
-
     if isinstance(elapsed, timedelta):
         return int(elapsed.total_seconds())
 
@@ -192,7 +190,7 @@ def parse_master_log(filepath):
     """
     Parses the Workflow master log to find task execution details.
     Target Line Format:
-    YYYY-MM-DD HH:MM:SS ... :: host :: Task NAME, jobid=ID, in state STATE, ran for SEC seconds...
+    YYYY-MM-DD HH:MM:SS ... :: host :: Task NAME, jobid=ID, ...
     """
     tasks = []
     pattern = re.compile(
@@ -219,12 +217,14 @@ def parse_master_log(filepath):
                     })
     except Exception as e:
         logger.error(f"Error reading master log {filepath}: {e}")
-        
+
     return tasks
 
+
 # -------------------------------
-# 2. NEW: Output File Parser
+# 2. Output File Parser
 # -------------------------------
+
 def parse_output_files_from_log(filepath, data_root):
     """
     Scans a task log for 'file_utils' copies to find output files.
@@ -232,9 +232,11 @@ def parse_output_files_from_log(filepath, data_root):
     """
     files_found = set()
     abs_root = os.path.abspath(data_root)
-    
+
     # Matches: "... - file_utils : Copied /src/file.nc to /dest/file.nc"
-    copy_pattern = re.compile(r"file_utils\s+:\s+Copied\s+.*?\s+to\s+([^\s]+)")
+    copy_pattern = re.compile(
+        r"file_utils\s+:\s+Copied\s+.*?\s+to\s+([^\s]+)"
+    )
     # Matches: "... - file_utils : Created /dest/dir"
     create_pattern = re.compile(r"file_utils\s+:\s+Created\s+([^\s]+)")
 
@@ -242,17 +244,20 @@ def parse_output_files_from_log(filepath, data_root):
         with open(filepath, 'r') as f:
             for line in f:
                 # Clean ANSI codes
-                clean_line = re.sub(r'\x1B\[[0-?]*[ -/]*[@-~]', '', line).strip()
-                
+                clean_line = re.sub(
+                    r'\x1B\[[0-?]*[ -/]*[@-~]', '', line
+                ).strip()
+
                 m = copy_pattern.search(clean_line)
                 if not m:
                     m = create_pattern.search(clean_line)
 
                 if m:
                     dest_path = m.group(1).rstrip(".,;:'\"")
-                    
-                    if not os.path.isabs(dest_path): continue
-                        
+
+                    if not os.path.isabs(dest_path):
+                        continue
+
                     abs_dest = os.path.abspath(dest_path)
                     if abs_dest.startswith(abs_root):
                         rel_path = os.path.relpath(abs_dest, abs_root)

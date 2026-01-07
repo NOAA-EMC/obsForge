@@ -1,13 +1,14 @@
+import logging
 import os
 import shutil
-import logging
 from datetime import datetime
+
 from .data_service import ReportDataService
 from .plot_generator import PlotGenerator
 
 # Setup Logging
 logging.basicConfig(
-    level=logging.INFO, 
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger("WebGen")
@@ -15,72 +16,72 @@ logger = logging.getLogger("WebGen")
 # --- CSS STYLES ---
 CSS_STYLES = """
 /* BASE STYLES */
-body { 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    margin: 0; 
-    background: #f4f7f6; 
-    color: #333; 
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: #f4f7f6;
+    color: #333;
 }
-header { 
-    background: #2c3e50; 
-    color: white; 
-    padding: 15px 20px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 h1 { margin: 0; font-size: 1.5em; }
 a { text-decoration: none; color: inherit; }
 
 /* NAVIGATION TABS */
-.nav-tabs { 
-    display: flex; 
-    gap: 10px; 
-    background: #34495e; 
-    padding: 10px 20px; 
+.nav-tabs {
+    display: flex;
+    gap: 10px;
+    background: #34495e;
+    padding: 10px 20px;
 }
-.nav-btn { 
-    color: #ecf0f1; 
-    padding: 8px 16px; 
-    border-radius: 4px; 
-    background: #2c3e50; 
-    font-weight: bold; 
-    transition: background 0.2s; 
+.nav-btn {
+    color: #ecf0f1;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: #2c3e50;
+    font-weight: bold;
+    transition: background 0.2s;
 }
 .nav-btn.active { background: #3498db; color: white; }
 .nav-btn:hover { background: #2980b9; }
 
 /* PAGE LAYOUT */
-.container { 
-    max-width: 1400px; 
-    margin: 20px auto; 
-    padding: 0 20px; 
+.container {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
 }
-.section { 
-    background: white; 
-    padding: 20px; 
-    border-radius: 8px; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-    margin-bottom: 20px; 
+.section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
 }
-h2 { 
-    border-bottom: 2px solid #eee; 
-    padding-bottom: 10px; 
-    margin-top: 0; 
-    color: #2c3e50; 
+h2 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-top: 0;
+    color: #2c3e50;
 }
 h3 { margin: 0 0 10px 0; color: #555; font-size: 1.1em; }
 
 /* INVENTORY MATRIX TABLE */
-table.matrix { 
-    width: 100%; 
-    border-collapse: collapse; 
-    font-size: 0.85em; 
+table.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
 }
-th, td { 
-    padding: 6px 10px; 
-    border: 1px solid #eee; 
-    text-align: left; 
+th, td {
+    padding: 6px 10px;
+    border: 1px solid #eee;
+    text-align: left;
 }
 th { background: #f8f9fa; color: #7f8c8d; }
 
@@ -89,111 +90,111 @@ th { background: #f8f9fa; color: #7f8c8d; }
 .status-FAIL { color: #e74c3c; font-weight: bold; }
 .status-WARNING { color: #f39c12; font-weight: bold; }
 .status-MIS { color: #95a5a6; }
-.group-row { 
-    background: #eafaf1; 
-    color: #27ae60; 
-    font-weight: bold; 
-    cursor: default; 
+.group-row {
+    background: #eafaf1;
+    color: #27ae60;
+    font-weight: bold;
+    cursor: default;
 }
 
 /* LEGEND */
-.legend { 
-    font-size: 0.85em; 
-    margin-bottom: 10px; 
-    padding: 5px; 
-    background: #fdfdfd; 
-    border: 1px solid #eee; 
-    display: inline-block; 
-    border-radius: 4px; 
+.legend {
+    font-size: 0.85em;
+    margin-bottom: 10px;
+    padding: 5px;
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    display: inline-block;
+    border-radius: 4px;
 }
 .legend span { margin-right: 15px; font-weight: bold; }
-.dot { 
-    height: 10px; 
-    width: 10px; 
-    display: inline-block; 
-    border-radius: 50%; 
-    margin-right: 5px; 
+.dot {
+    height: 10px;
+    width: 10px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 5px;
 }
 
 /* FLAGGED FILES TABLE (Scrollable) */
-.flag-scroll-box { 
-    max-height: 400px; 
-    overflow-y: auto; 
-    border: 1px solid #eee; 
+.flag-scroll-box {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eee;
 }
-.flag-table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    font-size: 0.9em; 
+.flag-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
 }
-.flag-table th { 
-    background: #fdfefe; 
-    color: #7f8c8d; 
-    border-bottom: 2px solid #eee; 
-    padding: 8px; 
-    text-align: left; 
-    position: sticky; 
-    top: 0; 
+.flag-table th {
+    background: #fdfefe;
+    color: #7f8c8d;
+    border-bottom: 2px solid #eee;
+    padding: 8px;
+    text-align: left;
+    position: sticky;
+    top: 0;
 }
 .flag-table td { border-bottom: 1px solid #f0f0f0; padding: 8px; }
 .flag-table tr:hover { background: #f9f9f9; }
 
 /* PLOT GRID */
-.plot-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); 
-    gap: 20px; 
+.plot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 20px;
 }
-.plot-card { 
-    background: #fff; 
-    border: 1px solid #eee; 
-    padding: 10px; 
-    border-radius: 4px; 
-    text-align: center; 
-    transition: box-shadow 0.2s; 
+.plot-card {
+    background: #fff;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    transition: box-shadow 0.2s;
 }
 .plot-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .plot-card img { max-width: 100%; height: auto; }
-.no-plot { 
-    color: #999; 
-    font-style: italic; 
-    padding: 40px; 
-    background: #fafafa; 
+.no-plot {
+    color: #999;
+    font-style: italic;
+    padding: 40px;
+    background: #fafafa;
 }
 
 /* DOMAIN INFO BOX */
-.domain-info { 
-    font-size: 0.85em; 
-    color: #666; 
-    margin-bottom: 8px; 
-    background: #f8f9fa; 
-    padding: 4px 8px; 
-    border-radius: 4px; 
+.domain-info {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
     display: inline-block;
 }
 
 /* HISTORY TOGGLE SWITCH */
-.toggle-control { 
-    text-align: right; 
-    margin-bottom: 10px; 
-    font-size: 0.9em; 
-    user-select: none; 
+.toggle-control {
+    text-align: right;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    user-select: none;
 }
-.toggle-label { 
-    cursor: pointer; 
-    color: #3498db; 
-    font-weight: bold; 
-    display: inline-flex; 
-    align-items: center; 
-    gap: 5px; 
+.toggle-label {
+    cursor: pointer;
+    color: #3498db;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 .toggle-label:hover { color: #2980b9; }
 input[type="checkbox"].history-toggle { display: none; }
 
 /* Visibility Logic: Unchecked (Default) = Show All */
-.plot-img-all { display: block; } 
+.plot-img-all { display: block; }
 .plot-img-7d { display: none; }
-.toggle-text-all { display: inline; } 
+.toggle-text-all { display: inline; }
 .toggle-text-7d { display: none; }
 
 #global-history-toggle:checked ~ .container .plot-img-all { display: none; }
@@ -202,18 +203,19 @@ input[type="checkbox"].history-toggle { display: none; }
 #global-history-toggle:checked ~ .container .toggle-text-7d { display: inline; }
 """
 
+
 class WebsiteGenerator:
     """
     Generates the static HTML dashboard.
     Orchestrates data fetching, plot generation, and HTML assembly.
     """
-    
+
     def __init__(self, db_path, output_dir):
         self.reader = ReportDataService(db_path)
         self.output_dir = output_dir
         self.plots_dir = os.path.join(output_dir, "plots")
         self.plotter = PlotGenerator(self.plots_dir)
-        
+
         # Ensure clean build directory
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
@@ -222,8 +224,8 @@ class WebsiteGenerator:
     def generate(self):
         """Main execution method."""
         logger.info("Starting Website Generation...")
-        
-        run_types = self.reader.get_all_run_types() # e.g., ['gdas', 'gfs']
+
+        run_types = self.reader.get_all_run_types()  # e.g., ['gdas', 'gfs']
         if not run_types:
             logger.warning("No run types found. DB might be empty.")
             return
@@ -231,7 +233,10 @@ class WebsiteGenerator:
         # 1. Create index.html redirect
         index_path = os.path.join(self.output_dir, "index.html")
         with open(index_path, "w") as f:
-            f.write(f'<meta http-equiv="refresh" content="0; url={run_types[0]}.html">')
+            f.write(
+                f'<meta http-equiv="refresh" content="0; '
+                f'url={run_types[0]}.html">'
+            )
 
         # 2. Build dashboard for each run type
         for rt in run_types:
@@ -242,21 +247,23 @@ class WebsiteGenerator:
 
     def _generate_dashboard(self, current_run, all_runs):
         """Builds the main dashboard HTML for a specific run type."""
-        
+
         # HTML Header
         html = (
-            f"<!DOCTYPE html><html><head><title>ObsForge: {current_run.upper()}</title>"
+            f"<!DOCTYPE html><html><head><title>"
+            f"ObsForge: {current_run.upper()}</title>"
             f"<style>{CSS_STYLES}</style></head><body>"
         )
-        
+
         # Title Bar
         gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
         html += (
-            f"<header><h1>ObsForge Monitor <span style='font-weight:normal; opacity:0.8'>"
+            f"<header><h1>ObsForge Monitor "
+            f"<span style='font-weight:normal; opacity:0.8'>"
             f"| {current_run.upper()}</span></h1>"
             f"<span>Generated: {gen_time}</span></header>"
         )
-        
+
         # Navigation Tabs
         html += "<div class='nav-tabs'>"
         for rt in all_runs:
@@ -265,18 +272,25 @@ class WebsiteGenerator:
         html += "</div>"
 
         # Global Toggle Checkbox (Hidden state controller)
-        html += "<input type='checkbox' id='global-history-toggle' class='history-toggle'>"
-        
+        html += (
+            "<input type='checkbox' id='global-history-toggle' "
+            "class='history-toggle'>"
+        )
+
         # Main Content Container
         html += "<div class='container'>"
-        
+
         # Toggle Switch UI
         html += """
         <div class='toggle-control'>
             <label for='global-history-toggle' class='toggle-label'>
-                <span style='font-size:1.2em'>&#128197;</span> 
-                <span class='toggle-text-all'>View: Full History (Click to zoom last 7 days)</span>
-                <span class='toggle-text-7d'>View: Last 7 Days (Click to see full history)</span>
+                <span style='font-size:1.2em'>&#128197;</span>
+                <span class='toggle-text-all'>
+                    View: Full History (Click to zoom last 7 days)
+                </span>
+                <span class='toggle-text-7d'>
+                    View: Last 7 Days (Click to see full history)
+                </span>
             </label>
         </div>
         """
@@ -295,7 +309,7 @@ class WebsiteGenerator:
 
         # Footer/Close
         html += "</div></body></html>"
-        
+
         # Write File
         with open(os.path.join(self.output_dir, f"{current_run}.html"), "w") as f:
             f.write(html)
@@ -306,55 +320,75 @@ class WebsiteGenerator:
         """Generates the table of files with warnings/errors."""
         flagged = self.reader.get_flagged_files(run_type)
         if not flagged:
-            return "" # Hide section if clean
+            return ""  # Hide section if clean
 
-        html = "<div class='section'><h2>&#9888; Flagged Files (Anomalies Detected)</h2>"
+        html = (
+            "<div class='section'><h2>&#9888; "
+            "Flagged Files (Anomalies Detected)</h2>"
+        )
         html += "<div class='flag-scroll-box'><table class='flag-table'>"
-        html += "<thead><tr><th>Cycle</th><th>File Path</th><th>Issue</th></tr></thead><tbody>"
-        
+        html += (
+            "<thead><tr><th>Cycle</th><th>File Path</th><th>Issue</th></tr>"
+            "</thead><tbody>"
+        )
+
         for f in flagged:
             cycle = f"{f['date']} {f['cycle']:02d}"
             short_path = f['file_path'].split('/')[-1]
             issue = f['error_message'] if f['error_message'] else "Unknown Issue"
             status = f['integrity_status']
-            
+
             # Smart Color Mapping
             if status in ['CORRUPT', 'ERR_ACC', 'EMPTY']:
-                css_class = "status-FAIL" # Red
+                css_class = "status-FAIL"  # Red
             elif status == 'WARNING':
-                css_class = "status-WARNING" # Yellow
+                css_class = "status-WARNING"  # Yellow
             else:
-                css_class = "status-MIS" # Grey
+                css_class = "status-MIS"  # Grey
 
             html += (
                 f"<tr class='{css_class}'><td>{cycle}</td>"
                 f"<td title='{f['file_path']}'>{short_path}</td>"
                 f"<td><b>{issue}</b></td></tr>"
             )
-            
+
         html += "</tbody></table></div></div>"
         return html
 
     def _render_inventory_section(self, run_type):
         """Generates the task status matrix with Legend."""
         html = "<div class='section'><h2>Inventory Status</h2>"
-        
+
         # Legend
         html += """
         <div class='legend'>
-            <span class='status-OK'><span class='dot' style='background:#27ae60'></span>OK</span>
-            <span class='status-WARNING'><span class='dot' style='background:#f39c12'></span>Warning (Data Anomaly)</span>
-            <span class='status-FAIL'><span class='dot' style='background:#e74c3c'></span>Fail (Task Error)</span>
-            <span class='status-MIS'><span class='dot' style='background:#95a5a6'></span>Missing/Unknown</span>
+            <span class='status-OK'>
+                <span class='dot' style='background:#27ae60'></span>OK
+            </span>
+            <span class='status-WARNING'>
+                <span class='dot' style='background:#f39c12'></span>
+                Warning (Data Anomaly)
+            </span>
+            <span class='status-FAIL'>
+                <span class='dot' style='background:#e74c3c'></span>
+                Fail (Task Error)
+            </span>
+            <span class='status-MIS'>
+                <span class='dot' style='background:#95a5a6'></span>
+                Missing/Unknown
+            </span>
         </div>
         """
-        
+
         html += "<div style='overflow-x:auto'><table class='matrix'>"
-        html += "<thead><tr><th style='width:150px'>Cycle</th><th>Task Details</th></tr></thead><tbody>"
-        
+        html += (
+            "<thead><tr><th style='width:150px'>Cycle</th>"
+            "<th>Task Details</th></tr></thead><tbody>"
+        )
+
         # limit=None -> Fetch ALL history
         matrix = self.reader.get_compressed_inventory(run_type, limit=None)
-        
+
         for row in matrix:
             if row['type'] == 'group':
                 label = (
@@ -363,84 +397,109 @@ class WebsiteGenerator:
                 )
                 html += (
                     f"<tr class='group-row'><td>{label}</td>"
-                    f"<td>{row['count']} Cycles - All Tasks OK & Files Valid</td></tr>"
+                    f"<td>{row['count']} Cycles - All Tasks OK & Files Valid</td>"
+                    f"</tr>"
                 )
             else:
                 cycle_str = f"{row['date']} {row['cycle']:02d}"
                 task_html = []
                 for t_name in sorted(row['tasks'].keys()):
                     raw_status = row['tasks'][t_name]
-                    
+
                     # FIX: Map database status to display status
-                    if raw_status == 'SUCCEEDED': status = 'OK'
-                    elif raw_status in ['FAILED', 'DEAD']: status = 'FAIL'
-                    elif raw_status == 'WARNING': status = 'WARNING'
-                    else: status = raw_status
-                    
+                    if raw_status == 'SUCCEEDED':
+                        status = 'OK'
+                    elif raw_status in ['FAILED', 'DEAD']:
+                        status = 'FAIL'
+                    elif raw_status == 'WARNING':
+                        status = 'WARNING'
+                    else:
+                        status = raw_status
+
                     if status in ['OK', 'FAIL', 'WARNING']:
                         cls = f"status-{status}"
                     else:
-                        cls = "status-MIS" # Grey
-                        
+                        cls = "status-MIS"  # Grey
+
                     task_html.append(f"<span class='{cls}'>{t_name}</span>")
-                
-                html += f"<tr><td><b>{cycle_str}</b></td><td>{' &nbsp;|&nbsp; '.join(task_html)}</td></tr>"
-        
+
+                html += (
+                    f"<tr><td><b>{cycle_str}</b></td>"
+                    f"<td>{' &nbsp;|&nbsp; '.join(task_html)}</td></tr>"
+                )
+
         html += "</tbody></table></div></div>"
         return html
 
     def _render_timing_section(self, run_type):
         """Generates Runtime performance plots (Mean ± σ)."""
-        html = "<div class='section'><h2>Task Performance (Mean ± σ)</h2><div class='plot-grid'>"
+        html = (
+            "<div class='section'><h2>Task Performance (Mean ± σ)</h2>"
+            "<div class='plot-grid'>"
+        )
         tasks = self.reader.get_all_task_names(run_type)
-        
+
         count = 0
         for task in tasks:
             data = self.reader.get_task_timing_series(run_type, task, days=None)
-            if not data: continue
-            
+            if not data:
+                continue
+
             # Pass std_key=None to force Temporal (Historical) bands
             f_full, f_7d = self.plotter.generate_dual_plots(
-                f"{task}", data, "mean_runtime", None, f"time_{run_type}_{task}", "Seconds"
+                f"{task}", data, "mean_runtime", None,
+                f"time_{run_type}_{task}", "Seconds"
             )
-            
+
             html += f"<div class='plot-card'><h3>{task}</h3>"
             if f_full:
-                html += f"<img src='plots/{f_full}' class='plot-img-all'><img src='plots/{f_7d}' class='plot-img-7d'>"
+                html += (
+                    f"<img src='plots/{f_full}' class='plot-img-all'>"
+                    f"<img src='plots/{f_7d}' class='plot-img-7d'>"
+                )
             else:
                 html += "<div class='no-plot'>Plot unavailable</div>"
             html += "</div>"
             count += 1
-            
-        if count == 0: html += "<p>No timing data available.</p>"
+
+        if count == 0:
+            html += "<p>No timing data available.</p>"
         html += "</div></div>"
         return html
 
     def _render_category_section(self, run_type):
         """Generates Observation Category plots (Mean ± StdDev)."""
-        html = "<div class='section'><h2>Observation Categories (Total Obs)</h2><div class='plot-grid'>"
+        html = (
+            "<div class='section'><h2>Observation Categories (Total Obs)</h2>"
+            "<div class='plot-grid'>"
+        )
         cats = self.reader.get_all_categories()
-        
+
         for cat in cats:
             data = self.reader.get_category_counts(run_type, cat, days=None)
-            if not data: continue
-            
+            if not data:
+                continue
+
             # Pass std_key=None to force Temporal (Historical) bands
             fname_base = f"cat_{run_type}_{cat}"
             f_full, f_7d = self.plotter.generate_dual_plots(
                 f"{cat} Total Obs", data, "total_obs", None, fname_base, "Count"
             )
-            
+
             detail_filename = f"detail_{run_type}_{cat}.html"
             self._generate_detail_page(run_type, cat, detail_filename)
-            
+
             html += f"""
             <div class='plot-card'>
-                <a href='{detail_filename}' style='text-decoration:none; color:inherit'>
+                <a href='{detail_filename}'
+                   style='text-decoration:none; color:inherit'>
                     <h3>{cat} &rarr;</h3>
             """
             if f_full:
-                html += f"<img src='plots/{f_full}' class='plot-img-all'><img src='plots/{f_7d}' class='plot-img-7d'>"
+                html += (
+                    f"<img src='plots/{f_full}' class='plot-img-all'>"
+                    f"<img src='plots/{f_7d}' class='plot-img-7d'>"
+                )
             else:
                 html += "<div class='no-plot'>Plot unavailable</div>"
             html += "</a></div>"
@@ -450,19 +509,27 @@ class WebsiteGenerator:
     def _generate_detail_page(self, run_type, category, filename):
         """Generates the detail page for a category, listing all Obs Spaces."""
         obs_spaces = self.reader.get_obs_spaces_for_category(category)
-        
-        html = f"<!DOCTYPE html><html><head><title>{category}</title><style>{CSS_STYLES}</style></head><body>"
-        
-        html += (
-            f"<header><h1>{category} <span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
-            f"<a href='{run_type}.html' style='color:white; font-weight:bold'>&larr; Back</a></header>"
+
+        html = (
+            f"<!DOCTYPE html><html><head><title>{category}</title>"
+            f"<style>{CSS_STYLES}</style></head><body>"
         )
-        
-        html += "<input type='checkbox' id='global-history-toggle' class='history-toggle'><div class='container'>"
+
+        html += (
+            f"<header><h1>{category} "
+            f"<span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
+            f"<a href='{run_type}.html' "
+            f"style='color:white; font-weight:bold'>&larr; Back</a></header>"
+        )
+
+        html += (
+            "<input type='checkbox' id='global-history-toggle' "
+            "class='history-toggle'><div class='container'>"
+        )
         html += """
         <div class='toggle-control'>
             <label for='global-history-toggle' class='toggle-label'>
-                <span style='font-size:1.2em'>&#128197;</span> 
+                <span style='font-size:1.2em'>&#128197;</span>
                 <span class='toggle-text-all'>View: Full History</span>
                 <span class='toggle-text-7d'>View: Last 7 Days</span>
             </label>
@@ -473,7 +540,7 @@ class WebsiteGenerator:
             # 1. Domain Info Logic
             dom = self.reader.get_obs_space_domains(run_type, space)
             domain_html = ""
-            
+
             # Check 3D status to conditionally show depth
             schema_info = self.reader.get_obs_space_schema_details(space)
             is_3d_profile = any(r['dimensionality'] >= 3 for r in schema_info)
@@ -483,60 +550,95 @@ class WebsiteGenerator:
                 # Spatial
                 if dom.get('min_lat') is not None:
                     parts.append(
-                        f"<b>Lat:</b> [{dom['min_lat']:.1f}, {dom['max_lat']:.1f}] &nbsp; "
-                        f"<b>Lon:</b> [{dom['min_lon']:.1f}, {dom['max_lon']:.1f}]"
+                        f"<b>Lat:</b> [{dom['min_lat']:.1f}, "
+                        f"{dom['max_lat']:.1f}] &nbsp; "
+                        f"<b>Lon:</b> [{dom['min_lon']:.1f}, "
+                        f"{dom['max_lon']:.1f}]"
                     )
-                
+
                 # Vertical (Depth) - ONLY SHOW IF 3D
                 if is_3d_profile and dom.get('depth_min') is not None:
-                    parts.append(f"<b>Depth:</b> [{dom['depth_min']:.1f}, {dom['depth_max']:.1f}]")
-                
-                # Vertical (Pressure)
-                p_min = dom.get('pressure_min') if dom.get('pressure_min') is not None else dom.get('air_pressure_min')
-                p_max = dom.get('pressure_max') if dom.get('pressure_max') is not None else dom.get('air_pressure_max')
-                
-                if p_min is not None:
-                    parts.append(f"<b>Pressure:</b> [{p_min:.1f}, {p_max:.1f}]")
-                
-                if parts:
-                    domain_html = f"<div class='domain-info'>{' &nbsp;|&nbsp; '.join(parts)}</div>"
+                    parts.append(
+                        f"<b>Depth:</b> [{dom['depth_min']:.1f}, "
+                        f"{dom['depth_max']:.1f}]"
+                    )
 
-            html += f"<div class='section'><h2>{space}</h2>{domain_html}<div class='plot-grid'>"
-            
+                # Vertical (Pressure)
+                p_min = (
+                    dom.get('pressure_min')
+                    if dom.get('pressure_min') is not None
+                    else dom.get('air_pressure_min')
+                )
+                p_max = (
+                    dom.get('pressure_max')
+                    if dom.get('pressure_max') is not None
+                    else dom.get('air_pressure_max')
+                )
+
+                if p_min is not None:
+                    parts.append(
+                        f"<b>Pressure:</b> [{p_min:.1f}, {p_max:.1f}]"
+                    )
+
+                if parts:
+                    domain_html = (
+                        f"<div class='domain-info'>"
+                        f"{' &nbsp;|&nbsp; '.join(parts)}</div>"
+                    )
+
+            html += (
+                f"<div class='section'><h2>{space}</h2>"
+                f"{domain_html}<div class='plot-grid'>"
+            )
+
             # 2. Volume Plot (TEMPORAL BAND)
             c_data = self.reader.get_obs_space_counts(run_type, space, days=None)
             if c_data:
                 # std_key=None -> Calculates Temporal Variance (Historical Band)
                 f_c_full, f_c_7d = self.plotter.generate_dual_plots(
-                    "Total Obs (± Historical \u03C3)", c_data, "total_obs", None, 
-                    f"{run_type}_{space}_cnt", "Count"
+                    "Total Obs (± Historical \u03C3)", c_data, "total_obs",
+                    None, f"{run_type}_{space}_cnt", "Count"
                 )
                 html += f"<div class='plot-card'><h3>Volume</h3>"
                 if f_c_full:
-                    html += f"<img src='plots/{f_c_full}' class='plot-img-all'><img src='plots/{f_c_7d}' class='plot-img-7d'>"
+                    html += (
+                        f"<img src='plots/{f_c_full}' class='plot-img-all'>"
+                        f"<img src='plots/{f_c_7d}' class='plot-img-7d'>"
+                    )
                 else:
                     html += "<div class='no-plot'>No plot</div>"
                 html += "</div>"
 
             # 3. Physics Plot (SPATIAL BAND)
             schema = self.reader.get_obs_space_schema(space)
-            phys_var = next((r['name'] for r in schema if r['group_name'] == 'ObsValue'), None)
-            
+            phys_var = next(
+                (r['name'] for r in schema if r['group_name'] == 'ObsValue'),
+                None
+            )
+
             if phys_var:
-                p_data = self.reader.get_variable_physics_series(run_type, space, phys_var, days=None)
+                p_data = self.reader.get_variable_physics_series(
+                    run_type, space, phys_var, days=None
+                )
                 if p_data:
                     # std_key='std_dev' -> Uses DB spatial stats
                     f_p_full, f_p_7d = self.plotter.generate_dual_plots(
-                        f"{phys_var} (Mean ± Spatial \u03C3)", p_data, "mean_val", "std_dev", 
+                        f"{phys_var} (Mean ± Spatial \u03C3)", p_data,
+                        "mean_val", "std_dev",
                         f"{run_type}_{space}_phys", "Value", clamp_bottom=False
                     )
                     html += f"<div class='plot-card'><h3>{phys_var}</h3>"
                     if f_p_full:
-                        html += f"<img src='plots/{f_p_full}' class='plot-img-all'><img src='plots/{f_p_7d}' class='plot-img-7d'>"
+                        html += (
+                            f"<img src='plots/{f_p_full}' "
+                            f"class='plot-img-all'>"
+                            f"<img src='plots/{f_p_7d}' "
+                            f"class='plot-img-7d'>"
+                        )
                     else:
                         html += "<div class='no-plot'>No plot</div>"
                     html += "</div>"
-            
+
             html += "</div></div>"
 
         html += "</div></body></html>"

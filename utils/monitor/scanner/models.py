@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class FileInventoryData:
@@ -7,19 +8,22 @@ class FileInventoryData:
     rel_path: str
     category: str
     obs_space_name: str
-    
-    integrity: str         # OK, CORRUPT, MISSING
+
+    integrity: str          # OK, CORRUPT, MISSING
     size_bytes: int
-    mtime: int             # Last Modified Time (Unix Epoch)
+    mtime: int              # Last Modified Time (Unix Epoch)
     obs_count: int
     error_msg: Optional[str] = None
-    
+
     # Raw metadata (Attributes, Schema)
     properties: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Deep Metrics (Calculated only if file changed)
-    stats: List[Dict] = field(default_factory=list)  # Min/Max/Std per variable
-    domain: Optional[Dict] = None                    # Lat/Lon/Time bounds
+    # Min/Max/Std per variable
+    stats: List[Dict] = field(default_factory=list)
+    # Lat/Lon/Time bounds
+    domain: Optional[Dict] = None
+
 
 @dataclass
 class TaskRunData:
@@ -35,8 +39,9 @@ class TaskRunData:
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     runtime_sec: Optional[float] = None
-    
+
     files: List[FileInventoryData] = field(default_factory=list)
+
 
 @dataclass
 class CycleData:
