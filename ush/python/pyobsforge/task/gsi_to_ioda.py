@@ -40,6 +40,7 @@ acft_predictors = [
     'instantaneousAltitudeRate_order_2',
 ]
 
+
 class GsiToIoda(Task):
     """
     Class for converting GSI diag files and bias correction files
@@ -221,21 +222,24 @@ class GsiToIoda(Task):
                 abias_copy_list.append([input_file, dest])
         FileHandler({'copy_opt': abias_copy_list}).sync()
 
-        # Check if there are NaNs in the abias file and if so, error here
+        # Check if there are NaNs in the abias file and if so, issue a warning and replace with zero.
+        # (This is needed as GMI channel 12 has NaNs in the bias file before August 2025)
         abias_file_path = os.path.join(bias_dir_path, f"{self.task_config.APREFIX}abias")
-        if os.path.exists(abias_file_path):
-            try:
-                with open(abias_file_path, 'r') as f:
-                    content = f.read()
-                    if 'NaN' in content:
-                        logger.error(f"Found NaN values in abias file: {abias_file_path}")
-                        raise ValueError(f"NaN values detected in abias file: {abias_file_path}")
-                    logger.info(f"NaN check passed for abias file: {abias_file_path}")
-            except Exception as e:
-                logger.error(f"Error reading abias file {abias_file_path}: {e}")
-                raise
-        else:
+        if not os.path.exists(abias_file_path):
             raise FileNotFoundError(f"abias file does not exist at expected path: {abias_file_path}")
+
+        try:
+            with open(abias_file_path, "r") as f:
+                content = f.read()
+            if "NaN" in content:
+                logger.warning(f"Found NaNs in abias file, replacing with zeros: {abias_file_path}")
+                content = content.replace("NaN", "0.0")
+                with open(abias_file_path, "w") as f:
+                    f.write(content)
+            logger.info(f"NaN sanitization completed for abias file: {abias_file_path}")
+        except Exception as e:
+            logger.error(f"Error processing abias file {abias_file_path}: {e}")
+            raise
 
         # Get instruments from the input abias file
         satlist = []
