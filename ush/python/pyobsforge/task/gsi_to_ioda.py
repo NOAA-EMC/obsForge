@@ -162,7 +162,7 @@ class GsiToIoda(Task):
         for conv_type in conv_types:
             conv_file_list = glob.glob(os.path.join(output_dir_path, f'*{conv_type}_*.nc'))
             conv_output_file_path = os.path.join(output_dir_path,
-                                                 f'{conv_type}_gsi_{self.task_config.current_cycle.strftime("%Y%m%d%H")}.nc')
+                                                 f'{conv_type}_gsi_{self.task_config.current_cycle.strftime("%Y%m%d%H")}.gsi.nc')
             logger.info(f"Combining {len(conv_file_list)} {conv_type} files to {conv_output_file_path}")
             gsid_combine.combine_obsspace(conv_file_list, conv_output_file_path, False)
             # remove individual conv_type files
