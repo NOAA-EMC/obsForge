@@ -142,8 +142,10 @@ pytest ush/python/pyobsforge/tests/ --disable-warnings -v
 
 ## Workflow Usage
 ```console
-source ush/of_setup.sh
-setup_xml.py --config config.yaml  --template obsforge_rocoto_template.xml.j2 --output obsforge.xml
+cd ush
+source of_setup.sh
+setup_xml.py --config ../parm/config.yaml  --template ../parm/obsforge_rocoto_template.xml.j2 --output obsforge.xml
+rocotorun -d obsforge.db -w obsforge.xml
 ```
 
 #### Note:
