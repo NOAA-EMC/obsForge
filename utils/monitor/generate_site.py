@@ -5,9 +5,8 @@ import os
 import traceback
 
 # --- ARCHITECTURE IMPORTS ---
-# Assumes PYTHONPATH includes the directory containing 'pyobsforge'
 try:
-    from pyobsforge.monitor.reporting.website_generator import WebsiteGenerator
+    from reporting.website_generator import WebsiteGenerator
 except ImportError as e:
     print("\n[ERROR] Could not import project modules.")
     print(f"Details: {e}")

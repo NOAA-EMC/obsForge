@@ -2,8 +2,8 @@ import os
 import shutil
 import logging
 from datetime import datetime
-from pyobsforge.monitor.reporting.data_service import ReportDataService
-from pyobsforge.monitor.reporting.plot_generator import PlotGenerator
+from .data_service import ReportDataService
+from .plot_generator import PlotGenerator
 
 # Setup Logging
 logging.basicConfig(

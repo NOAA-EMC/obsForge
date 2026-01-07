@@ -11,7 +11,7 @@ HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
 RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitoring"
 DATABASE="${RUN_DIR}/emcda.db"
 WEB_DIR="${RUN_DIR}/web"
-PY_MON="${HOMEobsforge}/ush/python/pyobsforge/monitor"
+PY_MON="${HOMEobsforge}/utils/monitor"
 GEN_SCRIPT="${PY_MON}/generate_site.py"
 
 # 2. Environment Setup

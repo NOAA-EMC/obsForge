@@ -7,10 +7,10 @@ import traceback
 
 # Ensure python path if running standalone
 try:
-    from pyobsforge.monitor.inspection.inspector import InventoryInspector
+    from inspection.inspector import InventoryInspector
 except ImportError:
     sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
-    from pyobsforge.monitor.inspection.inspector import InventoryInspector
+    from inspection.inspector import InventoryInspector
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

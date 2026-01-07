@@ -3,9 +3,9 @@ import sys
 import argparse
 import logging
 
-from pyobsforge.monitor.database.monitor_db import MonitorDB
-from pyobsforge.monitor.scanner.persistence import ScannerStateReader
-from pyobsforge.monitor.scanner.inventory_scanner import InventoryScanner
+from database.monitor_db import MonitorDB
+from scanner.persistence import ScannerStateReader
+from scanner.inventory_scanner import InventoryScanner
 
 def configure_logging(debug_mode: bool):
     root = logging.getLogger()
