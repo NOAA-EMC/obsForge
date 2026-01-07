@@ -257,7 +257,7 @@ class GsiToIoda(Task):
         # loop through satellites/sensors to write tlapse txt file
         for sat in satlist:
             outstr = ''
-            outfile = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapse.gsi.txt')
+            outfile = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
             with open(abias_file_path) as csvfile:
                 reader = csv.reader(csvfile)
                 for row in reader:
@@ -278,7 +278,7 @@ class GsiToIoda(Task):
             f.write('output:\n')
             for sat in satlist:
                 f.write(f'- sensor: {sat}\n')
-                f.write(f'  output file: {bias_dir_path}/{self.task_config["APREFIX"]}radiance_{sat}_satbias.gsi.nc\n')
+                f.write(f'  output file: {bias_dir_path}/{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc\n')
                 f.write('  predictors: *default_preds\n')
 
         # create YAML for input to aircraft bias converter
@@ -323,11 +323,11 @@ class GsiToIoda(Task):
         tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")
         with tarfile.open(tarball_out, "w") as tar:
             for sat in satlist:
-                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_satbias.gsi.nc')
+                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
                 if os.path.exists(bias_file):
                     logger.info(f"Adding {bias_file} to tarball")
                     tar.add(bias_file, arcname=os.path.basename(bias_file))
-                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapse.gsi.txt')
+                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
                 if os.path.exists(tlapse_file):
                     logger.info(f"Adding {tlapse_file} to tarball")
                     tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
