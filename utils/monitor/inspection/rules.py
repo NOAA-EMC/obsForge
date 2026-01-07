@@ -51,16 +51,16 @@ class ZeroObsRule(InspectionRule):
 
 class PhysicalRangeRule(InspectionRule):
     """
-    Checks if physical variables are within valid earth ranges defined in DB.
-    - Flags outliers/fill values as ERRORS.
-    - Detects Unit Mismatch (Celsius vs Kelvin).
-    - Checks for Frozen Sensors (Zero Variance).
+    Checks physical variables.
+    
+    1. FROZEN CHECK: Only applies to variables that have Physical Bounds defined.
+       (Skips metadata like 'ocean_basin' which are expected to be constant).
+    2. BOUNDS CHECK: Flags Overflow/Underflow.
+    3. UNIT INFERENCE: Detects Kelvin vs Celsius.
     """
 
     def check(self, f, ctx) -> str:
         try:
-            # Stats come from InspectionDataService.get_file_stats
-            # Each stat dict includes: min, max, mean, valid_min, valid_max, units
             stats = ctx['stats_loader'](f['id'])
         except Exception:
             return None
@@ -71,51 +71,51 @@ class PhysicalRangeRule(InspectionRule):
         for s in stats:
             var_name = s['name'].split('/')[-1]
             
+            # Helper: Does this variable have physical limits defined in the DB?
+            has_physics = (s.get('valid_min') is not None and s.get('valid_max') is not None)
+            
             # --- A. CHECK FROZEN SENSOR ---
-            # If min_std_dev is set (usually 0.0) and actual std_dev is <= that
-            if s.get('min_std_dev') is not None and s['std_dev'] <= s['min_std_dev']:
-                # Only flag if we have enough samples to be sure
-                if f['obs_count'] > 10:
-                    errors.append(f"{var_name} Frozen (StdDev {s['std_dev']})")
+            # Logic: Only check for "Frozen" if it's a Physical Variable.
+            # Metadata (which has no limits) is allowed to be frozen.
+            if has_physics:
+                threshold = s.get('min_std_dev', 0.0)
+                if s['std_dev'] <= threshold:
+                    # Ignore if too few observations to be statistically significant
+                    if f['obs_count'] > 10:
+                        errors.append(f"{var_name} Frozen (StdDev {s['std_dev']})")
 
             # --- B. CHECK PHYSICAL BOUNDS ---
-            # Skip if no limits defined in DB
-            if s.get('valid_min') is None or s.get('valid_max') is None:
+            if not has_physics:
                 continue
 
             v_min, v_max, v_mean = s['min'], s['max'], s['mean']
             limit_min, limit_max = s['valid_min'], s['valid_max']
             
-            # 1. Check against DB Limits (Primary Unit, usually Kelvin)
+            # 1. Check against DB Limits
             is_valid = (v_min >= limit_min and v_max <= limit_max)
             
             if is_valid:
-                continue # Data is perfect
+                continue 
 
-            # 2. If invalid, try Celsius Hypothesis (for Temperature only)
-            # Heuristic: If DB expects Kelvin (>250) but Mean is low (<100)
+            # 2. Try Celsius Hypothesis
             if 'kelvin' in (s.get('units') or '').lower() and v_mean < 100:
-                # Convert File Stats (C -> K)
                 conv_min = v_min + 273.15
                 conv_max = v_max + 273.15
-                
-                # Re-Check
                 if conv_min >= limit_min and conv_max <= limit_max:
                     celsius_detected = True
-                    continue # It is valid Celsius!
+                    continue 
             
-            # 3. If still invalid, it's a Gross Error
+            # 3. Gross Error
             if v_min < limit_min:
                 errors.append(f"{var_name} Underflow ({v_min:.1f} < {limit_min})")
             if v_max > limit_max:
                 errors.append(f"{var_name} Overflow ({v_max:.1f} > {limit_max})")
 
-        # Result Logic
         if errors:
-            return "; ".join(errors) # Warning/Failure
+            return "; ".join(errors)
         
         if celsius_detected:
-            return "INFO: Celsius Units Detected" # Informational
+            return "INFO: Celsius Units Detected"
             
         return None
 
