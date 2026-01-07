@@ -254,10 +254,10 @@ class GsiToIoda(Task):
                         if len(splitrow[1]) > 0:
                             satlist.append(splitrow[1])
 
-        # loop through satellites/sensors to write tlapmean txt file
+        # loop through satellites/sensors to write tlapse txt file
         for sat in satlist:
             outstr = ''
-            outfile = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapmean.gsi.txt')
+            outfile = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapse.gsi.txt')
             with open(abias_file_path) as csvfile:
                 reader = csv.reader(csvfile)
                 for row in reader:
@@ -327,7 +327,7 @@ class GsiToIoda(Task):
                 if os.path.exists(bias_file):
                     logger.info(f"Adding {bias_file} to tarball")
                     tar.add(bias_file, arcname=os.path.basename(bias_file))
-                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapmean.gsi.txt')
+                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}_tlapse.gsi.txt')
                 if os.path.exists(tlapse_file):
                     logger.info(f"Adding {tlapse_file} to tarball")
                     tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
