@@ -19,7 +19,7 @@ from wxflow import (AttrDict,
 
 logger = getLogger(__name__.split('.')[-1])
 
-predictors = [
+sat_predictors = [
     'constant',
     'zenith_angle',
     'cloud_liquid_water',
@@ -34,6 +34,11 @@ predictors = [
     'sensorScanAngle',
 ]
 
+acft_predictors = [
+    'constant',
+    'instantaneousAltitudeRate',
+    'instantaneousAltitudeRate_order_2',
+]
 
 class GsiToIoda(Task):
     """
@@ -232,7 +237,7 @@ class GsiToIoda(Task):
         else:
             raise FileNotFoundError(f"abias file does not exist at expected path: {abias_file_path}")
 
-        # Get instruments from the input file
+        # Get instruments from the input abias file
         satlist = []
         with open(abias_file_path) as csvfile:
             reader = csv.reader(csvfile)
@@ -258,13 +263,13 @@ class GsiToIoda(Task):
             with open(outfile, 'w') as f:
                 f.write(outstr)
 
-        # create YAML for input to converter
-        outyaml = os.path.join(bias_dir_path, 'satbias_converter.yaml')
-        with open(outyaml, 'w') as f:
+        # create YAML for input to satbias converter
+        outyaml_sat = os.path.join(bias_dir_path, 'satbias_converter.yaml')
+        with open(outyaml_sat, 'w') as f:
             f.write(f'input coeff file: {bias_dir_path}/{self.task_config.APREFIX}abias\n')
             f.write(f'input err file: {bias_dir_path}/{self.task_config.APREFIX}abias_pc\n')
             f.write('default predictors: &default_preds\n')
-            for pred in predictors:
+            for pred in sat_predictors:
                 f.write(f'- {pred}\n')
             f.write('output:\n')
             for sat in satlist:
@@ -272,18 +277,38 @@ class GsiToIoda(Task):
                 f.write(f'  output file: {bias_dir_path}/{self.task_config["APREFIX"]}radiance_{sat}_satbias.gsi.nc\n')
                 f.write('  predictors: *default_preds\n')
 
-        # Run executable to convert to UFO readable files
+        # create YAML for input to aircraft bias converter
+        outyaml_acft = os.path.join(bias_dir_path, 'acftbias_converter.yaml')
+        with open(outyaml_acft, 'w') as f:
+            f.write(f'input coeff file: {bias_dir_path}/{self.task_config.APREFIX}abias_air\n')
+            f.write('default predictors: &default_preds\n')
+            for pred in acft_predictors:
+                f.write(f'- {pred}\n')
+            f.write('output:\n')
+            f.write(f'- output file: {bias_dir_path}/{self.task_config["APREFIX"]}aircraft_bias.gsi.nc\n')
+            f.write('  predictors: *default_preds\n')
+
+        # Run executables to convert to UFO readable files
         satbias_converter_exe = os.path.join(self.task_config.HOMEobsforge,
                                              'build', 'bin', 'satbias2ioda.x')
 
         exec_cmd = Executable(satbias_converter_exe)
-        exec_cmd.add_default_arg(outyaml)
+        exec_cmd.add_default_arg(outyaml_sat)
         try:
             exec_cmd()
         except Exception as e:
             raise WorkflowException(f"An error occurred during execution of {exec_cmd}:\n{e}") from e
 
-        # Create tarball and copy to COMOUT
+        acftbias_converter_exe = os.path.join(self.task_config.HOMEobsforge,
+                                              'build', 'bin', 'acftbias2ioda.x')
+        exec_cmd = Executable(acftbias_converter_exe)
+        exec_cmd.add_default_arg(outyaml_acft)
+        try:
+            exec_cmd()
+        except Exception as e:
+            raise WorkflowException(f"An error occurred during execution of {exec_cmd}:\n{e}") from e
+
+        # Create satellite tarball and copy to COMOUT
         comout = os.path.join(self.task_config['COMROOT'],
                               self.task_config['PSLOT'],
                               f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
@@ -303,3 +328,12 @@ class GsiToIoda(Task):
                     logger.info(f"Adding {tlapse_file} to tarball")
                     tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
         logger.info(f"Finished creating bias correction tarball at {tarball_out}")
+
+        # copy aircraft bias file to COMOUT
+        acft_bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.gsi.nc')
+        if os.path.exists(acft_bias_file):
+            dest = os.path.join(comout, os.path.basename(acft_bias_file))
+            FileHandler({'copy_opt': [[acft_bias_file, dest]]}).sync()
+            logger.info(f"Copied aircraft bias file to {dest}")
+        else:
+            logger.warning(f"Aircraft bias file {acft_bias_file} does not exist, skipping copy to COMOUT")
