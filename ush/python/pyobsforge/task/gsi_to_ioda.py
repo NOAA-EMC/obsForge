@@ -21,12 +21,12 @@ logger = getLogger(__name__.split('.')[-1])
 
 sat_predictors = [
     'constant',
-    'zenith_angle',
-    'cloud_liquid_water',
+    'zenithAngle',
+    'cloudWaterContent',
     'lapseRate_order_2',
     'lapseRate',
-    'cosine_of_latitude_times_orbit_node',
-    'sine_of_latitude',
+    'cosineOfLatitudeTimesOrbitNode',
+    'sineOfLatitude',
     'emissivityJacobian',
     'sensorScanAngle_order_4',
     'sensorScanAngle_order_3',
