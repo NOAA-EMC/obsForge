@@ -140,18 +140,21 @@ class PhysicalRangeRule(InspectionRule):
 
 
 class DataQualityRule(InspectionRule):
-    """Checks for specific flags raised by the Scanner during file parsing."""
-    def check(self, f, ctx) -> str:
+    """Checks for specific flags raised by the Scanner (Zero Tolerance for Fill Values)."""
+    def check(self, f, context):
         props = f.get('properties')
         if not props:
             return None
 
         try:
+            import json
             if isinstance(props, str):
                 props = json.loads(props)
+            
             outliers = props.get('outliers', [])
             if outliers:
-                return f"Scanner Flags: {', '.join(outliers)}"
+                # Flag as a Critical Failure if ANY garbage is found
+                return f"Garbage Data: {', '.join(outliers)}"
         except Exception:
             pass
         return None
@@ -176,28 +179,35 @@ class VolumeAnomalyRule(InspectionRule):
 class TimeConsistencyRule(InspectionRule):
     """Checks if data timestamps match the filename cycle."""
     def check(self, f, ctx) -> str:
+        # 1. Safety Check: If Scanner failed to get time, we can't check consistency
         if f.get('start_time') is None:
             return None
 
         try:
-            # Calculate Cycle Epoch
+            # 2. Calculate Cycle Epoch (UTC)
+            # Format: YYYYMMDDHH
             cycle_str = f"{f['date']}{f['cycle']:02d}"
             cycle_dt = datetime.strptime(cycle_str, "%Y%m%d%H")
+            
+            # Force UTC for the cycle to match standard Epoch
             cycle_epoch = cycle_dt.replace(tzinfo=timezone.utc).timestamp()
 
-            # Allow +/- 9 hour window
-            window = 9 * 3600
+            # 3. Validation Window (Expanded to 12 hours to be safe against Timezone jitter)
+            window = 12 * 3600
 
+            # Check difference
             if abs(f['start_time'] - cycle_epoch) > window:
+                # Formatting for readable error message
                 file_dt = datetime.fromtimestamp(
                     f['start_time'], timezone.utc
                 ).strftime('%Y-%m-%d %H:%M')
+                
                 return (
                     f"Time Mismatch: Data starts {file_dt}, "
                     f"Cycle is {cycle_dt.strftime('%H:%M')}"
                 )
 
         except Exception:
-            pass  # Ignore date parsing errors
+            pass  # Ignore parsing errors if filename format is weird
 
         return None

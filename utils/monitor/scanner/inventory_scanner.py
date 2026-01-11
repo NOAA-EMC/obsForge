@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 
 import numpy as np
-from netCDF4 import Dataset, num2date
+from netCDF4 import Dataset, num2date, date2num  # Added date2num
 
 from .log_file_parser import parse_master_log, parse_output_files_from_log
 from .models import CycleData, FileInventoryData, TaskRunData
@@ -24,7 +24,6 @@ class InventoryScanner:
 
     def __init__(self, data_root, known_state: dict = None):
         self.data_root = os.path.abspath(data_root)
-        # Path -> {mtime}
         self.known_state = known_state or {}
         logger.debug(f"INIT: InventoryScanner root={self.data_root}")
 
@@ -44,7 +43,7 @@ class InventoryScanner:
                 continue
 
             date_str, cycle_int = m.group(1), int(m.group(2))
-            logger.info(f"Scanning Cycle via Master Log: {filename}")
+            # logger.info(f"Scanning Cycle via Master Log: {filename}")
 
             cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
             if cycle_obj.tasks:
@@ -143,12 +142,10 @@ class InventoryScanner:
                     if size == 0:
                         integrity = "EMPTY"
                     else:
-                        # INCREMENTAL CHECK
                         history = self.known_state.get(rel)
                         prev_mtime = history['mtime'] if history else 0
 
                         if mtime > prev_mtime:
-                            # CHANGED: Deep Scan
                             res = self._check_content_integrity(full_path)
                             integrity, meta, stats, domain, anomalies = res
                             obs_count = meta.get('obs', 0)
@@ -157,9 +154,6 @@ class InventoryScanner:
                             if anomalies:
                                 props['outliers'] = anomalies
                         else:
-                            # UNCHANGED: Skip Parsing
-                            # We send placeholder data.
-                            # The DB Gatekeeper will ignore this.
                             integrity = "OK_SKIPPED"
 
                 except OSError as e:
@@ -216,7 +210,10 @@ class InventoryScanner:
 
                 meta['schema'] = self._extract_full_schema(ds)
                 self._infer_dimensionality(meta['schema'])
+                
+                # --- CALL THE FIXED DOMAIN EXTRACTION ---
                 domain = self._extract_domain(ds)
+                
                 stats, anomalies = self._calculate_statistics(ds)
                 return "OK", meta, stats, domain, anomalies
         except Exception as e:
@@ -256,32 +253,71 @@ class InventoryScanner:
                 meta['ndim'] = 1
 
     def _extract_domain(self, ds):
+        """
+        Extracts start/end time.
+        FIXED: Uses date2num to safely handle 'cftime' objects and various Epochs (1858, 1981).
+        """
         d = {}
         try:
+            t_var = None
+            
+            # 1. Search for Time Variable (Check Root AND MetaData)
+            candidates = [
+                ('MetaData', 'dateTime'),
+                ('MetaData', 'time'),
+                (None, 'time'),       # Check root/time (for SST files)
+                (None, 'date')
+            ]
+            
+            for group, var_name in candidates:
+                if group:
+                    if group in ds.groups and var_name in ds.groups[group].variables:
+                        t_var = ds.groups[group].variables[var_name]
+                        break
+                else:
+                    if var_name in ds.variables:
+                        t_var = ds.variables[var_name]
+                        break
+
+            if t_var is not None:
+                # Get raw values
+                times = t_var[:]
+                if np.ma.is_masked(times):
+                    times = times.compressed()
+
+                if len(times) > 0:
+                    min_t, max_t = np.min(times), np.max(times)
+
+                    # --- CRITICAL FIX: Safe Unit Conversion ---
+                    if hasattr(t_var, 'units'):
+                        try:
+                            # Step A: Convert number to Date Object (might be cftime)
+                            dt_start = num2date(
+                                min_t, 
+                                units=t_var.units, 
+                                calendar=getattr(t_var, 'calendar', 'standard')
+                            )
+                            dt_end = num2date(
+                                max_t, 
+                                units=t_var.units, 
+                                calendar=getattr(t_var, 'calendar', 'standard')
+                            )
+                            
+                            # Step B: Convert Date Object to Unix Timestamp (seconds since 1970)
+                            # We use date2num to handle cftime objects safely (avoids .timestamp() crash)
+                            unix_units = "seconds since 1970-01-01 00:00:00"
+                            d['start'] = int(date2num(dt_start, units=unix_units))
+                            d['end'] = int(date2num(dt_end, units=unix_units))
+                        except Exception:
+                            # Fallback
+                            d['start'], d['end'] = int(min_t), int(max_t)
+                    else:
+                        d['start'], d['end'] = int(min_t), int(max_t)
+
+            # 2. Extract Spatial Domain (Unchanged)
+            # (Note: We look in MetaData for lat/lon as per IODA spec)
             if 'MetaData' in ds.groups:
                 md = ds.groups['MetaData']
-                if 'dateTime' in md.variables:
-                    t_var = md.variables['dateTime']
-                    times = t_var[:]
-                    if np.ma.is_masked(times):
-                        times = times.compressed()
-                    if len(times) > 0:
-                        min_t, max_t = np.min(times), np.max(times)
-                        if hasattr(t_var, 'units'):
-                            try:
-                                d['start'] = int(num2date(
-                                    min_t, units=t_var.units,
-                                    calendar=getattr(t_var, 'calendar', 'standard')
-                                ).timestamp())
-                                d['end'] = int(num2date(
-                                    max_t, units=t_var.units,
-                                    calendar=getattr(t_var, 'calendar', 'standard')
-                                ).timestamp())
-                            except Exception:
-                                d['start'], d['end'] = int(min_t), int(max_t)
-                        else:
-                            d['start'], d['end'] = int(min_t), int(max_t)
-                
                 axes = [
                     ('latitude', 'min_lat', 'max_lat'),
                     ('longitude', 'min_lon', 'max_lon')
@@ -304,30 +340,47 @@ class InventoryScanner:
         anomalies = []
         THRESHOLD = 1.5e9
         groups = ['ObsValue', 'MetaData']
+        
         for g in groups:
             if g not in ds.groups:
                 continue
             grp = ds.groups[g]
             for v_name, v_obj in grp.variables.items():
+                # Skip strings/objects
                 if v_obj.dtype == np.str_ or v_obj.dtype == np.object_:
                     continue
+                # Skip time variables
                 if 'dateTime' in v_name or 'time' in v_name.lower():
                     continue
+
                 try:
-                    d = v_obj[:]
-                    if np.ma.is_masked(d):
-                        d = d.compressed()
-                    if np.any(np.abs(d) > THRESHOLD):
-                        anomalies.append(f"Unmasked Fill Value in {v_name}")
-                    d = d[np.abs(d) < THRESHOLD]
-                    if len(d) > 0:
+                    # --- CRITICAL CHANGE: Force Raw Data Access ---
+                    # 1. Turn off auto-masking for this read to see the "garbage"
+                    v_obj.set_auto_mask(False) 
+                    raw_data = v_obj[:] 
+
+                    # 2. Check for Garbage (Huge Numbers)
+                    # Now 'raw_data' contains the 9.99e36 values if they exist
+                    if np.any(np.abs(raw_data) > THRESHOLD):
+                        anomalies.append(f"Contains Fill Values in {v_name}")
+
+                    # 3. For Statistics (Min/Max/Mean), we DO want to filter them out
+                    # otherwise the Mean will be 1e36.
+                    clean_data = raw_data[np.abs(raw_data) < THRESHOLD]
+
+                    if len(clean_data) > 0:
                         stats.append({
                             'name': f"{g}/{v_name}",
-                            'min': float(np.min(d)),
-                            'max': float(np.max(d)),
-                            'mean': float(np.mean(d)),
-                            'std': float(np.std(d))
+                            'min': float(np.min(clean_data)),
+                            'max': float(np.max(clean_data)),
+                            'mean': float(np.mean(clean_data)),
+                            'std': float(np.std(clean_data))
                         })
+                    else:
+                        # If the file is 100% garbage
+                        anomalies.append(f"Variable {v_name} is 100% Fill Values")
+
                 except Exception:
                     pass
+                    
         return stats, anomalies
