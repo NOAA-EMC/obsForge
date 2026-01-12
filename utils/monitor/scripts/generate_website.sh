@@ -7,30 +7,25 @@
 
 # 1. Configuration (Must match run_monitor.sh)
 # ------------------------------------------------------------------------------
-HOMEobsforge="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge"
-RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitoring"
+PROJECT_ROOT="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/obsForge/utils/monitor"
+
+RUN_DIR="/lfs/h2/emc/obsproc/noscrub/edward.givelberg/emcda_monitoring"
 DATABASE="${RUN_DIR}/emcda.db"
 WEB_DIR="${RUN_DIR}/web"
-PY_MON="${HOMEobsforge}/utils/monitor"
-GEN_SCRIPT="${PY_MON}/generate_site.py"
+
+SETUP_ENV_SCRIPT="${PROJECT_ROOT}/scripts/setup_env.sh"
+GEN_SCRIPT="${PROJECT_ROOT}/generate_site.py"
+
 
 # 2. Environment Setup
 # ------------------------------------------------------------------------------
 echo "--- Setting up Environment ---"
 
 # Source Main Setup
-if [ -f "${HOMEobsforge}/ush/of_setup.sh" ]; then
-    source "${HOMEobsforge}/ush/of_setup.sh"
+if [ -f "${SETUP_ENV_SCRIPT}" ]; then
+    source "${SETUP_ENV_SCRIPT}"
 else
-    echo "[FATAL] Setup script not found at ${HOMEobsforge}/ush/of_setup.sh"
-    exit 1
-fi
-
-# Load Plotting Dependencies
-echo "Loading py-matplotlib..."
-module load py-matplotlib
-if [ $? -ne 0 ]; then
-    echo "[FATAL] Failed to load module 'py-matplotlib'. Plotting is impossible."
+    echo "[FATAL] Setup script not found ${SETUP_ENV_SCRIPT}"
     exit 1
 fi
 

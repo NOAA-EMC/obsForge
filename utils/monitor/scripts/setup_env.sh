@@ -4,10 +4,22 @@
 # Purpose: Sets up WCOSS2 System Modules (ve/evs) & Python Path.
 # ------------------------------------------------------------------
 
-# 1. Validation
+# 1. Auto-Detect Project Root (If not supplied)
 if [ -z "${PROJECT_ROOT}" ]; then
-    echo "CRITICAL ERROR: PROJECT_ROOT is not set."
-    return 1 2>/dev/null || exit 1
+    # Get the directory where THIS script resides
+    # ${BASH_SOURCE[0]} works even when the script is sourced
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    
+    # Assume Root is one level up (../)
+    PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
+    
+    # Sanity Check: Does the root look right?
+    if [ ! -d "${PROJECT_ROOT}/scanner" ]; then
+        echo "CRITICAL ERROR: Auto-detected root '${PROJECT_ROOT}' does not contain 'scanner'."
+        echo "Please export PROJECT_ROOT manually."
+        return 1 2>/dev/null || exit 1
+    fi
+    # echo "[INFO] Auto-detected PROJECT_ROOT: ${PROJECT_ROOT}"
 fi
 
 # 2. Export Python Path
