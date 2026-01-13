@@ -158,6 +158,34 @@ def clean_lat_lon(lat, lon):
     mask &= ~np.isnan(lon)
 
     return mask
+
+
+def clean_depth(depth, min_depth=0.0, max_depth=11000.0):
+    """
+    Returns a boolean mask for valid depth values.
+
+    Parameters
+    ----------
+    depth : array-like or masked array
+        Depth values (meters, positive down).
+    min_depth : float
+        Minimum acceptable depth.
+    max_depth : float
+        Maximum acceptable depth.
+
+    Returns
+    -------
+    mask : np.ndarray (bool)
+        True where depth is valid.
+    """
+    depth = np.asarray(depth)
+
+    mask = np.isfinite(depth)
+    mask &= depth >= min_depth
+    mask &= depth <= max_depth
+
+    return mask
+
 #####################################################################
 
 

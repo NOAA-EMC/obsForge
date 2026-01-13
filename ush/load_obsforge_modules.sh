@@ -64,7 +64,9 @@ fi
 pyiodaPATH="${HOMEobsforge}/build/lib/python${PYTHON_VERSION}/"
 # Add wxflow to PYTHONPATH
 wxflowPATH="${HOMEobsforge}/ush/python"
-PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${HOMEobsforge}/ush:${wxflowPATH}:${pyiodaPATH}"
+# add DA utils python scripts to PYTHONPATH
+dautilsPATH="${HOMEobsforge}/sorc/da-utils/ush"
+PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}${HOMEobsforge}/ush:${wxflowPATH}:${pyiodaPATH}:${dautilsPATH}"
 export PYTHONPATH
 
 export PYTHONPATH="${PYTHONPATH}:${HOMEobsforge}/build/lib/python${PYTHON_VERSION}/site-packages"
