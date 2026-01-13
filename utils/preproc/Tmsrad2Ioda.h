@@ -53,13 +53,10 @@ namespace obsforge {
       std::vector<float> lon(dimspot * dimscan);
       std::vector<float> lat(dimspot * dimscan);
       std::vector<float> tb(dimspot * dimscan * dimchan);
-      std::vector<int> cqf(dimspot * dimscan * dimchan);
 
       ncFile.getVar("longitude").getVar(lon.data());
       ncFile.getVar("latitude").getVar(lat.data());
       ncFile.getVar("brightness_temperature").getVar(tb.data());
-      // Note: combinedQualityFlag in netCDF data is not identical to that in BUFR data
-      ncFile.getVar("combinedQualityFlag").getVar(cqf.data());
 
       // Read metadata variables (flattened storage)
       std::vector<float> sensor_view_angle(dimspot * dimscan);
@@ -104,6 +101,49 @@ namespace obsforge {
           // timegm interprets 't' as UTC and returns seconds since 1970
           epochTime[j] = static_cast<double>(timegm(&t));
       }
+
+      // Read QC flahgs (flattened storage)
+      // Note: combinedQualityFlag in netCDF data is not identical to that in BUFR data
+      std::vector<uint16_t> cqf(dimspot * dimscan * dimchan);
+      ncFile.getVar("combinedQualityFlag").getVar(cqf.data());
+
+      // flags in bufr Overall QC Flag and the corresponding flags in netCDF combinedQualityFlag
+      // 7   Outlier detection for internal calibration target spots: cfq 7
+      // 8   Outlier detection for noise diode calibration spots : cfg 8
+      // 9   Outlier detection for deep space calibration spots: cfq 9
+      // 13  Spacecraft is in an active maneuver: cfq 13
+      // 14  Solar intrusion: cfq 14
+      // 15  Lunar intrusion: cfq 15
+      // 16  Radio Frequency Interference: cfq 4
+      // 17  Internal Cal Target - Noise Diode Consistency: cfq 5
+      // 19  Attitude Quality:              cfq 6
+      // 20  Star Tracker Attitude Status:  StarTrackerStatus, or cfq 6 because this intergarte both: attitude quality (StarTrackerStatus>=2 or AttitudeErrorDeg > 0.75)
+      // 21  Software-defined Radio Transmit: flagSDRTX
+      // 22  Outlier Timestamp: cfq 3
+      
+      //std::vector<float>StarTrackerStatus(dimspot * dimscan * dimchan);
+      //ncFile.getVar("StarTrackerStatus").getVar(StarTrackerStatus.data());
+      std::vector<uint8_t>flagSDRTX(dimspot * dimscan * dimchan);
+      ncFile.getVar("flagSDRTX").getVar(flagSDRTX.data());
+
+      std::vector<int32_t>comflag(dimspot * dimscan * dimchan);
+      comflag = createRepackedFlag(cqf, flagSDRTX);
+
+
+      //std::vector<float>flagManeuver(dimspot * dimscan * dimchan);
+      //std::vector<float>flagSolarIntrusion(dimspot * dimscan * dimchan);
+      //std::vector<float>flagLunarIntrusion(dimspot * dimscan * dimchan);
+      //std::vector<float>flagRFI(dimspot * dimscan * dimchan);
+      //std::vector<float>flagICT_ND_Consistency(dimspot * dimscan * dimchan);
+      //std::vector<float>AttitudeErrorDeg(dimspot * dimscan * dimchan);
+
+      //ncFile.getVar("flagManeuver").getVar(flagManeuver.data());
+      //ncFile.getVar("flagSolarIntrusion").getVar(flagSolarIntrusion.data());
+      //ncFile.getVar("flagLunarIntrusion").getVar(flagLunarIntrusion.data());
+      //ncFile.getVar("flagRFI").getVar(flagRFI.data());
+      //ncFile.getVar("flagICT_ND_Consistency").getVar(flagICT_ND_Consistency.data());
+
+
 
       // Channel selection
       std::string channelStr;
@@ -172,7 +212,7 @@ namespace obsforge {
             size_t idx = (i*dimscan + j)*dimchan + ch;
 
             iodaVars.obsVal_(nchan*loc + k)   = tb[idx];
-            iodaVars.preQc_(nchan*loc + k)    = cqf[idx];
+            iodaVars.preQc_(nchan*loc + k)    = comflag[idx];
           }
           ++loc;
         }
@@ -181,6 +221,42 @@ namespace obsforge {
 
       return iodaVars;
     };
+
+   private:
+    std::vector<int32_t> createRepackedFlag(const std::vector<uint16_t>& rawflag, const std::vector<uint8_t>& flag1) {
+      std::vector<int32_t> new_flags(rawflag.size());
+
+      const uint16_t ma_ICT  = 1 << 6; // bit 7 
+      const uint16_t ma_ND   = 1 << 7; // bit 8
+      const uint16_t ma_Cold = 1 << 8; // bit 9
+      const uint16_t ma_Manv = 1 << 12; // bit 13
+      const uint16_t ma_SoInt = 1 << 13; // bit 14
+      const uint16_t ma_LuInt = 1 << 14; // bit 15
+      const uint16_t ma_RFI = 1 << 3; // bit 4
+      const uint16_t ma_ICTND = 1 << 4; // bit 5
+      const uint16_t ma_AttQ = 1 << 5; // bit 6
+      const uint16_t ma_time = 1 << 2; // bit 3
+      for (size_t i = 0; i < rawflag.size(); ++i) {
+         uint16_t val = rawflag[i];
+         uint8_t packed = 0;
+
+         if (val & ma_ICT)  packed |= (1 << 0); // New Bit 0
+         if (val & ma_ND)   packed |= (1 << 1);
+         if (val & ma_Cold) packed |= (1 << 2);
+         if (val & ma_Manv) packed |= (1 << 3);
+         if (val & ma_SoInt) packed |= (1 << 4);
+         if (val & ma_LuInt) packed |= (1 << 5);
+         if (val & ma_RFI) packed |= (1 << 6);
+         if (val & ma_ICTND) packed |= (1 << 7);
+         if (val & ma_AttQ) packed |= (1 << 8);
+         if (val & ma_time) packed |= (1 << 9);
+         if (flag1[i] == 1 ) packed |= (1 << 10); 
+
+         new_flags[i] = packed;
+         oops::Log::info() << " new_flags: " << new_flags[i] << std::endl;
+
+      }
+      return new_flags;
+    }
   };  // class Tmsrad2Ioda
 }  // namespace obsforge
-
