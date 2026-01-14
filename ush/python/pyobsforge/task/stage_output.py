@@ -74,6 +74,7 @@ class StageOutput(Task):
         logger.info("Starting the staging of output files.")
 
         copy_list = []
+        obs_source_log = []  # Track observation names and their sources
 
         for obs in self.task_config.observations:
             obs_name = obs.get('name')
@@ -94,6 +95,7 @@ class StageOutput(Task):
 
             if os.path.exists(src_file):
                 copy_list.append([src_file, dest_file])
+                obs_source_log.append((f"{self.task_config.OPREFIX}{obs_name}.nc", obs_source))
                 logger.info(f"Staging {obs_name} from {src_file} to {dest_file}")
             else:
                 logger.warning(f"Source file not found for observation '{obs_name}': {src_file}")
@@ -101,6 +103,16 @@ class StageOutput(Task):
         if copy_list:
             FileHandler({'mkdir': [self.task_config.COMOUT_ATMOS_OBS], 'copy': copy_list}).sync()
             logger.info(f"Copied {len(copy_list)} observation files to {self.task_config.COMOUT_ATMOS_OBS}")
+
+            # Write observation source log file
+            log_file_path = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
+                                         f"{self.task_config.OPREFIX}observation_source.log")
+            with open(log_file_path, 'w') as log_file:
+                log_file.write("# Observation Source Log\n")
+                log_file.write("# File Name, Source\n")
+                for filename, source in obs_source_log:
+                    log_file.write(f"{filename}, {source}\n")
+            logger.info(f"Wrote observation source log to {log_file_path}")
         else:
             logger.warning("No observation files were copied.")
 
