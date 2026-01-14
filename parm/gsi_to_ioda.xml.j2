@@ -54,6 +54,11 @@
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
     <envar><name>OBSPROC_COMROOT</name><value>/scratch3/NCEPDEV/global/role.glopara/dump/</value></envar>
     <envar><name>COMROOT_PROD</name><value>/scratch3/NCEPDEV/stmp/Cory.R.Martin/ops_gdas/</value></envar>
+	<!--<envar><name>COMROOT_PROD</name><value>/lfs/h1/ops/prod/com</value></envar>-->
+
+    <dependency>
+		<datadep><cyclestr>/scratch3/NCEPDEV/stmp/Cory.R.Martin/ops_gdas/gfs/v16.3/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.cnvstat</cyclestr></datadep>
+	</dependency>
 
 </task>
 
@@ -90,6 +95,10 @@
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
     <envar><name>OBSPROC_COMROOT</name><value>/lfs/h1/ops/prod/com/obsproc/v1.2</value></envar>
 
+    <dependency>
+		<datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/gdas.t@Hz.updated.status.tm00.bufr_d</cyclestr></datadep>
+	</dependency>
+
 </task>
 
 <!--
@@ -125,6 +134,14 @@
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
     <envar><name>OBSPROC_COMROOT</name><value>/scratch3/NCEPDEV/global/role.glopara/dump/</value></envar>
     <envar><name>COMROOT_PROD</name><value>/scratch3/NCEPDEV/stmp/Cory.R.Martin/ops_gdas/</value></envar>
+	<!--<envar><name>COMROOT_PROD</name><value>/lfs/h1/ops/prod/com</value></envar>-->
+
+    <dependency>
+	    <and>
+		    <taskdep>gdas_gsi_to_ioda</taskdep>
+		    <taskdep>gdas_atmos_bufr_dump</taskdep>
+	    </and>
+	</dependency>
 
 </task>
 
