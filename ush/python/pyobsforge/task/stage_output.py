@@ -40,19 +40,19 @@ class StageOutput(Task):
                                                      self.task_config['PSLOT'],
                                                      f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                      f"{self.task_config.cyc:02d}",
-                                                     'atmos')
+                                                     'atmos'),
                 'COMOUT_ATMOS_OBS': os.path.join(self.task_config['COMROOT'],
                                                  self.task_config['PSLOT'],
                                                  'output',
                                                  f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                  f"{self.task_config.cyc:02d}",
-                                                 'atmos')
+                                                 'atmos'),
                 'COMOUT_ATMOS_BC': os.path.join(self.task_config['COMROOT'],
                                                 self.task_config['PSLOT'],
                                                 'output',
                                                 f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                 f"{self.task_config.cyc:02d}",
-                                                'analysis', 'atmos')
+                                                'analysis', 'atmos'),
             }
         )
 
