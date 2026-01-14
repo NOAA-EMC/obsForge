@@ -44,7 +44,7 @@ namespace obsforge {
       // std::vector<std::string> floatMetadataNames = {"mdt"};
       std::vector<std::string> floatMetadataNames = {};
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
 
       std::vector<float> lat(iodaVars.location_);
       ncFile.getVar("Latitude").getVar(lat.data());

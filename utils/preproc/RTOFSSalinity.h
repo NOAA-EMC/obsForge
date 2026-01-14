@@ -47,6 +47,7 @@ RTOFSSalinity::
 
     obsforge::preproc::iodavars::IodaVars iodaVars(
         ob.TotalNumberOfValues(),
+        1,
         floatMetadataNames,
         intMetadataNames);
 
