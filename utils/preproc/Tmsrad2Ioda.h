@@ -183,6 +183,7 @@ namespace obsforge {
 
             iodaVars.obsVal_(nchan*loc + k)   = tb[idx];
             iodaVars.preQc_(nchan*loc + k)    = comflag[idx];
+            iodaVars.obsError_(nchan*loc + k) = 1.0;
           }
           ++loc;
         }

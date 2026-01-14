@@ -2,10 +2,10 @@ provider: TMSRAD
 window begin: '2025-09-14T21:00:00Z'
 window end: '2025-09-15T03:00:00Z'
 variable: brightnessTemperature
-output file: tms_out_2025091500.ioda.nc
+output file: tms_out_2025091500.ioda.nc4
 input files:
-- tms_rad_1.nc
-- tms_rad_2.nc
+- tms_rad_1.nc4
+- tms_rad_2.nc4
 thinning:
   threshold: 0
 channel: 1,2,3,4,5

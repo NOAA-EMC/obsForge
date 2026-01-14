@@ -23,7 +23,7 @@ cdl2nc4() {
   local input_cdl="$2"
 
   echo "Generating ${output_nc4}"
-  ncgen -o "$output_nc4" "$input_cdl"
+  ncgen -4 -o "$output_nc4" "$input_cdl"
 }
 
 project_source_dir=$1
@@ -51,3 +51,5 @@ cdl2nc4 ghrsst_sst_ma_202103241540.nc4 ${project_source_dir}/testdata/ghrsst_sst
 cdl2nc4 ghrsst_sst_ma_202103241550.nc4 ${project_source_dir}/testdata/ghrsst_sst_ma_202103241550.cdl
 cdl2nc4 viirs_aod_1.nc4 ${project_source_dir}/testdata/viirs_aod_1.cdl
 cdl2nc4 viirs_aod_2.nc4 ${project_source_dir}/testdata/viirs_aod_2.cdl
+cdl2nc4 tms_rad_1.nc4 ${project_source_dir}/testdata/tms_rad_1.cdl
+cdl2nc4 tms_rad_2.nc4 ${project_source_dir}/testdata/tms_rad_2.cdl
