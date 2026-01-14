@@ -10,11 +10,11 @@ if [[ ${status} -ne 0 ]]; then
     exit "${status}"
 fi
 
-export job="gsitoioda"
+export job="stageout"
 export jobid="${job}.$$"
 
 ###############################################################
 # Execute the JJOB
-"${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_GSI_TO_IODA"
+"${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_STAGE_OUTPUT"
 status=$?
 exit "${status}"

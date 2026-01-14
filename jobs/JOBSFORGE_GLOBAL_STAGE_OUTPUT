@@ -14,7 +14,7 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ###############################################################
 # Run relevant script
 
-EXSCRIPT=${GSITOIODAPY:-${HOMEobsforge}/scripts/exobsforge_global_gsi_to_ioda.py}
+EXSCRIPT=${GSITOIODAPY:-${HOMEobsforge}/scripts/exobsforge_global_stage_output.py}
 ${EXSCRIPT}
 status=$?
 if [[ ${status} -ne 0 ]]; then

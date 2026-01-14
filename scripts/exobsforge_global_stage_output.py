@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-# exobsforge_global_gsi_to_ioda.py
-# This script will collect and preprocess
-# observations and bias correction files
-# in the GSI output formats and convert
-# them for use by JEDI
-# - IODA files for observations
-# - UFO readable netCDF files for bias correction
+# exobsforge_global_stage_output.py
+# This script will create output directories
+# and stage files from other jobs as configured
+# to support cycling JEDI-based data assimilation prototype systems.
 import os
 
 from wxflow import AttrDict, Logger, cast_strdict_as_dtypedict, parse_j2yaml
-from pyobsforge.task.gsi_to_ioda import GsiToIoda
+from pyobsforge.task.stage_output import StageOutput
 
 # Initialize root logger
 logger = Logger(level='DEBUG', colored_log=True)
@@ -31,10 +28,7 @@ if __name__ == '__main__':
     config = AttrDict(**config_env, **obsforge_dict)
 
     # Instantiate the task
-    GsiToIodaTask = GsiToIoda(config)
+    StageOutputTask = StageOutput(config)
 
-    # Convert GSI diag files to IODA files
-    GsiToIodaTask.convert_gsi_diags()
-
-    # Convert bias correction files
-    GsiToIodaTask.convert_bias_correction_files()
+    # Run the task
+    StageOutputTask.run()
