@@ -4,6 +4,7 @@ from wxflow import Task, AttrDict, add_to_datetime, to_timedelta, FileHandler
 
 logger = getLogger(__name__.split('.')[-1])
 
+
 class StageOutput(Task):
     """
     Task to create output directories and stage files from other jobs
