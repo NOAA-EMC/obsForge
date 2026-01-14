@@ -70,11 +70,10 @@
 	<jobname><cyclestr>obsforge_gdas_atmos_bufr_dump_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
 	<queue>{{ QUEUE }}</queue>
-	<partition>{{ PARTITION }}</partition>
 	<walltime>{{ WALLTIME_ATMOS_BUFR_DUMP }}</walltime>
 	<nodes>{{ TASK_GEOM_ATMOS_BUFR_DUMP }}</nodes>
 	<memory>{{ MEMORY_ATMOS_BUFR_DUMP }}</memory>
-	<native>--export=NONE</native>
+	<native>-l place=vscatter:shared</native>
 
 	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_atmos_bufr_dump_prep.log</cyclestr></join>
 
