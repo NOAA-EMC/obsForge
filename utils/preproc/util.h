@@ -146,7 +146,6 @@ namespace obsforge {
         void append(const IodaVars& other) {
           // Check if the two instances can be concatenated
           ASSERT(nVars_ == other.nVars_);
-          ASSERT(channel_ == other.channel_);
           ASSERT(nfMetadata_ == other.nfMetadata_);
           ASSERT(niMetadata_ == other.niMetadata_);
 
@@ -167,9 +166,9 @@ namespace obsforge {
           longitude_.tail(other.location_) = other.longitude_;
           latitude_.tail(other.location_) = other.latitude_;
           datetime_.tail(other.location_) = other.datetime_;
-          obsVal_.tail(other.location_ * other.channel_) = other.obsVal_;
-          obsError_.tail(other.location_ * other.channel_) = other.obsError_;
-          preQc_.tail(other.location_ * other.channel_) = other.preQc_;
+          obsVal_.tail(other.location_ * channel_) = other.obsVal_;
+          obsError_.tail(other.location_ * channel_) = other.obsError_;
+          preQc_.tail(other.location_ * channel_) = other.preQc_;
           floatMetadata_.bottomRows(other.location_) = other.floatMetadata_;
           intMetadata_.bottomRows(other.location_) = other.intMetadata_;
           if (originalDatetime_.size() != 0) {
