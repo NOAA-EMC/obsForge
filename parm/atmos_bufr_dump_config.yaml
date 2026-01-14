@@ -175,10 +175,10 @@ atmosbufrdump:
       preserve_rel_path: True
     prepbufr_acft_profiles:
       input_file: prepbufr.acft_profiles
-      output_file: prepbufr_acft_profiles.nc
-      mapping_file: prepbufr_acft_profiles.yaml
+      output_file: prepbufr_aircraft.nc
+      mapping_file: prepbufr_aircraft.yaml
       script_file: 
-        - prepbufr_acft_profiles.py
+        - prepbufr_aircraft.py
         - prepbufr_obs_builder.py
       preserve_rel_path: True
     prepbufr_sfcshp:
