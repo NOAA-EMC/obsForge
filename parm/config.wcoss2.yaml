@@ -21,6 +21,16 @@ atmosbufrdump:
   TASK_GEOM_ATMOS_BUFR_DUMP: '1:ppn=80:tpp=1'
   MEMORY_ATMOS_BUFR_DUMP: 256GB
 
+gsitoioda:
+  WALLTIME_GSI_TO_IODA: '00:20:00'
+  TASK_GEOM_GSI_TO_IODA: '1:ppn=80:tpp=1'
+  MEMORY_GSI_TO_IODA: 256GB
+
+stageout:
+  WALLTIME_STAGE_OUTPUT: '00:10:00'
+  TASK_GEOM_STAGE_OUTPUT: '1:ppn=1:tpp=1'
+  MEMORY_STAGE_OUTPUT: 32GB
+
 aoddump:
   provider: VIIRSAOD
   platforms: ['npp', 'j01', 'n21'] # note j01==n20

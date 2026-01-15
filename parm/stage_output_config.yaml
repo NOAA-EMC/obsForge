@@ -1,0 +1,134 @@
+stageout:
+  observations:
+    - name: aircraft
+      source: GSI
+    - name: conventional_ps
+      source: GSI
+    - name: gnssro_cosmic2
+      source: BUFR
+    - name: gnssro_geooptics
+      source: BUFR
+    - name: gnssro_grace
+      source: BUFR
+    - name: gnssro_kompsat5
+      source: BUFR
+    - name: gnssro_metop
+      source: BUFR
+    - name: gnssro_paz
+      source: BUFR
+    - name: gnssro_planetiq
+      source: BUFR
+    - name: gnssro_sentinel6
+      source: BUFR
+    - name: gnssro_spire
+      source: BUFR
+    - name: gnssro_tandemx
+      source: BUFR
+    - name: gnssro_terrasarx
+      source: BUFR
+    - name: prepbufr_adpsfc
+      source: GSI
+    - name: prepbufr_adpupa
+      source: GSI
+    - name: prepbufr_sfcshp
+      source: GSI
+    - name: radiance_abi_g16
+      source: GSI
+    - name: radiance_abi_g17
+      source: GSI
+    - name: radiance_amsr2_gcom-w1
+      source: GSI
+    - name: radiance_amsua_n19
+      source: GSI
+    - name: radiance_atms_n20
+      source: GSI
+    - name: radiance_atms_n21
+      source: GSI
+    - name: radiance_atms_npp
+      source: GSI
+    - name: radiance_cris-fsr_n20
+      source: GSI
+    - name: radiance_cris-fsr_n21
+      source: GSI
+    - name: radiance_cris-fsr_npp
+      source: GSI
+    - name: radiance_iasi_metop-a
+      source: GSI
+    - name: radiance_iasi_metop-b
+      source: GSI
+    - name: radiance_iasi_metop-c
+      source: GSI
+    - name: radiance_seviri_m08
+      source: GSI
+    - name: radiance_seviri_m11
+      source: GSI
+    - name: radiance_ssmis_f17
+      source: GSI
+    - name: radiance_ssmis_f18
+      source: GSI
+    - name: retrieval_amv_abi_goes-16
+      source: GSI
+    - name: retrieval_amv_abi_goes-17
+      source: GSI
+    - name: retrieval_amv_abi_goes-18
+      source: GSI
+    - name: retrieval_amv_ahi_h8
+      source: GSI
+    - name: retrieval_amv_ahi_h9
+      source: GSI
+    - name: retrieval_amv_avhrr_metop-a
+      source: GSI
+    - name: retrieval_amv_avhrr_metop-b
+      source: GSI
+    - name: retrieval_amv_avhrr_metop-c
+      source: GSI
+    - name: retrieval_amv_avhrr_n15
+      source: GSI
+    - name: retrieval_amv_avhrr_n18
+      source: GSI
+    - name: retrieval_amv_avhrr_n19
+      source: GSI
+    - name: retrieval_amv_leogeo_multi
+      source: GSI
+    - name: retrieval_amv_modis_aqua
+      source: GSI
+    - name: retrieval_amv_modis_terra
+      source: GSI
+    - name: retrieval_amv_seviri_m10
+      source: GSI
+    - name: retrieval_amv_seviri_m11
+      source: GSI
+    - name: retrieval_amv_seviri_m8
+      source: GSI
+    - name: retrieval_amv_seviri_m9
+      source: GSI
+    - name: retrieval_amv_viirs_n20
+      source: GSI
+    - name: retrieval_amv_viirs_npp
+      source: GSI
+    - name: retrieval_osw_ascat_metop-a
+      source: GSI
+    - name: retrieval_osw_ascat_metop-b
+      source: GSI
+    - name: retrieval_osw_ascat_metop-c
+      source: GSI
+    - name: retrieval_ozone_omi_aura
+      source: GSI
+    - name: retrieval_ozone_ompsnp_n20
+      source: GSI
+    - name: retrieval_ozone_ompsnp_npp
+      source: GSI
+    - name: retrieval_ozone_ompstc_n20
+      source: GSI
+    - name: retrieval_ozone_ompstc_npp
+      source: GSI
+    - name: satwind
+      source: GSI
+    - name: sfc
+      source: GSI
+    - name: sfcship
+      source: GSI
+    - name: sondes
+      source: GSI
+  bias correction:
+      source: GSI
