@@ -27,7 +27,6 @@ class StageOutput(Task):
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
-                'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
                 # 'COMIN_OBSPROC': os.path.join(self.task_config.OBSPROC_COMROOT,
                 #                               f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                 #                               f"{self.task_config.cyc:02d}",
