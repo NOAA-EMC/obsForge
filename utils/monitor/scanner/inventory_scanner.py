@@ -27,7 +27,12 @@ class InventoryScanner:
         self.known_state = known_state or {}
         logger.debug(f"INIT: InventoryScanner root={self.data_root}")
 
-    def scan_filesystem(self, known_cycles: set = None) -> list:
+    def scan_filesystem(self, known_cycles: set = None, limit: int = None) -> list:
+        """
+        Scans for master logs and yields CycleData objects.
+        args:
+            limit (int): If provided, only process the last N (most recent) cycles.
+        """
         logs_root = os.path.join(self.data_root, "logs")
         if not os.path.isdir(logs_root):
             logger.error(f"Logs directory not found: {logs_root}")
@@ -36,6 +41,10 @@ class InventoryScanner:
         pattern = os.path.join(logs_root, "[0-9]*.log")
         master_logs = sorted(glob.glob(pattern))
 
+        if limit and limit > 0:
+            logger.info(f"Limiting scan to the last {limit} cycles.")
+            master_logs = master_logs[-limit:]
+
         for m_log_path in master_logs:
             filename = os.path.basename(m_log_path)
             m = re.match(r"(\d{8})(\d{2})\.log", filename)
@@ -43,8 +52,7 @@ class InventoryScanner:
                 continue
 
             date_str, cycle_int = m.group(1), int(m.group(2))
-            # logger.info(f"Scanning Cycle via Master Log: {filename}")
-
+            
             cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
             if cycle_obj.tasks:
                 yield cycle_obj

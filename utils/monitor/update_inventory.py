@@ -46,12 +46,19 @@ def main():
     parser.add_argument("--db", required=True, help="Path to SQLite DB")
     parser.add_argument("--data-root", required=True, help="Root scan dir")
     parser.add_argument("--debug", action="store_true", help="Debug logging")
+    parser.add_argument(
+        "--limit-cycles", 
+        type=int, 
+        default=None, 
+        help="Only process the N most recent cycles"
+    )
 
     args = parser.parse_args()
     configure_logging(args.debug)
     logger = logging.getLogger("UpdateInventory")
 
     logger.info(f"DB: {args.db}")
+    
     db_writer = MonitorDB(args.db)
 
     # 1. Fetch State (For mtime comparison only)
@@ -67,16 +74,16 @@ def main():
     total_new_updated = 0
     total_skipped = 0
 
-    for cycle_data in scanner.scan_filesystem():
+    for cycle_data in scanner.scan_filesystem(limit=args.limit_cycles):
         cycles_found += 1
         logger.info(
             f"Processing: {cycle_data.date} {cycle_data.cycle:02d}"
         )
-
+        
         for task in cycle_data.tasks:
             t_id = db_writer.get_or_create_task(task.task_name)
-
-            # Log Task Run (Always updated as "Last Seen")
+            
+            # Log Task Run
             tr_id, _ = db_writer.log_task_run(
                 task_id=t_id,
                 date=cycle_data.date,
@@ -100,7 +107,7 @@ def main():
                     f.obs_space_name, cat_id
                 )
 
-                # Try to log file
+                # Log file
                 file_id = db_writer.log_file_inventory(
                     task_run_id=tr_id,
                     obs_space_id=s_id,
@@ -114,7 +121,6 @@ def main():
                 )
 
                 if file_id:
-                    # DB accepted update -> File is New/Changed
                     total_new_updated += 1
 
                     if f.properties and 'schema' in f.properties:
@@ -136,9 +142,9 @@ def main():
                     if f.stats:
                         db_writer.log_variable_statistics(file_id, f.stats)
                 else:
-                    # DB returned None -> File Unchanged (Skipped)
                     total_skipped += 1
 
+        # Commit AFTER every cycle to release DB locks for Inspectors
         db_writer.commit()
 
     logger.info(

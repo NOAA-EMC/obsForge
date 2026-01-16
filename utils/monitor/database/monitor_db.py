@@ -15,8 +15,7 @@ class MonitorDB:
     Handles connection management, entity registration, and inventory logging.
     Enforces 'Update-on-Change' logic for file tracking.
     """
-
-    def __init__(self, db_path):
+    def __init__(self, db_path: str, read_only: bool = False):
         self.db_path = db_path
 
         # Ensure the directory exists
@@ -24,15 +23,19 @@ class MonitorDB:
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir)
 
-        # Connect to SQLite
-        self.conn = sqlite3.connect(db_path)
+        mode = "ro" if read_only else "rwc"
+        
+        # 1. Connect (Timeout and WAL to address potential database locking)
+        self.conn = sqlite3.connect(f"file:{db_path}?mode={mode}", uri=True, timeout=5.0)
         self.conn.row_factory = sqlite3.Row
-
-        # Enforce foreign key constraints
-        self.conn.execute("PRAGMA foreign_keys = ON")
-
-        # Initialize the Schema (create tables if missing)
-        MonitorSchema(self.conn)
+        
+        if not read_only:
+            # 2. ENABLE WAL
+            # This allows the Inspector (Reader) to run while Scanner (Writer) is working
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            
+            # Initialize the Schema (create tables if missing)
+            MonitorSchema(self.conn)
 
     # ==========================================================================
     # 1. ENTITY REGISTRATION (Get or Create)
