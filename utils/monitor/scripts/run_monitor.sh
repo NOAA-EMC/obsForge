@@ -58,7 +58,7 @@ fi
     # --- STEP 1: SCAN ---
     echo ""
     echo "[STEP 1] Scanning Filesystem..."
-    python3 "${PROJECT_ROOT}/update_inventory.py" \
+    python3 "${PROJECT_ROOT}/scan_inventory.py" \
         --db "$DATABASE" \
         --data-root "$DATA_ROOT" \
         --limit-cycles "$LIMIT_CYCLES" \
@@ -72,7 +72,7 @@ fi
     # --- STEP 2: INSPECT ---
     echo ""
     echo "[STEP 2] Inspecting..."
-    python3 "${PROJECT_ROOT}/inspect_inventory.py" \
+    python3 "${PROJECT_ROOT}/qc_data.py" \
         --db "$DATABASE"
 
     # --- STEP 3: REPORT ---

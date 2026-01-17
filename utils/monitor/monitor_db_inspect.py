@@ -4,18 +4,21 @@ import os
 import sys
 
 # --- ARCHITECTURE IMPORTS ---
-try:
-    from reporting.data_service import ReportDataService
-except ImportError:
-    # Bootstrap path if needed
-    sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
-    from reporting.data_service import ReportDataService
+# try:
+    # from reporting.data_service import ReportDataService
+# except ImportError:
+    # # Bootstrap path if needed
+    # sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+    # from reporting.data_service import ReportDataService
+
+from reporting.data_service import ReportDataService
 
 try:
     from reporting.plot_generator import PlotGenerator
     HAS_PLOT = True
 except ImportError:
     HAS_PLOT = False
+
 
 DESCRIPTION = """
 ObsForge Monitor Reporter

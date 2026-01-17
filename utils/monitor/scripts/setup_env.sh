@@ -14,8 +14,8 @@ if [ -z "${PROJECT_ROOT}" ]; then
     PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
     
     # Sanity Check: Does the root look right?
-    if [ ! -d "${PROJECT_ROOT}/scanner" ]; then
-        echo "CRITICAL ERROR: Auto-detected root '${PROJECT_ROOT}' does not contain 'scanner'."
+    if [ ! -d "${PROJECT_ROOT}/scanners" ]; then
+        echo "CRITICAL ERROR: Auto-detected root '${PROJECT_ROOT}' does not contain 'scanners'."
         echo "Please export PROJECT_ROOT manually."
         return 1 2>/dev/null || exit 1
     fi

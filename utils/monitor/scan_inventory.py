@@ -11,8 +11,8 @@ import logging
 import sys
 
 from database.monitor_db import MonitorDB
-from scanner.inventory_scanner import InventoryScanner
-from scanner.persistence import ScannerStateReader
+from scanners.inventory_scanner import InventoryScanner
+from scanners.persistence import ScannerStateReader
 
 
 def configure_logging(debug_mode: bool):
