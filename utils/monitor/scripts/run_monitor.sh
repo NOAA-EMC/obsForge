@@ -30,7 +30,7 @@ SETUP_ENV_SCRIPT="${PROJECT_ROOT}/scripts/setup_env.sh"
 # the number of cycles to scan
 # Default to 0 (All) if not set in environment
 LIMIT_CYCLES=${LIMIT_CYCLES:-0}
-LIMIT_CYCLES=2      # OVERWRITING for DEBUGGING/DEVELOPMENT
+LIMIT_CYCLES=10      # OVERWRITING for DEBUGGING/DEVELOPMENT
 
 
 mkdir -p "$RUN_DIR"
@@ -69,15 +69,22 @@ fi
         exit 1
     fi
 
-    # --- STEP 2: INSPECT ---
+    # --- STEP 2: ANALYZE ---
     echo ""
-    echo "[STEP 2] Inspecting..."
+    echo "[STEP 2] Analyzing..."
+    python3 "${PROJECT_ROOT}/analyze_data.py" \
+        --db "$DATABASE" \
+        --data-root "$DATA_ROOT"
+
+    # --- STEP 3: INSPECT ---
+    echo ""
+    echo "[STEP 3] Inspecting..."
     python3 "${PROJECT_ROOT}/qc_data.py" \
         --db "$DATABASE"
 
-    # --- STEP 3: REPORT ---
+    # --- STEP 4: REPORT ---
     echo ""
-    echo "[STEP 3] Generating Website..."
+    echo "[STEP 4] Generating Website..."
     
     python3 "${PROJECT_ROOT}/generate_site.py" \
         --db "$DATABASE" \
