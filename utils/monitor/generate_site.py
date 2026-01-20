@@ -4,15 +4,7 @@ import os
 import sys
 import traceback
 
-# --- ARCHITECTURE IMPORTS ---
-try:
-    from reporting.website_generator import WebsiteGenerator
-except ImportError as e:
-    print("\n[ERROR] Could not import project modules.")
-    print(f"Details: {e}")
-    print("\nPlease ensure PYTHONPATH is set correctly.")
-    print("Example: export PYTHONPATH=$PYTHONPATH:/path/to/ush/python\n")
-    sys.exit(1)
+from reporting.website_generator import WebsiteGenerator
 
 
 def main():
@@ -36,6 +28,12 @@ def main():
         help="Output directory where the website will be generated"
     )
 
+    parser.add_argument(
+        "--data-root",
+        required=True,
+        help="The root of the data directory tree"
+    )
+
     args = parser.parse_args()
 
     # 1. Validate Input
@@ -46,7 +44,11 @@ def main():
     try:
         # 2. Run Generator
         print(f"Reading Database: {args.db} ...")
-        generator = WebsiteGenerator(args.db, args.out)
+        generator = WebsiteGenerator(
+            db_path=args.db, 
+            output_dir=args.out, 
+            data_root=args.data_root
+        )
 
         generator.generate()
 

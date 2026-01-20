@@ -5,264 +5,123 @@ from datetime import datetime
 
 from .data_service import ReportDataService
 from .plot_generator import PlotGenerator
+from .css_styles import CSS_STYLES
+from .category_pages import CategoryGenerator
+from .obs_space_pages import ObsSpaceGenerator
 
-# Setup Logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger("WebGen")
 
-# --- CSS STYLES ---
-CSS_STYLES = """
-/* BASE STYLES */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    background: #f4f7f6;
-    color: #333;
-}
-header {
-    background: #2c3e50;
-    color: white;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-h1 { margin: 0; font-size: 1.5em; }
-a { text-decoration: none; color: inherit; }
-
-/* NAVIGATION TABS */
-.nav-tabs {
-    display: flex;
-    gap: 10px;
-    background: #34495e;
-    padding: 10px 20px;
-}
-.nav-btn {
-    color: #ecf0f1;
-    padding: 8px 16px;
-    border-radius: 4px;
-    background: #2c3e50;
-    font-weight: bold;
-    transition: background 0.2s;
-}
-.nav-btn.active { background: #3498db; color: white; }
-.nav-btn:hover { background: #2980b9; }
-
-/* PAGE LAYOUT */
-.container {
-    max-width: 1400px;
-    margin: 20px auto;
-    padding: 0 20px;
-}
-.section {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-}
-h2 {
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
-    margin-top: 0;
-    color: #2c3e50;
-}
-h3 { margin: 0 0 10px 0; color: #555; font-size: 1.1em; }
-
-/* INVENTORY MATRIX TABLE */
-table.matrix {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85em;
-}
-th, td {
-    padding: 6px 10px;
-    border: 1px solid #eee;
-    text-align: left;
-}
-th { background: #f8f9fa; color: #7f8c8d; }
-
-/* STATUS COLORS */
-.status-OK { color: #27ae60; font-weight: bold; }
-.status-FAIL { color: #e74c3c; font-weight: bold; }
-.status-WARNING { color: #f39c12; font-weight: bold; }
-.status-MIS { color: #95a5a6; }
-.group-row {
-    background: #eafaf1;
-    color: #27ae60;
-    font-weight: bold;
-    cursor: default;
-}
-
-/* LEGEND */
-.legend {
-    font-size: 0.85em;
-    margin-bottom: 10px;
-    padding: 5px;
-    background: #fdfdfd;
-    border: 1px solid #eee;
-    display: inline-block;
-    border-radius: 4px;
-}
-.legend span { margin-right: 15px; font-weight: bold; }
-.dot {
-    height: 10px;
-    width: 10px;
-    display: inline-block;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-/* FLAGGED FILES TABLE (Scrollable) */
-.flag-scroll-box {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #eee;
-}
-.flag-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9em;
-}
-.flag-table th {
-    background: #fdfefe;
-    color: #7f8c8d;
-    border-bottom: 2px solid #eee;
-    padding: 8px;
-    text-align: left;
-    position: sticky;
-    top: 0;
-}
-.flag-table td { border-bottom: 1px solid #f0f0f0; padding: 8px; }
-.flag-table tr:hover { background: #f9f9f9; }
-
-/* PLOT GRID */
-.plot-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-    gap: 20px;
-}
-.plot-card {
-    background: #fff;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 4px;
-    text-align: center;
-    transition: box-shadow 0.2s;
-}
-.plot-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-.plot-card img { max-width: 100%; height: auto; }
-.no-plot {
-    color: #999;
-    font-style: italic;
-    padding: 40px;
-    background: #fafafa;
-}
-
-/* DOMAIN INFO BOX */
-.domain-info {
-    font-size: 0.85em;
-    color: #666;
-    margin-bottom: 8px;
-    background: #f8f9fa;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-}
-
-/* HISTORY TOGGLE SWITCH */
-.toggle-control {
-    text-align: right;
-    margin-bottom: 10px;
-    font-size: 0.9em;
-    user-select: none;
-}
-.toggle-label {
-    cursor: pointer;
-    color: #3498db;
-    font-weight: bold;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.toggle-label:hover { color: #2980b9; }
-input[type="checkbox"].history-toggle { display: none; }
-
-/* Visibility Logic: Unchecked (Default) = Show All */
-.plot-img-all { display: block; }
-.plot-img-7d { display: none; }
-.toggle-text-all { display: inline; }
-.toggle-text-7d { display: none; }
-
-#global-history-toggle:checked ~ .container .plot-img-all { display: none; }
-#global-history-toggle:checked ~ .container .plot-img-7d { display: block; }
-#global-history-toggle:checked ~ .container .toggle-text-all { display: none; }
-#global-history-toggle:checked ~ .container .toggle-text-7d { display: inline; }
-"""
-
 
 class WebsiteGenerator:
-    """
-    Generates the static HTML dashboard.
-    Orchestrates data fetching, plot generation, and HTML assembly.
-    """
+    def __init__(self, *, db_path, data_root, output_dir):
+        self.data_root = os.path.abspath(data_root)
 
-    def __init__(self, db_path, output_dir):
+        # 1. Services and Data
         self.reader = ReportDataService(db_path)
+        
+        # 2. Path Management
         self.output_dir = output_dir
         self.plots_dir = os.path.join(output_dir, "plots")
-        self.plotter = PlotGenerator(self.plots_dir)
+        self.cat_dir = os.path.join(output_dir, "categories")
+        self.obs_dir = os.path.join(output_dir, "observations")
 
-        # Ensure clean build directory
+        # 3. Clean and Setup Directory Structure
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
-        os.makedirs(self.plots_dir)
+        
+        # Create all necessary subdirectories
+        for directory in [self.plots_dir, self.cat_dir, self.obs_dir]:
+            os.makedirs(directory, exist_ok=True)
+
+        # 4. Initialize Sub-Generators (The Refactored Parts)
+        # We pass the directory paths so they know where to save their files
+        self.plotter = PlotGenerator(self.plots_dir)
+        
+        self.category_gen = CategoryGenerator(self.cat_dir, self.reader, self.plotter)
+        self.obs_space_gen = ObsSpaceGenerator(self.obs_dir, self.reader, self.plotter, self.data_root)
 
     def generate(self):
         """Main execution method."""
         logger.info("Starting Website Generation...")
 
-        run_types = self.reader.get_all_run_types()  # e.g., ['gdas', 'gfs']
+        # Get the unique run types (e.g., 'gdas', 'gfs')
+        run_types = self.reader.get_all_run_types()
         if not run_types:
             logger.warning("No run types found. DB might be empty.")
             return
 
-        # 1. Create index.html redirect
+        # 1. Create index.html redirect to the first run type
         index_path = os.path.join(self.output_dir, "index.html")
         with open(index_path, "w") as f:
             f.write(
                 f'<meta http-equiv="refresh" content="0; '
                 f'url={run_types[0]}.html">'
-            )
+            )   
 
-        # 2. Build dashboard for each run type
+        # 2. Build the site structure for each run type
         for rt in run_types:
-            logger.info(f"Building Dashboard: {rt}")
+            logger.info(f"Building Site for Run Type: {rt}")
+            
+            # A. Generate the Dashboard/Landing page for this run type
+            # This is the top-level view showing all categories
             self._generate_dashboard(rt, run_types)
 
+            # B. Generate the Category-specific pages
+            # e.g., categories/gdas_conventional.html
+            self.category_gen.generate(rt)
+
+            # C. Generate the Observation Space detail pages
+            # e.g., observations/gdas_temp_300.html
+            # This is where your new Surface Plot logic will eventually sit
+            self.obs_space_gen.generate(rt)
+
         logger.info(f"Complete. Open {self.output_dir}/index.html")
+
+
 
     def _generate_dashboard(self, current_run, all_runs):
         """Builds the main dashboard HTML for a specific run type."""
 
         # HTML Header
-        html = (
-            f"<!DOCTYPE html><html><head><title>"
-            f"ObsForge: {current_run.upper()}</title>"
+        html = ( 
+            f"<!DOCTYPE html><html><head><title>ObsForge: {current_run.upper()}</title>"
             f"<style>{CSS_STYLES}</style></head><body>"
-        )
+        )   
 
-        # Title Bar
+        # Title Bar with System Info
         gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
         html += (
-            f"<header><h1>ObsForge Monitor "
-            f"<span style='font-weight:normal; opacity:0.8'>"
-            f"| {current_run.upper()}</span></h1>"
-            f"<span>Generated: {gen_time}</span></header>"
+            f"<header>"
+            f"<h1>ObsForge Monitor <span style='font-weight:normal; opacity:0.8'>| {current_run.upper()}</span></h1>"
+            f"<div style='text-align: right; font-size: 0.85em; opacity: 0.9;'>"
+            f"<div><b>Generated:</b> {gen_time}</div>"
+            f"<div><b>Data Source:</b> <code style='background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 3px;'>{self.data_root}</code></div>"
+            f"</div>"
+            f"</header>"
         )
+
+
+
+
+        # # HTML Header
+        # html = (
+            # f"<!DOCTYPE html><html><head><title>"
+            # f"ObsForge: {current_run.upper()}</title>"
+            # f"<style>{CSS_STYLES}</style></head><body>"
+        # )
+
+        # # Title Bar
+        # gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
+        # html += (
+            # f"<header><h1>ObsForge Monitor "
+            # f"<span style='font-weight:normal; opacity:0.8'>"
+            # f"| {current_run.upper()}</span></h1>"
+            # f"<span>Generated: {gen_time}</span></header>"
+        # )
 
         # Navigation Tabs
         html += "<div class='nav-tabs'>"
@@ -486,12 +345,14 @@ class WebsiteGenerator:
                 f"{cat} Total Obs", data, "total_obs", None, fname_base, "Count"
             )
 
-            detail_filename = f"detail_{run_type}_{cat}.html"
-            self._generate_detail_page(run_type, cat, detail_filename)
+            safe_cat = cat.replace("/", "_").replace(" ", "_")
+            detail_filename = f"{run_type}_{safe_cat}.html"
+            # detail_filename = f"detail_{run_type}_{cat}.html"
+            # self._generate_detail_page(run_type, cat, detail_filename)
 
             html += f"""
             <div class='plot-card'>
-                <a href='{detail_filename}'
+                <a href='categories/{detail_filename}'
                    style='text-decoration:none; color:inherit'>
                     <h3>{cat} &rarr;</h3>
             """
@@ -505,142 +366,3 @@ class WebsiteGenerator:
             html += "</a></div>"
         html += "</div></div>"
         return html
-
-    def _generate_detail_page(self, run_type, category, filename):
-        """Generates the detail page for a category, listing all Obs Spaces."""
-        obs_spaces = self.reader.get_obs_spaces_for_category(category)
-
-        html = (
-            f"<!DOCTYPE html><html><head><title>{category}</title>"
-            f"<style>{CSS_STYLES}</style></head><body>"
-        )
-
-        html += (
-            f"<header><h1>{category} "
-            f"<span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
-            f"<a href='{run_type}.html' "
-            f"style='color:white; font-weight:bold'>&larr; Back</a></header>"
-        )
-
-        html += (
-            "<input type='checkbox' id='global-history-toggle' "
-            "class='history-toggle'><div class='container'>"
-        )
-        html += """
-        <div class='toggle-control'>
-            <label for='global-history-toggle' class='toggle-label'>
-                <span style='font-size:1.2em'>&#128197;</span>
-                <span class='toggle-text-all'>View: Full History</span>
-                <span class='toggle-text-7d'>View: Last 7 Days</span>
-            </label>
-        </div>
-        """
-
-        for space in obs_spaces:
-            # 1. Domain Info Logic
-            dom = self.reader.get_obs_space_domains(run_type, space)
-            domain_html = ""
-
-            # Check 3D status to conditionally show depth
-            schema_info = self.reader.get_obs_space_schema_details(space)
-            is_3d_profile = any(r['dimensionality'] >= 3 for r in schema_info)
-
-            if dom:
-                parts = []
-                # Spatial
-                if dom.get('min_lat') is not None:
-                    parts.append(
-                        f"<b>Lat:</b> [{dom['min_lat']:.1f}, "
-                        f"{dom['max_lat']:.1f}] &nbsp; "
-                        f"<b>Lon:</b> [{dom['min_lon']:.1f}, "
-                        f"{dom['max_lon']:.1f}]"
-                    )
-
-                # Vertical (Depth) - ONLY SHOW IF 3D
-                if is_3d_profile and dom.get('depth_min') is not None:
-                    parts.append(
-                        f"<b>Depth:</b> [{dom['depth_min']:.1f}, "
-                        f"{dom['depth_max']:.1f}]"
-                    )
-
-                # Vertical (Pressure)
-                p_min = (
-                    dom.get('pressure_min')
-                    if dom.get('pressure_min') is not None
-                    else dom.get('air_pressure_min')
-                )
-                p_max = (
-                    dom.get('pressure_max')
-                    if dom.get('pressure_max') is not None
-                    else dom.get('air_pressure_max')
-                )
-
-                if p_min is not None:
-                    parts.append(
-                        f"<b>Pressure:</b> [{p_min:.1f}, {p_max:.1f}]"
-                    )
-
-                if parts:
-                    domain_html = (
-                        f"<div class='domain-info'>"
-                        f"{' &nbsp;|&nbsp; '.join(parts)}</div>"
-                    )
-
-            html += (
-                f"<div class='section'><h2>{space}</h2>"
-                f"{domain_html}<div class='plot-grid'>"
-            )
-
-            # 2. Volume Plot (TEMPORAL BAND)
-            c_data = self.reader.get_obs_space_counts(run_type, space, days=None)
-            if c_data:
-                # std_key=None -> Calculates Temporal Variance (Historical Band)
-                f_c_full, f_c_7d = self.plotter.generate_dual_plots(
-                    "Total Obs (± Historical \u03C3)", c_data, "total_obs",
-                    None, f"{run_type}_{space}_cnt", "Count"
-                )
-                html += f"<div class='plot-card'><h3>Volume</h3>"
-                if f_c_full:
-                    html += (
-                        f"<img src='plots/{f_c_full}' class='plot-img-all'>"
-                        f"<img src='plots/{f_c_7d}' class='plot-img-7d'>"
-                    )
-                else:
-                    html += "<div class='no-plot'>No plot</div>"
-                html += "</div>"
-
-            # 3. Physics Plot (SPATIAL BAND)
-            schema = self.reader.get_obs_space_schema(space)
-            phys_var = next(
-                (r['name'] for r in schema if r['group_name'] == 'ObsValue'),
-                None
-            )
-
-            if phys_var:
-                p_data = self.reader.get_variable_physics_series(
-                    run_type, space, phys_var, days=None
-                )
-                if p_data:
-                    # std_key='std_dev' -> Uses DB spatial stats
-                    f_p_full, f_p_7d = self.plotter.generate_dual_plots(
-                        f"{phys_var} (Mean ± Spatial \u03C3)", p_data,
-                        "mean_val", "std_dev",
-                        f"{run_type}_{space}_phys", "Value", clamp_bottom=False
-                    )
-                    html += f"<div class='plot-card'><h3>{phys_var}</h3>"
-                    if f_p_full:
-                        html += (
-                            f"<img src='plots/{f_p_full}' "
-                            f"class='plot-img-all'>"
-                            f"<img src='plots/{f_p_7d}' "
-                            f"class='plot-img-7d'>"
-                        )
-                    else:
-                        html += "<div class='no-plot'>No plot</div>"
-                    html += "</div>"
-
-            html += "</div></div>"
-
-        html += "</div></body></html>"
-        with open(os.path.join(self.output_dir, filename), "w") as f:
-            f.write(html)

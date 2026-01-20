@@ -80,6 +80,7 @@ fi
     echo "[STEP 3] Generating Website..."
     
     python3 "${PROJECT_ROOT}/generate_site.py" \
+        --data-root "$DATA_ROOT" \
         --db "$DATABASE" \
         --out "$WEB_DIR"
 

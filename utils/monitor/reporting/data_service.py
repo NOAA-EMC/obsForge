@@ -500,3 +500,41 @@ class ReportDataService:
     def get_physics_series(self, *args, **kwargs):
         """CLI Alias."""
         return self.get_variable_physics_series(*args, **kwargs)
+
+    def get_recent_files_info(self, run_type, obs_space_name, limit=4):
+        """
+        Retrieves metadata and file paths for the last N cycles.
+        """
+        try:
+            cursor = self.conn.cursor()
+            query = """
+                SELECT 
+                    tr.date, 
+                    tr.cycle, 
+                    fi.file_path, 
+                    fi.obs_count
+                FROM file_inventory fi
+                JOIN obs_spaces os ON fi.obs_space_id = os.id
+                JOIN task_runs tr ON fi.task_run_id = tr.id
+                WHERE os.name = ? 
+                  AND tr.run_type = ? 
+                  AND tr.status = 'SUCCEEDED'
+                ORDER BY tr.date DESC, tr.cycle DESC
+                LIMIT ?
+            """
+            cursor.execute(query, (obs_space_name, run_type, limit))
+            rows = cursor.fetchall()
+
+            results = []
+            for row in rows:
+                results.append({
+                    'date': row[0],
+                    'cycle': row[1],
+                    'file_path': row[2],
+                    'obs_count': row[3]
+                })
+            return results
+
+        except Exception as e:
+            logger.error(f"Error fetching recent files for {obs_space_name}: {e}")
+            return []

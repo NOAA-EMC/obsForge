@@ -11,6 +11,8 @@ try:
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
     import numpy as np
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
     HAS_MATPLOTLIB = True
     MISSING_LIB_MSG = ""
 except ImportError as e:
@@ -220,3 +222,40 @@ class PlotGenerator:
         except Exception as e:
             logger.error(f"Render failed for {out_path}: {e}")
             return False
+
+    def generate_surface_map(self, run_type, space, lats, lons, values, units="Units"):
+        """
+        Generates a static PNG map of observations on the Earth's surface.
+        """
+        if lats is None or lons is None or len(lats) == 0 or len(lons) == 0:
+            return None
+
+        # Create filename
+        safe_name = space.replace("/", "_").replace(" ", "_")
+        filename = f"surface_{run_type}_{safe_name}.png"
+        filepath = os.path.join(self.output_dir, filename)
+
+        # Setup Figure & Map Projection
+        fig = plt.figure(figsize=(12, 7))
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        
+        # Add Geographic Features
+        ax.add_feature(cfeature.COASTLINE, linewidth=0.8)
+        ax.add_feature(cfeature.BORDERS, linestyle=':', alpha=0.5)
+        ax.stock_img() # Adds basic topo/ocean texture
+
+        # Plot Data
+        # Use a colormap suitable for weather data (e.g., 'viridis' or 'RdBu_r' for anomalies)
+        sc = ax.scatter(lons, lats, c=values, s=10, cmap='viridis', 
+                        transform=ccrs.PlateCarree(), alpha=0.8)
+
+        # Aesthetics
+        plt.colorbar(sc, label=units, orientation='horizontal', pad=0.05, aspect=50)
+        plt.title(f"{space} Distribution | {run_type.upper()}", loc='left', fontweight='bold')
+        plt.title(f"Count: {len(values)}", loc='right')
+
+        # Save and Close
+        plt.savefig(filepath, bbox_inches='tight', dpi=120)
+        plt.close(fig)
+        
+        return filename
