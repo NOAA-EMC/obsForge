@@ -49,7 +49,7 @@ namespace obsforge {
       std::vector<std::string> floatMetadataNames = {};
 
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
 
       oops::Log::debug() << "--- iodaVars.location_: " << iodaVars.location_ << std::endl;
 

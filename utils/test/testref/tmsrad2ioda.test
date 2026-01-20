@@ -1,0 +1,26 @@
+Reading: [tms_rad_1.nc4,tms_rad_2.nc4]
+seconds since 1970-01-01T00:00:00Z
+obsVal:
+    Min: 148.828
+    Max: 274.406
+    Sum: 251889
+obsError:
+    Min: 1
+    Max: 1
+    Sum: 1100
+preQc:
+    Min: 0
+    Max: 1
+    Sum: 33
+longitude:
+    Min: -156.064
+    Max: 175.262
+    Sum: 1153.09
+latitude:
+    Min: -87.1914
+    Max: -2.07227
+    Sum: -10769.6
+datetime:
+    Min: 1757894986
+    Max: 1757896546
+    Sum: 386737068960

@@ -51,7 +51,7 @@ namespace obsforge {
       std::vector<std::string> floatMetadataNames = {"mdt"};
 
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
 
       // Read non-optional metadata: datetime, longitude and latitude
       std::vector<int> lat(iodaVars.location_);
