@@ -39,13 +39,13 @@ class StageOutput(Task):
                                                      'atmos'),
                 'COMOUT_ATMOS_OBS': os.path.join(self.task_config['COMROOT'],
                                                  self.task_config['PSLOT'],
-                                                 'output',
+                                                 'output_obs',
                                                  f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                  f"{self.task_config.cyc:02d}",
                                                  'atmos'),
                 'COMOUT_ATMOS_BC': os.path.join(self.task_config['COMROOT'],
                                                 self.task_config['PSLOT'],
-                                                'output',
+                                                'output_bc',
                                                 f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
                                                 f"{self.task_config.cyc:02d}",
                                                 'analysis', 'atmos'),
@@ -108,8 +108,20 @@ class StageOutput(Task):
                 for filename, source in obs_source_log:
                     log_file.write(f"{filename}, {source}\n")
             logger.info(f"Wrote observation source log to {log_file_path}")
+
         else:
             logger.warning("No observation files were copied.")
+
+        # Copy obsforge BUFR status log file
+        bufr_status_log_src = os.path.join(self.task_config.COMIN_ATMOS_OBSFORGE,
+                                           "obsforge_atmos_bufr_status.log")
+        bufr_status_log_dest = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
+                                            "obsforge_atmos_bufr_status.log")
+        if os.path.exists(bufr_status_log_src):
+            FileHandler({'copy': [[bufr_status_log_src, bufr_status_log_dest]]}).sync()
+            logger.info(f"Copied BUFR status log from {bufr_status_log_src} to {bufr_status_log_dest}")
+        else:
+            logger.warning(f"BUFR status log file not found: {bufr_status_log_src}")
 
         # Copy bias correction files if source is GSI
         bias_correction_config = self.task_config.get('bias correction', {})
