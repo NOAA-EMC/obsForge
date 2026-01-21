@@ -27,11 +27,11 @@ stageout:
     - name: gnssro_terrasarx
       source: BUFR
     - name: prepbufr_adpsfc
-      source: GSI
+      source: BUFR 
     - name: prepbufr_adpupa
-      source: GSI
+      source: BUFR 
     - name: prepbufr_sfcshp
-      source: GSI
+      source: BUFR 
     - name: radiance_abi_g16
       source: GSI
     - name: radiance_abi_g17
