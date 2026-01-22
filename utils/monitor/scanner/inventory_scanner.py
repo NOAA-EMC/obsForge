@@ -228,6 +228,80 @@ class InventoryScanner:
             return "CORRUPT", {"err": str(e)}, [], None, []
 
     def _extract_full_schema(self, ds_or_group, parent_path=""):
+        """
+        Recursively extracts variable metadata using actual NetCDF dimensions.
+        """
+        schema = {}
+        
+        # Process variables in the current group
+        for var_name, var_obj in ds_or_group.variables.items():
+            full_name = f"{parent_path}/{var_name}" if parent_path else var_name
+            
+            # Use the actual dimensions defined in the NetCDF file
+            actual_dims = var_obj.dimensions
+            
+            schema[full_name] = {
+                'type': str(var_obj.dtype),
+                'dims': ",".join(actual_dims),
+                'ndim': len(actual_dims)  # Use actual rank (e.g., 2 for [nlocs, nchans])
+            }
+
+        # Recursive step: Process nested groups
+        for group_name, group_obj in ds_or_group.groups.items():
+            new_path = f"{parent_path}/{group_name}" if parent_path else group_name
+            schema.update(self._extract_full_schema(group_obj, new_path))
+            
+        return schema
+
+    def _infer_dimensionality(self, schema):
+        """
+        Refines dimensionality for Database storage.
+        Logic: 
+        1 = Metadata (non-spatial)
+        2 = Surface/Spatial (tied to nlocs only)
+        3 = Profile/Spectral (nlocs + vertical/channel dimension)
+        """
+        # Create a set of all variable paths to check for vertical/spectral indicators
+        all_paths = set(schema.keys())
+
+        for path, meta in schema.items():
+            dims_list = meta['dims'].split(',') if meta['dims'] else []
+            
+            # 1. MetaData group is always auxiliary (1D)
+            if path.startswith("MetaData/"):
+                meta['ndim'] = 1
+                continue
+
+            # 2. Hard-wired 3D: Any variable with more than one dimension
+            # e.g., (nlocs, nchans) or (nlocs, nlevels)
+            if len(dims_list) > 1:
+                meta['ndim'] = 3
+                continue
+
+            # 3. Handle 1D variables in Value groups (ObsValue, ObsError, etc.)
+            if path.startswith(("ObsValue/", "ObsError/", "PreQC/")):
+                # Look for indicators of vertical (Atmos/Marine) or spectral (Radiance) data
+                vertical_indicators = [
+                    'MetaData/depth', 'MetaData/pressure', 'MetaData/height', 
+                    'MetaData/air_pressure', 'MetaData/sensor_channel', 
+                    'MetaData/level', 'MetaData/channelIndex'
+                ]
+                
+                is_profile = any(f"{ind}" in all_paths for ind in vertical_indicators)
+                
+                if 'nlocs' in dims_list:
+                    # If there is vertical info elsewhere, this 1D variable is likely 
+                    # a slice or coordinate of a 3D system. Otherwise, it's 2D surface.
+                    meta['ndim'] = 3 if is_profile else 2
+                else:
+                    meta['ndim'] = 1
+            else:
+                # Everything else (e.g., GeoVaLs or other groups)
+                meta['ndim'] = 1
+
+
+
+    def old_extract_full_schema(self, ds_or_group, parent_path=""):
         schema = {}
         for var_name, var_obj in ds_or_group.variables.items():
             full_name = (
@@ -245,7 +319,7 @@ class InventoryScanner:
             schema.update(self._extract_full_schema(group_obj, new_path))
         return schema
 
-    def _infer_dimensionality(self, schema):
+    def old_infer_dimensionality(self, schema):
         for path, meta in schema.items():
             if path.startswith("MetaData/"):
                 meta['ndim'] = 1
@@ -259,6 +333,70 @@ class InventoryScanner:
                 meta['ndim'] = 3 if is_3d else 2
             else:
                 meta['ndim'] = 1
+
+    def try_extract_full_schema(self, ds_or_group, parent_path=""):
+        schema = {}
+        for var_name, var_obj in ds_or_group.variables.items():
+            full_name = f"{parent_path}/{var_name}" if parent_path else var_name
+            
+            # Use actual NetCDF attributes
+            actual_dims = var_obj.dimensions
+            actual_ndim = len(actual_dims)
+            
+            schema[full_name] = {
+                'type': str(var_obj.dtype),
+                'dims': ",".join(actual_dims),
+                'ndim': actual_ndim,  # Start with the actual rank
+                'shape': var_obj.shape
+            }
+            
+        for group_name, group_obj in ds_or_group.groups.items():
+            new_path = f"{parent_path}/{group_name}" if parent_path else group_name
+            schema.update(self._extract_full_schema(group_obj, new_path))
+        return schema
+
+    def try_infer_dimensionality(self, schema):
+        """
+        Better logic for Atmos, Marine, and Radiance data.
+        """
+        for path, meta in schema.items():
+            dims_list = meta['dims'].split(',')
+            
+            # MetaData is almost always 1D (per location or per channel)
+            if path.startswith("MetaData/"):
+                meta['ndim'] = 1
+                continue
+
+            # Core Logic: If it has more than one dimension, it's multi-level/multi-channel
+            # Example: (nlocs, nlevels) or (nlocs, nchans)
+            if len(dims_list) > 1:
+                meta['ndim'] = 3
+            else:
+                # Even if it's 1D, it could be a flattened 3D profile.
+                # Check for common vertical/spectral indicators in other variables
+                is_profile = any(
+                    v in schema for v in [
+                        'MetaData/depth',           # Marine
+                        'MetaData/pressure',        # Atmos
+                        'MetaData/height',          # Atmos
+                        'MetaData/air_pressure',    # IODA Standard
+                        'MetaData/sensor_channel',  # Radiance
+                        'MetaData/channelIndex'     # Radiance
+                    ]
+                )
+                
+                # If it's in a value group and we found vertical metadata, call it 3D
+                if path.startswith(("ObsValue/", "ObsError/", "PreQC/")) and is_profile:
+                    # Logic: if actual dim is 1 but it's a profile, it might be 
+                    # interleaved or require vertical indexing. 
+                    # But if dims_list is just ('nlocs',), it's a 2D surface.
+                    if 'nlocs' in dims_list and len(dims_list) == 1:
+                         # This is a single surface value per location
+                         meta['ndim'] = 2
+                    else:
+                         meta['ndim'] = 3
+                else:
+                    meta['ndim'] = 2 if 'nlocs' in dims_list else 1
 
     def _extract_domain(self, ds):
         """

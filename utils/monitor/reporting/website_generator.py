@@ -19,68 +19,104 @@ logger = logging.getLogger("WebGen")
 class WebsiteGenerator:
     def __init__(self, *, db_path, data_root, output_dir):
         self.data_root = os.path.abspath(data_root)
+        self.output_dir = os.path.abspath(output_dir)
 
-        # 1. Services and Data
+        # 1. Services
         self.reader = ReportDataService(db_path)
-        
-        # 2. Path Management
-        self.output_dir = output_dir
-        self.plots_dir = os.path.join(output_dir, "plots")
-        self.cat_dir = os.path.join(output_dir, "categories")
-        self.obs_dir = os.path.join(output_dir, "observations")
 
-        # 3. Clean and Setup Directory Structure
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        
-        # Create all necessary subdirectories
-        for directory in [self.plots_dir, self.cat_dir, self.obs_dir]:
-            os.makedirs(directory, exist_ok=True)
+        # 2. Sub-generators (output_dir assigned later per run type)
+        self.plotter = PlotGenerator(None)
+        self.category_gen = CategoryGenerator(None, self.reader, self.plotter)
+        self.obs_space_gen = ObsSpaceGenerator(None, self.reader, self.plotter, self.data_root)
 
-        # 4. Initialize Sub-Generators (The Refactored Parts)
-        # We pass the directory paths so they know where to save their files
-        self.plotter = PlotGenerator(self.plots_dir)
-        
-        self.category_gen = CategoryGenerator(self.cat_dir, self.reader, self.plotter)
-        self.obs_space_gen = ObsSpaceGenerator(self.obs_dir, self.reader, self.plotter, self.data_root)
+        # 3. Prepare run paths dict
+        self.run_paths = {}
+        self.run_types = []
 
-    def generate(self):
-        """Main execution method."""
-        logger.info("Starting Website Generation...")
+        # 4. Create website directory structure (archiving-ready)
+        # This will create top-level dirs; per-run dirs created in _create_website_dir()
+        # No deletion, safe for future incremental updates
+        # Optional: call this here for top-level structure, per-run created in generate()
+        os.makedirs(self.output_dir, exist_ok=True)
 
-        # Get the unique run types (e.g., 'gdas', 'gfs')
-        run_types = self.reader.get_all_run_types()
-        if not run_types:
-            logger.warning("No run types found. DB might be empty.")
+
+    def _create_website_dir(self):
+        """
+        Create/update website directories for all run types.
+        Sets self.run_types and self.run_paths.
+        """
+        logger.info(f"Preparing website directories at {self.output_dir}")
+
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        # Get all run types from DB
+        self.run_types = self.reader.get_all_run_types()
+        if not self.run_types:
+            logger.warning("No run types found in DB")
             return
 
-        # 1. Create index.html redirect to the first run type
+        # Top-level runs directory
+        runs_dir = os.path.join(self.output_dir, "runs")
+        os.makedirs(runs_dir, exist_ok=True)
+
+        self.run_paths = {}
+
+        for rt in self.run_types:
+            run_root = os.path.join(runs_dir, rt)
+            plots_dir = os.path.join(run_root, "plots")
+            cat_dir = os.path.join(run_root, "categories")
+            obs_dir = os.path.join(run_root, "observations")
+
+            # Create missing dirs only, preserve existing content
+            for d in [run_root, plots_dir, cat_dir, obs_dir]:
+                os.makedirs(d, exist_ok=True)
+
+            self.run_paths[rt] = {
+                "run_root": run_root,
+                "plots": plots_dir,
+                "categories": cat_dir,
+                "observations": obs_dir
+            }
+
+    def generate(self):
+        logger.info("Starting Website Generation...")
+
+        # 1. Create/update per-run directories and set self.run_types
+        self._create_website_dir()
+        if not self.run_types:
+            return
+
+        # 2. Create top-level index.html redirect to first run type
         index_path = os.path.join(self.output_dir, "index.html")
         with open(index_path, "w") as f:
             f.write(
-                f'<meta http-equiv="refresh" content="0; '
-                f'url={run_types[0]}.html">'
-            )   
+                f'<meta http-equiv="refresh" content="0; url=runs/{self.run_types[0]}/index.html">'
+            )
 
-        # 2. Build the site structure for each run type
-        for rt in run_types:
-            logger.info(f"Building Site for Run Type: {rt}")
-            
-            # A. Generate the Dashboard/Landing page for this run type
-            # This is the top-level view showing all categories
-            self._generate_dashboard(rt, run_types)
+        # 3. Generate content for each run type
+        for rt in self.run_types:
+            logger.info(f"Generating website for run type: {rt}")
+            dirs = self.run_paths[rt]
 
-            # B. Generate the Category-specific pages
-            # e.g., categories/gdas_conventional.html
+            # Assign directories to sub-generators for this run type
+            self.plotter.output_dir = dirs["plots"]
+            self.category_gen.output_dir = dirs["categories"]
+            self.obs_space_gen.output_dir = dirs["observations"]
+
+            # Generate dashboard, categories, obs space pages
+            # self._generate_dashboard(rt, self.run_types, output_root=dirs["run_root"])
+            self._generate_dashboard(rt, self.run_types)
+
             self.category_gen.generate(rt)
-
-            # C. Generate the Observation Space detail pages
-            # e.g., observations/gdas_temp_300.html
-            # This is where your new Surface Plot logic will eventually sit
             self.obs_space_gen.generate(rt)
 
-        logger.info(f"Complete. Open {self.output_dir}/index.html")
+        logger.info(f"Website generation complete. Open {index_path}")
 
+    def _relative_path(self, from_path, to_path):
+        """
+        Return the relative path from from_path to to_path
+        """
+        return os.path.relpath(to_path, start=os.path.dirname(from_path))
 
 
     def _generate_dashboard(self, current_run, all_runs):
@@ -92,7 +128,7 @@ class WebsiteGenerator:
             f"<style>{CSS_STYLES}</style></head><body>"
         )   
 
-        # Title Bar with System Info
+        # Title Bar
         gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
         html += (
             f"<header>"
@@ -104,42 +140,19 @@ class WebsiteGenerator:
             f"</header>"
         )
 
-
-
-
-        # # HTML Header
-        # html = (
-            # f"<!DOCTYPE html><html><head><title>"
-            # f"ObsForge: {current_run.upper()}</title>"
-            # f"<style>{CSS_STYLES}</style></head><body>"
-        # )
-
-        # # Title Bar
-        # gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
-        # html += (
-            # f"<header><h1>ObsForge Monitor "
-            # f"<span style='font-weight:normal; opacity:0.8'>"
-            # f"| {current_run.upper()}</span></h1>"
-            # f"<span>Generated: {gen_time}</span></header>"
-        # )
-
-        # Navigation Tabs
+        # Navigation Tabs (legacy layout)
         html += "<div class='nav-tabs'>"
         for rt in all_runs:
             cls = "active" if rt == current_run else ""
-            html += f"<a href='{rt}.html' class='nav-btn {cls}'>{rt.upper()}</a>"
+            link = f"{rt}.html"
+            html += f"<a href='{link}' class='nav-btn {cls}'>{rt.upper()}</a>"
         html += "</div>"
 
-        # Global Toggle Checkbox (Hidden state controller)
-        html += (
-            "<input type='checkbox' id='global-history-toggle' "
-            "class='history-toggle'>"
-        )
+        # Global toggle
+        html += "<input type='checkbox' id='global-history-toggle' class='history-toggle'>"
 
-        # Main Content Container
+        # Main content container
         html += "<div class='container'>"
-
-        # Toggle Switch UI
         html += """
         <div class='toggle-control'>
             <label for='global-history-toggle' class='toggle-label'>
@@ -154,23 +167,18 @@ class WebsiteGenerator:
         </div>
         """
 
-        # Section 1: Flagged Files (Anomalies)
+        # Sections
         html += self._render_flagged_section(current_run)
-
-        # Section 2: Inventory Matrix
         html += self._render_inventory_section(current_run)
-
-        # Section 3: Task Performance Plots
         html += self._render_timing_section(current_run)
-
-        # Section 4: Category Observation Plots
         html += self._render_category_section(current_run)
 
-        # Footer/Close
+        # Close container
         html += "</div></body></html>"
 
-        # Write File
-        with open(os.path.join(self.output_dir, f"{current_run}.html"), "w") as f:
+        # Write dashboard
+        filename = f"{current_run}.html"
+        with open(os.path.join(self.output_dir, filename), "w") as f:
             f.write(html)
 
     # --- SECTION RENDERERS ---
@@ -366,3 +374,4 @@ class WebsiteGenerator:
             html += "</a></div>"
         html += "</div></div>"
         return html
+

@@ -11,6 +11,7 @@ try:
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
     import numpy as np
+    import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
     HAS_MATPLOTLIB = True
@@ -40,6 +41,17 @@ class PlotGenerator:
         self.output_dir = output_dir
         if not HAS_MATPLOTLIB:
             logger.warning(f"Plotting disabled: {MISSING_LIB_MSG}")
+        else:
+            # Get the directory where THIS file (plot_generator.py) lives
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            cartopy_data_dir = os.path.join(base_dir, "cartopy_data")
+
+            if os.path.exists(cartopy_data_dir):
+                cartopy.config['data_dir'] = cartopy_data_dir
+                # Force cartopy to ONLY look here and not try to download
+                cartopy.config['pre_existing_data_dir'] = cartopy_data_dir
+            else:
+                print(f"Warning: Cartopy data not found at {cartopy_data_dir}")
 
     def generate_dual_plots(
         self, title, data, val_key, std_key, fname_base, y_label,
@@ -238,11 +250,21 @@ class PlotGenerator:
         # Setup Figure & Map Projection
         fig = plt.figure(figsize=(12, 7))
         ax = plt.axes(projection=ccrs.PlateCarree())
-        
-        # Add Geographic Features
-        ax.add_feature(cfeature.COASTLINE, linewidth=0.8)
-        ax.add_feature(cfeature.BORDERS, linestyle=':', alpha=0.5)
-        ax.stock_img() # Adds basic topo/ocean texture
+
+        # Remove background by setting facecolor to 'none'
+        # This keeps the geometry but makes it transparent
+        ax.add_feature(cfeature.LAND.with_scale('110m'), facecolor='none', edgecolor='none')
+        ax.add_feature(cfeature.OCEAN.with_scale('110m'), facecolor='none', edgecolor='none')
+
+        # Keep ONLY the Coastlines (the outline of continents)
+        ax.add_feature(cfeature.COASTLINE.with_scale('110m'), linewidth=0.5, edgecolor='black')
+
+        # ax.add_feature(cfeature.COASTLINE, linewidth=0.8)
+        # ax.add_feature(cfeature.BORDERS, linestyle=':', alpha=0.5)
+        # ax.stock_img() # Adds basic topo/ocean texture
+
+        # Remove the grey "frame" around the map for a cleaner look
+        ax.spines['geo'].set_visible(False) 
 
         # Plot Data
         # Use a colormap suitable for weather data (e.g., 'viridis' or 'RdBu_r' for anomalies)
