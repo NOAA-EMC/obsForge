@@ -160,11 +160,11 @@ atmosbufrdump:
       output_file: retrieval_osw_ascat_{splits/satId}.nc
       mapping_file: retrieval_osw_ascat.yaml
       script_file: retrieval_osw_ascat.py
-    # ssmis: 
-    #   input_file: ssmisu.tm00.bufr_d
-    #   output_file: ssmis_{splits/satId}.nc
-    #   mapping_file: ssmis.yaml
-    #   script_file: ssmis.py
+    ssmis: 
+      input_file: ssmisu.tm00.bufr_d
+      output_file: radiance_ssmis_{splits/satId}.nc
+      mapping_file: radiance_ssmis.yaml
+      script_file: radiance_ssmis.py
     prepbufr_adpsfc:
       input_file: prepbufr
       output_file: prepbufr_adpsfc.nc
