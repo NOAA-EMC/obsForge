@@ -7,6 +7,8 @@ from .data_service import ReportDataService
 from .plot_generator import PlotGenerator
 from .css_styles import CSS_STYLES
 from .category_pages import CategoryGenerator
+from .obs_spaces_pages_generator import ObsSpacePagesGenerator
+# to be deprecated:
 from .obs_space_pages import ObsSpaceGenerator
 
 logging.basicConfig(
@@ -21,96 +23,87 @@ class WebsiteGenerator:
         self.data_root = os.path.abspath(data_root)
         self.output_dir = os.path.abspath(output_dir)
 
-        # 1. Services
         self.reader = ReportDataService(db_path)
 
-        # 2. Sub-generators (output_dir assigned later per run type)
-        self.plotter = PlotGenerator(None)
-        self.category_gen = CategoryGenerator(None, self.reader, self.plotter)
-        self.obs_space_gen = ObsSpaceGenerator(None, self.reader, self.plotter, self.data_root)
-
-        # 3. Prepare run paths dict
-        self.run_paths = {}
-        self.run_types = []
-
-        # 4. Create website directory structure (archiving-ready)
-        # This will create top-level dirs; per-run dirs created in _create_website_dir()
-        # No deletion, safe for future incremental updates
-        # Optional: call this here for top-level structure, per-run created in generate()
-        os.makedirs(self.output_dir, exist_ok=True)
-
-
-    def _create_website_dir(self):
-        """
-        Create/update website directories for all run types.
-        Sets self.run_types and self.run_paths.
-        """
-        logger.info(f"Preparing website directories at {self.output_dir}")
-
-        os.makedirs(self.output_dir, exist_ok=True)
-
-        # Get all run types from DB
         self.run_types = self.reader.get_all_run_types()
         if not self.run_types:
             logger.warning("No run types found in DB")
             return
 
-        # Top-level runs directory
-        runs_dir = os.path.join(self.output_dir, "runs")
-        os.makedirs(runs_dir, exist_ok=True)
+        self._define_dir_structure()
 
+
+    def _define_dir_structure(self):
+        self.runs_dir = os.path.join(self.output_dir, "runs")
         self.run_paths = {}
-
         for rt in self.run_types:
-            run_root = os.path.join(runs_dir, rt)
+            run_root = os.path.join(self.runs_dir, rt)
             plots_dir = os.path.join(run_root, "plots")
             cat_dir = os.path.join(run_root, "categories")
             obs_dir = os.path.join(run_root, "observations")
-
-            # Create missing dirs only, preserve existing content
-            for d in [run_root, plots_dir, cat_dir, obs_dir]:
-                os.makedirs(d, exist_ok=True)
 
             self.run_paths[rt] = {
                 "run_root": run_root,
                 "plots": plots_dir,
                 "categories": cat_dir,
-                "observations": obs_dir
+                "obsspaces": obs_dir
             }
+        # return run_dir, run_paths
+
+    def _create_website_dir(self):
+        """
+        Create/update website directories for all run types.
+        """
+        logger.info(f"Preparing website directories at {self.output_dir}")
+
+        os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(self.runs_dir, exist_ok=True)
+
+        for rt in self.run_types:
+            dirs = self.run_paths[rt]
+            for d in [dirs["run_root"], dirs["plots"], dirs["categories"], dirs["obsspaces"]]:
+                os.makedirs(d, exist_ok=True)
 
     def generate(self):
         logger.info("Starting Website Generation...")
-
-        # 1. Create/update per-run directories and set self.run_types
-        self._create_website_dir()
         if not self.run_types:
             return
 
-        # 2. Create top-level index.html redirect to first run type
+        self._create_website_dir()
+
+        # Top-level redirect index.html
         index_path = os.path.join(self.output_dir, "index.html")
         with open(index_path, "w") as f:
-            f.write(
-                f'<meta http-equiv="refresh" content="0; url=runs/{self.run_types[0]}/index.html">'
-            )
+            f.write(f'<meta http-equiv="refresh" content="0; url=runs/{self.run_types[0]}/index.html">')
 
-        # 3. Generate content for each run type
+        # Generate content for each run type
         for rt in self.run_types:
             logger.info(f"Generating website for run type: {rt}")
             dirs = self.run_paths[rt]
 
-            # Assign directories to sub-generators for this run type
-            self.plotter.output_dir = dirs["plots"]
-            self.category_gen.output_dir = dirs["categories"]
-            self.obs_space_gen.output_dir = dirs["observations"]
+            plotter = PlotGenerator(dirs["plots"])
 
-            # Generate dashboard, categories, obs space pages
-            # self._generate_dashboard(rt, self.run_types, output_root=dirs["run_root"])
-            self._generate_dashboard(rt, self.run_types)
+            self._generate_dashboard(rt, plotter)
 
-            self.category_gen.generate(rt)
-            self.obs_space_gen.generate(rt)
+            category_gen = CategoryGenerator(dirs["categories"], self.reader, plotter)
+            category_gen.generate(rt)
+
+            obs_pages = ObsSpaceGenerator(dirs["obsspaces"], self.reader, plotter, self.data_root)
+            obs_pages.generate(rt)
+
+            # 3. Obs Space pages per cycle
+            # cycles = self.reader.get_cycles_for_run(rt)
+            # obs_pages = ObsSpacePagesGenerator(
+                # run_type=rt,
+                # cycles=cycles,
+                # output_dir=os.path.join(dirs["run_root"], "cycles"),
+                # reader=self.reader,
+                # plotter=plotter,
+            # )
+            # obs_pages.generate()
 
         logger.info(f"Website generation complete. Open {index_path}")
+
 
     def _relative_path(self, from_path, to_path):
         """
@@ -119,14 +112,16 @@ class WebsiteGenerator:
         return os.path.relpath(to_path, start=os.path.dirname(from_path))
 
 
-    def _generate_dashboard(self, current_run, all_runs):
+    def _generate_dashboard(self, current_run, plotter):
         """Builds the main dashboard HTML for a specific run type."""
 
         # HTML Header
-        html = ( 
-            f"<!DOCTYPE html><html><head><title>ObsForge: {current_run.upper()}</title>"
+        run_root = self.run_paths[current_run]["run_root"]
+        html = (
+            f"<!DOCTYPE html><html><head>"
+            f"<title>ObsForge: {current_run.upper()}</title>"
             f"<style>{CSS_STYLES}</style></head><body>"
-        )   
+        )
 
         # Title Bar
         gen_time = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -142,9 +137,9 @@ class WebsiteGenerator:
 
         # Navigation Tabs (legacy layout)
         html += "<div class='nav-tabs'>"
-        for rt in all_runs:
+        for rt in self.run_types:
             cls = "active" if rt == current_run else ""
-            link = f"{rt}.html"
+            link = f"../{rt}/index.html"
             html += f"<a href='{link}' class='nav-btn {cls}'>{rt.upper()}</a>"
         html += "</div>"
 
@@ -170,16 +165,16 @@ class WebsiteGenerator:
         # Sections
         html += self._render_flagged_section(current_run)
         html += self._render_inventory_section(current_run)
-        html += self._render_timing_section(current_run)
-        html += self._render_category_section(current_run)
+        html += self._render_timing_section(current_run, plotter)
+        html += self._render_category_section(current_run, plotter)
 
         # Close container
         html += "</div></body></html>"
 
         # Write dashboard
-        filename = f"{current_run}.html"
-        with open(os.path.join(self.output_dir, filename), "w") as f:
+        with open(os.path.join(run_root, "index.html"), "w") as f:
             f.write(html)
+
 
     # --- SECTION RENDERERS ---
 
@@ -298,7 +293,7 @@ class WebsiteGenerator:
         html += "</tbody></table></div></div>"
         return html
 
-    def _render_timing_section(self, run_type):
+    def _render_timing_section(self, run_type, plotter):
         """Generates Runtime performance plots (Mean ± σ)."""
         html = (
             "<div class='section'><h2>Task Performance (Mean ± σ)</h2>"
@@ -313,7 +308,7 @@ class WebsiteGenerator:
                 continue
 
             # Pass std_key=None to force Temporal (Historical) bands
-            f_full, f_7d = self.plotter.generate_dual_plots(
+            f_full, f_7d = plotter.generate_dual_plots(
                 f"{task}", data, "mean_runtime", None,
                 f"time_{run_type}_{task}", "Seconds"
             )
@@ -334,7 +329,7 @@ class WebsiteGenerator:
         html += "</div></div>"
         return html
 
-    def _render_category_section(self, run_type):
+    def _render_category_section(self, run_type, plotter):
         """Generates Observation Category plots (Mean ± StdDev)."""
         html = (
             "<div class='section'><h2>Observation Categories (Total Obs)</h2>"
@@ -349,7 +344,7 @@ class WebsiteGenerator:
 
             # Pass std_key=None to force Temporal (Historical) bands
             fname_base = f"cat_{run_type}_{cat}"
-            f_full, f_7d = self.plotter.generate_dual_plots(
+            f_full, f_7d = plotter.generate_dual_plots(
                 f"{cat} Total Obs", data, "total_obs", None, fname_base, "Count"
             )
 
@@ -374,4 +369,3 @@ class WebsiteGenerator:
             html += "</a></div>"
         html += "</div></div>"
         return html
-

@@ -538,3 +538,65 @@ class ReportDataService:
         except Exception as e:
             logger.error(f"Error fetching recent files for {obs_space_name}: {e}")
             return []
+
+    def get_cycles_for_run(self, run_type: str):
+        """
+        Return all cycles for a run type that actually have obs-space files.
+
+        Returns:
+            List of dicts:
+            [
+                {
+                    "date": "YYYYMMDD",
+                    "cycle": 0,
+                    "cycle_name": "YYYYMMDD_00"
+                },
+                ...
+            ]
+        """
+        sql = """
+            SELECT DISTINCT
+                tr.date AS date,
+                tr.cycle AS cycle
+            FROM task_runs tr
+            JOIN file_inventory fi
+              ON fi.task_run_id = tr.id
+            WHERE tr.run_type = ?
+            ORDER BY tr.date, tr.cycle
+        """
+
+        rows = self.fetch_all(sql, (run_type,))
+
+        result = []
+        for r in rows:
+            cycle_name = f"{r['date']}_{int(r['cycle']):02d}"
+            result.append({
+                "date": r["date"],
+                "cycle": r["cycle"],
+                "cycle_name": cycle_name
+            })
+
+        return result
+
+    def get_obs_spaces(self, run_type: str, date: str, cycle: int):
+        """
+        Return obs spaces that have files for a given run + cycle.
+
+        date: 'YYYYMMDD'
+        cycle: int (0, 6, 12, 18)
+
+        Returns: list[str]
+        """
+        sql = """
+            SELECT DISTINCT os.name AS obs_space
+            FROM file_inventory fi
+            JOIN task_runs tr ON fi.task_run_id = tr.id
+            JOIN obs_spaces os ON fi.obs_space_id = os.id
+            WHERE tr.run_type = ?
+              AND tr.date = ?
+              AND tr.cycle = ?
+            ORDER BY os.name
+        """
+        rows = self.fetch_all(sql, (run_type, date, cycle))
+        return [r["obs_space"] for r in rows]
+
