@@ -3,24 +3,18 @@ import logging
 
 from .css_styles import CSS_STYLES
 from .obs_space_reader import ObsSpaceReader
+from .data_products import DataProducts
 
 logger = logging.getLogger(__name__)
 
 
 class ObsSpaceGenerator:
-    def __init__(self, output_dir, reader, plotter, data_root):
-        """
-        Initializes the Observation Detail Generator.
-        
-        :param output_dir: Path to the 'observations' directory.
-        :param reader: Instance of ReportDataService.
-        :param plotter: Instance of PlotGenerator.
-        """
+    def __init__(self, output_dir, reader, plotter, data_root, data_products=None):
         self.output_dir = output_dir
         self.reader = reader
         self.plotter = plotter
         self.data_root = data_root
-
+        self.data_products = data_products
         self.obs_reader = ObsSpaceReader()
 
     def generate(self, run_type):
@@ -47,7 +41,8 @@ class ObsSpaceGenerator:
         """Generates a dedicated deep-dive page for a specific Obs Space."""
 
         page_path = os.path.join(self.output_dir, filename)
-        run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
+        # run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
+        run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
         plots_dir = os.path.join(self.output_dir, "..", "plots")
 
         def _rel_path(target_file):
@@ -82,6 +77,7 @@ class ObsSpaceGenerator:
         html += "</table></div>"
 
         # --- Physics Variables Section ---
+        '''
         html += "<div class='section'><h2>All Observed Variables (Physics)</h2><div class='plot-grid'>"
 
         for var_info in schema:
@@ -99,18 +95,32 @@ class ObsSpaceGenerator:
                 html += "</div>"
 
         html += "</div></div>"
+        '''
 
-        # --- Surface Distribution Section ---
-        schema_details = self.reader.get_obs_space_schema_details(space)
-        is_3d = any(r.get('dimensionality', 0) >= 3 for r in schema_details)
+        # --- Recent Data Products (last 4 cycles) ---
+        if self.data_products:
+            html += "<div class='section'><h2>Recent Data Products</h2><div class='plot-grid'>"
 
-        if not is_3d:
-            # Commented out surface plot generation for now
-            # recent_files = self.reader.get_recent_files_info(run_type, space, limit=4)
-            html += "<div class='section'><h2>Spatial Distribution</h2>"
-            html += "<div class='plot-grid'>"
-            html += "<div class='plot-card'><p style='text-align:center; padding: 20px; color:#666;'>[Surface plot generation disabled]</p></div>"
+            cycles = self.reader.get_cycles_for_run(run_type)
+            last_cycles = cycles[-4:]  # last 4 cycles
+
+            for cycle in last_cycles:
+                # generate or fetch obs-space plot
+                plot_file_abs = self.data_products.get_obs_space_plot(run_type, space, cycle)
+
+                # convert absolute path to path relative to page
+                # HTML page location
+                page_dir = os.path.dirname(page_path)
+                plot_file_rel = os.path.relpath(plot_file_abs, start=page_dir)
+
+                html += f"<div class='plot-card'><h3>Cycle {cycle}</h3>"
+                html += f"<img src='{plot_file_rel}' class='plot-img'></div>"
+
             html += "</div></div>"
+
+
+
+
 
         # --- Recent File History ---
         html += "<div class='section'><h2>Recent File History</h2><table class='flag-table'>"

@@ -39,6 +39,16 @@ class PlotGenerator:
 
     def __init__(self, output_dir):
         self.output_dir = output_dir
+
+        # Example variable scales for consistent color
+        self.VAR_SCALES = {
+            "airTemperature": (-50, 50),
+            "seaSurfaceTemperature": (-2, 35),
+            "salinity": (0, 40),
+            "seaSurfaceSalinity": (0, 40),
+            # add more variables as needed
+        }
+
         if not HAS_MATPLOTLIB:
             logger.warning(f"Plotting disabled: {MISSING_LIB_MSG}")
         else:
@@ -235,17 +245,12 @@ class PlotGenerator:
             logger.error(f"Render failed for {out_path}: {e}")
             return False
 
-    def generate_surface_map(self, run_type, space, lats, lons, values, units="Units"):
+    def old_generate_surface_map(self, output_path, run_type, space, lats, lons, values, units="Units"):
         """
         Generates a static PNG map of observations on the Earth's surface.
         """
         if lats is None or lons is None or len(lats) == 0 or len(lons) == 0:
             return None
-
-        # Create filename
-        safe_name = space.replace("/", "_").replace(" ", "_")
-        filename = f"surface_{run_type}_{safe_name}.png"
-        filepath = os.path.join(self.output_dir, filename)
 
         # Setup Figure & Map Projection
         fig = plt.figure(figsize=(12, 7))
@@ -273,11 +278,84 @@ class PlotGenerator:
 
         # Aesthetics
         plt.colorbar(sc, label=units, orientation='horizontal', pad=0.05, aspect=50)
-        plt.title(f"{space} Distribution | {run_type.upper()}", loc='left', fontweight='bold')
+        plt.title(f"{run_type.upper()} {space}", loc='left', fontweight='bold')
         plt.title(f"Count: {len(values)}", loc='right')
 
         # Save and Close
-        plt.savefig(filepath, bbox_inches='tight', dpi=120)
+        plt.savefig(output_path, bbox_inches='tight', dpi=120)
         plt.close(fig)
+
+
+    def _compute_marker_size(self, n_points, min_size=5, max_size=100):
+        """
+        Adaptive marker size for scatter plots.
         
-        return filename
+        n_points: number of observations
+        min_size: smallest marker (for huge datasets)
+        max_size: largest marker (for tiny datasets)
+        """
+        if n_points <= 0:
+            return max_size
+        # log scaling: bigger n_points → smaller size
+        size = max_size / (1 + np.log10(n_points))
+        # clamp to min_size
+        return max(min_size, size)
+
+
+    def generate_surface_map(self, output_path, run_type, space, lats, lons, values, var_name=None, units="Units"):
+        """
+        Generates a surface plot of observations on the globe.
+        - Global extent fixed.
+        - Fixed figure size for all plots.
+        - Sparse points appear larger.
+        - Color scale fixed per variable.
+        """
+        # 1. Fixed figure size
+        fig = plt.figure(figsize=(12, 6))
+        
+        # 2. Robinson projection (global)
+        ax = plt.axes(projection=ccrs.Robinson())
+        ax.set_global()  # ensures entire globe
+        ax.coastlines(resolution='110m', linewidth=0.5)
+        ax.add_feature(cfeature.LAND, facecolor='lightgray', zorder=0)
+        ax.add_feature(cfeature.OCEAN, facecolor='white', zorder=0)
+        
+        # 3. No gridlines
+        ax.gridlines(draw_labels=False)
+        
+        # 4. Marker size based on number of points
+        n_points = len(values)
+        marker_size = self._compute_marker_size(n_points)
+        # if n_points < 10:
+            # marker_size = 100
+        # elif n_points < 50:
+            # marker_size = 50
+        # elif n_points < 200:
+            # marker_size = 20
+        # else:
+            # marker_size = 5
+
+        
+        # 5. Determine vmin/vmax for consistent color
+        if var_name in self.VAR_SCALES:
+            vmin, vmax = self.VAR_SCALES[var_name]
+        else:
+            vmin, vmax = np.nanmin(values), np.nanmax(values)
+        
+        # 6. Scatter plot (lon/lat -> PlateCarree)
+        sc = ax.scatter(
+            lons, lats, c=values, s=marker_size,
+            vmin=vmin, vmax=vmax, cmap="viridis",
+            transform=ccrs.PlateCarree(), edgecolor='k', linewidth=0.2
+        )
+        
+        # 7. Title
+        ax.set_title(f"{run_type} - {space}", fontsize=14)
+        
+        # 8. Colorbar
+        cbar = plt.colorbar(sc, ax=ax, orientation='vertical', pad=0.02)
+        cbar.set_label(units)
+        
+        # 9. Save figure
+        plt.savefig(output_path, bbox_inches='tight', dpi=150)
+        plt.close(fig)

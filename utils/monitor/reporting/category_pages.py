@@ -28,7 +28,8 @@ class CategoryGenerator:
 
         # Paths
         page_path = os.path.join(self.output_dir, filename)
-        run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
+        # run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
+        run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
         plots_dir = os.path.join(self.output_dir, "..", "plots")
 
         def _rel_path(target_file):

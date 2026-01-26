@@ -600,3 +600,26 @@ class ReportDataService:
         rows = self.fetch_all(sql, (run_type, date, cycle))
         return [r["obs_space"] for r in rows]
 
+    def get_obs_space_file_for_cycle(self, run_type, obs_space_name, date, cycle):
+        """
+        Return the obs-space file for a specific cycle.
+        """
+        sql = """
+            SELECT
+                fi.file_path,
+                fi.obs_count
+            FROM file_inventory fi
+            JOIN obs_spaces os ON fi.obs_space_id = os.id
+            JOIN task_runs tr ON fi.task_run_id = tr.id
+            WHERE os.name = ?
+              AND tr.run_type = ?
+              AND tr.date = ?
+              AND tr.cycle = ?
+              AND tr.status = 'SUCCEEDED'
+            ORDER BY fi.id DESC
+            LIMIT 1
+        """
+
+        row = self.fetch_one(sql, (obs_space_name, run_type, date, cycle))
+        return dict(row) if row else None
+
