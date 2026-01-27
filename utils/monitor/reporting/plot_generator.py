@@ -14,6 +14,11 @@ try:
     import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+
+    # from .var_plot_scales import VariablePlotScales
+    from .subsample_surface import subsample_surface_points
+    from .color_scales import ColorScaleManager
+
     HAS_MATPLOTLIB = True
     MISSING_LIB_MSG = ""
 except ImportError as e:
@@ -41,13 +46,16 @@ class PlotGenerator:
         self.output_dir = output_dir
 
         # Example variable scales for consistent color
-        self.VAR_SCALES = {
-            "airTemperature": (-50, 50),
-            "seaSurfaceTemperature": (-2, 35),
-            "salinity": (0, 40),
-            "seaSurfaceSalinity": (0, 40),
-            # add more variables as needed
-        }
+        # self.VAR_SCALES = {
+            # "airTemperature": (-50, 50),
+            # "seaSurfaceTemperature": (-2, 35),
+            # "salinity": (0, 40),
+            # "seaSurfaceSalinity": (0, 40),
+            # # add more variables as needed
+        # }
+
+        # self.var_scales = VariablePlotScales()
+        self.color_manager = ColorScaleManager()
 
         if not HAS_MATPLOTLIB:
             logger.warning(f"Plotting disabled: {MISSING_LIB_MSG}")
@@ -302,7 +310,7 @@ class PlotGenerator:
         return max(min_size, size)
 
 
-    def generate_surface_map(self, output_path, run_type, space, lats, lons, values, var_name=None, units="Units"):
+    def old_generate_surface_map(self, output_path, run_type, space, lats, lons, values, var_name=None, units="Units"):
         """
         Generates a surface plot of observations on the globe.
         - Global extent fixed.
@@ -322,7 +330,15 @@ class PlotGenerator:
         
         # 3. No gridlines
         ax.gridlines(draw_labels=False)
-        
+
+        # 3.5 viirs needs subsampling
+        lats, lons, values, was_subsampled = subsample_surface_points(
+            lats,
+            lons,
+            values,
+            max_points=300_000,
+        )
+
         # 4. Marker size based on number of points
         n_points = len(values)
         marker_size = self._compute_marker_size(n_points)
@@ -335,12 +351,17 @@ class PlotGenerator:
         # else:
             # marker_size = 5
 
-        
         # 5. Determine vmin/vmax for consistent color
-        if var_name in self.VAR_SCALES:
-            vmin, vmax = self.VAR_SCALES[var_name]
-        else:
-            vmin, vmax = np.nanmin(values), np.nanmax(values)
+        vmin, vmax, units_override, source = self.var_scales.lookup(
+            var_name, values
+        )
+        # if units_override:
+            # units = units_override
+
+        ## if var_name in self.VAR_SCALES:
+            ## vmin, vmax = self.VAR_SCALES[var_name]
+        ## else:
+            ## vmin, vmax = np.nanmin(values), np.nanmax(values)
         
         # 6. Scatter plot (lon/lat -> PlateCarree)
         sc = ax.scatter(
@@ -357,5 +378,68 @@ class PlotGenerator:
         cbar.set_label(units)
         
         # 9. Save figure
+        plt.savefig(output_path, bbox_inches='tight', dpi=150)
+        plt.close(fig)
+
+
+    def generate_surface_map(
+        self, output_path, run_type, space,
+        lats, lons, values, var_name, units="Units"
+    ):
+        # 1. Fixed figure size (all plots same size)
+        fig = plt.figure(figsize=(12, 6))
+        ax = plt.axes(projection=ccrs.Robinson())
+        ax.set_global()  # entire globe
+        ax.coastlines(resolution='110m', linewidth=0.5)
+        ax.add_feature(cfeature.LAND, facecolor='lightgray', zorder=0)
+        ax.add_feature(cfeature.OCEAN, facecolor='white', zorder=0)
+        ax.gridlines(draw_labels=False)
+
+        # 2. Subsample if too many points (to keep plot fast)
+        lats, lons, values, _ = subsample_surface_points(
+            lats, lons, values, max_points=300_000
+        )
+
+        # 3. Adaptive marker size
+        n_points = len(values)
+        marker_size = self._compute_marker_size(n_points)
+
+        # 4. Determine color scale
+        # vmin, vmax, units_override, source = self.var_scales.lookup(var_name, values)
+        # if units_override:
+            # units = units_override
+
+        vmin, vmax, cmap = self.color_manager.resolve(values, var_name)
+
+
+        # 5. Scatter plot
+        # sc = ax.scatter(
+            # lons, lats, c=values, s=marker_size,
+            # vmin=vmin, vmax=vmax, cmap="viridis",
+            # transform=ccrs.PlateCarree(),
+            # edgecolor='k', linewidth=0.2
+        # )
+
+        sc = ax.scatter(
+            lons, lats,
+            c=values,
+            s=marker_size,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            transform=ccrs.PlateCarree(),
+            edgecolor='k',
+            linewidth=0.2
+        )
+
+
+        # 6. Title: switch order
+        ax.set_title(f"{space} - {run_type}", fontsize=14)
+
+        # 7. Colorbar
+        cbar = plt.colorbar(sc, ax=ax, orientation='vertical', pad=0.02)
+        cbar.set_label(units)
+
+        # 8. Save figure
         plt.savefig(output_path, bbox_inches='tight', dpi=150)
         plt.close(fig)

@@ -16,6 +16,9 @@ class DataProducts:
         self.obs_reader = ObsSpaceReader()
 
         self.debug_obs_spaces = {
+            "insitu_salt_surface_drifter",
+            "insitu_salt_surface_ndbc",
+            "insitu_salt_surface_trkob",
             "insitu_temp_surface_drifter",
             "insitu_temp_surface_ndbc",
             "insitu_temp_surface_trkob",
@@ -43,7 +46,7 @@ class DataProducts:
             d.text((10, 80), f"{space}\n{cycle_name}", fill=(0, 0, 0))
 
         img.save(path)
-        logger.info(f"Created placeholder plot: {path}")
+        # logger.info(f"Created placeholder plot: {path}")
 
     def get_obs_space_plot(self, run_type, obs_space, cycle):
         """
@@ -73,9 +76,9 @@ class DataProducts:
         if os.path.exists(plot_path):
             return plot_path
 
-        if obs_space not in self.debug_obs_spaces:
-            self._create_placeholder_plot(plot_path, obs_space, cycle_name)
-            return plot_path
+        # if obs_space not in self.debug_obs_spaces:
+            # self._create_placeholder_plot(plot_path, obs_space, cycle_name)
+            # return plot_path
 
 
         # schema_details = self.reader.get_obs_space_schema_details(obs_space)
