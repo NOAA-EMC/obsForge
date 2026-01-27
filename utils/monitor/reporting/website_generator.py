@@ -6,7 +6,8 @@ from datetime import datetime
 from .css_styles import CSS_STYLES
 from .data_service import ReportDataService
 from .website_structure import WebsiteStructure
-from .plot_generator import PlotGenerator
+# from .plot_generator import PlotGenerator
+from processing.plotting.plot_generator import PlotGenerator
 from .category_pages import CategoryGenerator
 from .obs_space_pages import ObsSpaceGenerator
 from .data_products import DataProducts

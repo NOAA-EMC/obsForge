@@ -1,8 +1,11 @@
 import os
 import logging
 
-from .obs_space_reader import ObsSpaceReader
-from .plot_generator import PlotGenerator
+# from .obs_space_reader import ObsSpaceReader
+# from .plot_generator import PlotGenerator
+from processing.plotting.plot_generator import PlotGenerator
+from processing.obs_space_reader import ObsSpaceReader
+
 
 logger = logging.getLogger(__name__)
 
