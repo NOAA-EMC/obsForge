@@ -21,8 +21,7 @@ This section provides instructions for running all tests in the main obsForge re
 
 2. **Load modules** (on supported HPC systems):
    ```bash
-   module use modulefiles
-   module load obsforge/{hpc}.{compiler}
+   source ush/of_setup.sh
    ```
 
 3. **Set up Python environment** for pytest:
