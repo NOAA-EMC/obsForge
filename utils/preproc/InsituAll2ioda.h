@@ -105,15 +105,15 @@ namespace obsforge {
       netCDF::NcVar stationIDVar = metaDataGroup.getVar("stationID");
       std::vector<int> stationIDData(iodaVars.location_, -999); // Initialize with default = -999
 
-      // Only accept NC_INT (Currently argo, glider, xbtctd)
+      // Only accept NC_INT (Currently argo, glider and xbtctd)
       if (!stationIDVar.isNull() &&
           stationIDVar.getType().getTypeClass() == netCDF::NcType::nc_INT) {
-	oops::Log::info() << "Variable 'stationID' is int; reading it." << std::endl;
-	stationIDVar.getVar(stationIDData.data());
+	      oops::Log::info() << "Variable 'stationID' is int; reading it." << std::endl;
+	      stationIDVar.getVar(stationIDData.data());
       } else {
-      // keep default -999 (no skipping)
+      // keep default -999 if data type is string
       oops::Log::debug()
-	  << "MetaData/stationID is not int (or missing). Using default -999."
+	  << "MetaData/stationID is not int (or string). Using default -999."
           << std::endl;
       }
 
