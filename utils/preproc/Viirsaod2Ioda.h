@@ -218,7 +218,7 @@ namespace obsforge {
       int nchan(channelNumber.size());
       oops::Log::info() << " number of channels " << nchan << std::endl;
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, {}, {});
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, {}, {});
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
       oops::Log::info() << " eigen... row and column:" << obsvalue_s.size() << " "

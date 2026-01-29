@@ -53,7 +53,7 @@ namespace obsforge {
       std::vector<std::string> floatMetadataNames = {"depth"};
 
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
 
       // TODO(Mindo): This is incomplete and needed to leverage ioda for the reading
       // Check if the MetaData group is null
