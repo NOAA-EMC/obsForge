@@ -4,12 +4,12 @@ class WebsiteStructure:
     def __init__(self, output_dir, run_types):
         self.output_dir = os.path.abspath(output_dir)
         self.run_types = run_types
-        self.runs_dir = os.path.join(self.output_dir, "runs")
+        self.html_dir = os.path.join(self.output_dir, "html")
 
     # ---- Path helpers ----
 
     def run_root(self, rt):
-        return os.path.join(self.runs_dir, rt)
+        return os.path.join(self.html_dir, rt)
 
     def plots_dir(self, rt):
         return os.path.join(self.run_root(rt), "plots")
@@ -27,7 +27,7 @@ class WebsiteStructure:
 
     def create(self):
         os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(self.runs_dir, exist_ok=True)
+        os.makedirs(self.html_dir, exist_ok=True)
 
         for rt in self.run_types:
             for d in (

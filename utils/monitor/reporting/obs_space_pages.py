@@ -2,20 +2,16 @@ import os
 import logging
 
 from .css_styles import CSS_STYLES
-from .obs_space_reader import ObsSpaceReader
-from .data_products import DataProducts
 
 logger = logging.getLogger(__name__)
 
 
 class ObsSpaceGenerator:
-    def __init__(self, output_dir, reader, plotter, data_root, data_products=None):
+    def __init__(self, output_dir, reader, data_root, website_data):
         self.output_dir = output_dir
         self.reader = reader
-        self.plotter = plotter
         self.data_root = data_root
-        self.data_products = data_products
-        self.obs_reader = ObsSpaceReader()
+        self.data = website_data
 
     def generate(self, run_type):
         """
@@ -41,7 +37,6 @@ class ObsSpaceGenerator:
         """Generates a dedicated deep-dive page for a specific Obs Space."""
 
         page_path = os.path.join(self.output_dir, filename)
-        # run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
         run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
         plots_dir = os.path.join(self.output_dir, "..", "plots")
 
@@ -53,9 +48,11 @@ class ObsSpaceGenerator:
         dom = self.reader.get_obs_space_domains(run_type, space)
 
         # HTML Header & Title
+        # <base> is needed for web and local links
         back_link = _rel_path(run_dashboard_path)
         html = (
             f"<!DOCTYPE html><html><head><title>{space} Details</title>"
+            f'<base href="../../../">'
             f"<style>{CSS_STYLES}</style></head><body>"
             f"<header><h1>{space} <span style='font-weight:normal'>| {run_type.upper()} Deep Dive</span></h1>"
             f"<a href='{back_link}' style='color:white; font-weight:bold'>&larr; Back</a></header>"
@@ -98,25 +95,19 @@ class ObsSpaceGenerator:
         '''
 
         # --- Recent Data Products (last 4 cycles) ---
-        if self.data_products:
-            html += "<div class='section'><h2>Recent Data Products</h2><div class='plot-grid'>"
+        # if self.data_products:
+        html += "<div class='section'><h2>Recent Data Products</h2><div class='plot-grid'>"
 
-            cycles = self.reader.get_cycles_for_run(run_type)
-            last_cycles = cycles[-4:]  # last 4 cycles
+        cycles = self.reader.get_cycles_for_run(run_type)
+        last_cycles = cycles[-4:]  # last 4 cycles
 
-            for cycle in last_cycles:
-                # generate or fetch obs-space plot
-                plot_file_abs = self.data_products.get_obs_space_plot(run_type, space, cycle)
+        for cycle in last_cycles:
+            cycle_name = cycle["cycle_name"]
+            plot_file = self.data.get_obs_space_plot(run_type, cycle_name, space)
+            html += f"<div class='plot-card'><h3>Cycle {cycle_name}</h3>"
+            html += f"<img src='{plot_file}' class='plot-img'></div>"
 
-                # convert absolute path to path relative to page
-                # HTML page location
-                page_dir = os.path.dirname(page_path)
-                plot_file_rel = os.path.relpath(plot_file_abs, start=page_dir)
-
-                html += f"<div class='plot-card'><h3>Cycle {cycle}</h3>"
-                html += f"<img src='{plot_file_rel}' class='plot-img'></div>"
-
-            html += "</div></div>"
+        html += "</div></div>"
 
 
 

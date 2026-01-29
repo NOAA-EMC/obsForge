@@ -34,6 +34,12 @@ def main():
         help="The root of the data directory tree"
     )
 
+    parser.add_argument(
+        "--data-products-root",
+        required=True,
+        help="The root of the website data directory"
+    )
+
     args = parser.parse_args()
 
     # 1. Validate Input
@@ -46,8 +52,9 @@ def main():
         print(f"Reading Database: {args.db} ...")
         generator = WebsiteGenerator(
             db_path=args.db, 
+            data_root=args.data_root,
+            data_products_root=args.data_products_root,
             output_dir=args.out, 
-            data_root=args.data_root
         )
 
         generator.generate()

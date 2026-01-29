@@ -4,13 +4,18 @@ import shutil
 from datetime import datetime
 
 from .css_styles import CSS_STYLES
+from .category_pages import CategoryGenerator
+from .obs_space_pages import ObsSpaceGenerator
+from .data_manager import DataManager
+
 from .data_service import ReportDataService
+
+# to be removed:
 from .website_structure import WebsiteStructure
 # from .plot_generator import PlotGenerator
 from processing.plotting.plot_generator import PlotGenerator
-from .category_pages import CategoryGenerator
-from .obs_space_pages import ObsSpaceGenerator
-from .data_products import DataProducts
+# from .data_products import DataProducts
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,8 +25,10 @@ logger = logging.getLogger("WebGen")
 
 
 class WebsiteGenerator:
-    def __init__(self, *, db_path, data_root, output_dir):
+    def __init__(self, *, db_path, data_root, data_products_root, output_dir):
+        self.db_path = os.path.abspath(db_path)
         self.data_root = os.path.abspath(data_root)
+        self.data_products_root = os.path.abspath(data_products_root)
         self.output_dir = os.path.abspath(output_dir)
 
         self.reader = ReportDataService(db_path)
@@ -34,6 +41,26 @@ class WebsiteGenerator:
         # WebsiteStructure needs to go....
         self.structure = WebsiteStructure(self.output_dir, self.run_types)
 
+
+        self.local_data_dir = os.path.join(self.output_dir, "data")
+        os.makedirs(self.local_data_dir, exist_ok=True)
+
+        self.website_data = DataManager(
+            products_root=self.data_products_root,
+            web_data_root=self.local_data_dir
+        )
+
+        self.cycles = {}
+        for rt in self.run_types:
+            cycles = self.reader.get_cycles_for_run(rt)
+            self.cycles[rt] = cycles[-4:]  # last 4 cycles
+
+        for rt in self.run_types:
+            for cycle in self.cycles[rt]:
+                cycle_id = cycle["cycle_name"]  # or cycle.name
+                self.website_data.fetch(rt, cycle_id)
+
+
     def generate(self):
         logger.info("Starting Website Generation...")
         if not self.run_types:
@@ -44,22 +71,13 @@ class WebsiteGenerator:
         # Top-level redirect index.html
         index_path = os.path.join(self.output_dir, "index.html")
         with open(index_path, "w") as f:
-            f.write(f'<meta http-equiv="refresh" content="0; url=runs/{self.run_types[0]}/index.html">')
+            f.write(f'<meta http-equiv="refresh" content="0; url=html/{self.run_types[0]}/index.html">')
 
         # Generate content for each run type
         for rt in self.run_types:
             logger.info(f"Generating website for run type: {rt}")
 
-            run_root = self.structure.run_root(rt)
-            data_products_dir = os.path.join(run_root, "data_products")
-
             plotter = PlotGenerator(self.structure.plots_dir(rt))
-
-            data_products = DataProducts(
-                self.data_root,
-                self.reader,
-                data_products_dir
-            )
 
             self._generate_dashboard(rt, plotter)
 
@@ -73,9 +91,8 @@ class WebsiteGenerator:
             obs_pages = ObsSpaceGenerator(
                 self.structure.obsspaces_dir(rt),
                 self.reader,
-                plotter,
                 self.data_root,
-                data_products
+                self.website_data,
             )
             obs_pages.generate(rt)
 
