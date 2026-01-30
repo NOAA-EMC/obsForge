@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Step 3: Inventory Inspection & Anomaly Detection.
+Inventory Inspection & Anomaly Detection.
 
 This script loads the InventoryInspector to validate files in the database
 against defined rules (Physics, Metadata, History).
@@ -12,17 +12,8 @@ import os
 import sys
 import traceback
 
-# Ensure python path if running standalone
-try:
-    from inspection.inspector import InventoryInspector
-except ImportError:
-    # If running as a script, add the project root to sys.path
-    sys.path.append(
-        os.path.join(os.path.dirname(__file__), '../../..')
-    )
-    from inspection.inspector import InventoryInspector
+from processing.inspection.inspector import InventoryInspector
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
