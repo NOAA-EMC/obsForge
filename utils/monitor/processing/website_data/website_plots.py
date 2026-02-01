@@ -1,10 +1,13 @@
 import os
 import logging
+import json
 
 from processing.data_service import ComputeDataService
 from processing.ioda_reader.reader import IodaReader
-from processing.ioda_reader.summary import IodaSummaryProduct
+# from processing.ioda_reader.summary import IodaSummaryProduct
+from processing.ioda_reader.obs_space_ioda_structure import ObsSpaceIodaStructure
 from processing.plotting.plot_generator import PlotGenerator
+
 
 logger = logging.getLogger(__name__)
 
@@ -266,18 +269,23 @@ class WebsitePlots:
         if not ioda_file_path:
             return
 
-        product = IodaSummaryProduct(
-            run_type,
-            cycle_id,
-            obs_category,
-            obs_space,
-            ioda_file_path
-        )
+        # product = IodaSummaryProduct(
+            # run_type,
+            # cycle_id,
+            # obs_category,
+            # obs_space,
+            # ioda_file_path
+        # )
 
-        summary = product.generate()
-        json_file = product.save_to_file(product_path)
+        # summary = product.generate()
+        # json_file = product.save_to_file(product_path)
 
-        logger.info(f"Generated IODA info summary for {obs_space} in {json_file}")
+        struct = ObsSpaceIodaStructure()
+        struct.read_ioda(ioda_file_path)
+        struct.write_json(product_path)
+
+
+        logger.info(f"Generated IODA info summary for {obs_space} from {ioda_file_path} in {product_path}")
 
         # Later, website can read it
         # loaded_summary = IodaSummaryProduct.load_from_file(json_file)

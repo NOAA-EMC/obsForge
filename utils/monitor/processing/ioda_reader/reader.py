@@ -149,3 +149,61 @@ class IodaReader:
         except Exception as e:
             logger.error(f"Failed to infer dim for {self.file_path}: {e}")
             return 2
+
+    def get_structure(self):
+        """
+        Return a complete, JSON-serializable description of the IODA file structure.
+        No data arrays are read.
+        """
+        structure = {
+            "dimensions": {},
+            "global_attributes": {},
+            "groups": {}
+        }
+
+        with nc.Dataset(self.file_path, "r") as ds:
+            # --- global dimensions ---
+            for name, dim in ds.dimensions.items():
+                structure["dimensions"][name] = len(dim)
+
+            # --- global attributes ---
+            for attr in ds.ncattrs():
+                structure["global_attributes"][attr] = ds.getncattr(attr)
+
+            # --- groups ---
+            for gname, group in ds.groups.items():
+                ginfo = {
+                    "dimensions": {},
+                    "variables": {},
+                    "attributes": {}
+                }
+
+                # group dimensions
+                for dname, dim in group.dimensions.items():
+                    ginfo["dimensions"][dname] = len(dim)
+
+                # group attributes
+                for attr in group.ncattrs():
+                    ginfo["attributes"][attr] = group.getncattr(attr)
+
+                # variables
+                for vname, var in group.variables.items():
+                    vinfo = {
+                        "dtype": str(var.dtype),
+                        "dimensions": list(var.dimensions),
+                        "attributes": {}
+                    }
+
+                    for attr in var.ncattrs():
+                        val = var.getncattr(attr)
+                        # ensure JSON-safe scalars
+                        if isinstance(val, np.generic):
+                            val = val.item()
+                        vinfo["attributes"][attr] = val
+
+                    ginfo["variables"][vname] = vinfo
+
+                structure["groups"][gname] = ginfo
+
+        return structure
+

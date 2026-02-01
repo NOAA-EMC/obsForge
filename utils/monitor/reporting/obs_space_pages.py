@@ -3,6 +3,7 @@ import logging
 import json
 
 from .css_styles import CSS_STYLES
+from processing.ioda_reader.obs_space_ioda_structure import ObsSpaceIodaStructure
 
 logger = logging.getLogger(__name__)
 
@@ -114,13 +115,21 @@ class ObsSpaceGenerator:
 
         # --- IODA Summary (JSON) ---
         ioda_info_file = self.data.get_obs_space_ioda_info(run_type, cycle_name, space)
-        print(f"FFFFFFFFFFFFF  {ioda_info_file}")
+        logger.info(f"FFFFFFFFFFFFF  {ioda_info_file}")
         # summary_file = os.path.join(self.data.web_data_root, "ioda_summary", f"{space}.json")
         if os.path.exists(ioda_info_file):
-            with open(ioda_info_file, "r") as f:
-                ioda_summary = json.load(f)
-            print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+            logger.info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+            # with open(ioda_info_file, "r") as f:
+                # # ioda_summary = json.load(f)
+                # ioda_data = json.load(f)
 
+            ioda_struct = ObsSpaceIodaStructure()
+            ioda_struct.read_json(ioda_info_file)
+            html_fragment = ioda_struct.as_html()
+            html += html_fragment
+
+
+            '''
             html += "<div class='section'><h2>IODA Summary</h2>"
             html += "<table class='flag-table' style='width:auto; min-width:300px;'>"
 
@@ -137,8 +146,9 @@ class ObsSpaceGenerator:
             html += f"<tr><th>ObsValue Dim</th><td>{ioda_summary.get('obsvalue_dim', 'N/A')}</td></tr>"
             html += f"<tr><th>Effective Dim</th><td>{ioda_summary.get('effective_dim', 'N/A')}</td></tr>"
             html += "</table></div>"
+            '''
         else:
-            print("NNNNNNNNNNNNNNNNNNNNN")
+            logger.info("NNNNNNNNNNNNNNNNNNNNN")
 
 
 
