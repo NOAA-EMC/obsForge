@@ -12,9 +12,7 @@ from .data_service import ReportDataService
 
 # to be removed:
 from .website_structure import WebsiteStructure
-# from .plot_generator import PlotGenerator
 from processing.plotting.plot_generator import PlotGenerator
-# from .data_products import DataProducts
 
 
 logging.basicConfig(

@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 
 from .css_styles import CSS_STYLES
 
@@ -16,7 +17,7 @@ class ObsSpaceGenerator:
     def generate(self, run_type):
         """
         Main entry point called by WebGenerator.
-        Iterates through all obs spaces and creates individual deep-dive pages.
+        Iterates through all obs spaces and creates individual pages.
         """
         # Get all unique observation spaces for this run type
         categories = self.reader.get_all_categories()
@@ -34,7 +35,7 @@ class ObsSpaceGenerator:
                 self._write_detail_page(run_type, space, filename)
 
     def _write_detail_page(self, run_type, space, filename):
-        """Generates a dedicated deep-dive page for a specific Obs Space."""
+        """Generates a dedicated page for a specific Obs Space."""
 
         page_path = os.path.join(self.output_dir, filename)
         run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
@@ -54,7 +55,8 @@ class ObsSpaceGenerator:
             f"<!DOCTYPE html><html><head><title>{space} Details</title>"
             f'<base href="../../../">'
             f"<style>{CSS_STYLES}</style></head><body>"
-            f"<header><h1>{space} <span style='font-weight:normal'>| {run_type.upper()} Deep Dive</span></h1>"
+            f"<header><h1>{run_type.upper()} <span style='font-weight:normal'>| {space}</span></h1>"
+            # f"<header><h1>{space} <span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
             f"<a href='{back_link}' style='color:white; font-weight:bold'>&larr; Back</a></header>"
             f"<div class='container'>"
         )
@@ -108,6 +110,36 @@ class ObsSpaceGenerator:
             html += f"<img src='{plot_file}' class='plot-img'></div>"
 
         html += "</div></div>"
+
+
+        # --- IODA Summary (JSON) ---
+        ioda_info_file = self.data.get_obs_space_ioda_info(run_type, cycle_name, space)
+        print(f"FFFFFFFFFFFFF  {ioda_info_file}")
+        # summary_file = os.path.join(self.data.web_data_root, "ioda_summary", f"{space}.json")
+        if os.path.exists(ioda_info_file):
+            with open(ioda_info_file, "r") as f:
+                ioda_summary = json.load(f)
+            print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+
+            html += "<div class='section'><h2>IODA Summary</h2>"
+            html += "<table class='flag-table' style='width:auto; min-width:300px;'>"
+
+            surface = ioda_summary.get("surface")
+            if surface:
+                html += f"<tr><th>Variable</th><td>{surface.get('var_name', 'N/A')}</td></tr>"
+                html += f"<tr><th>Units</th><td>{surface.get('units', 'N/A')}</td></tr>"
+                html += f"<tr><th>Count</th><td>{surface.get('count', 0)}</td></tr>"
+                html += f"<tr><th>Min</th><td>{surface.get('min', 'N/A')}</td></tr>"
+                html += f"<tr><th>Max</th><td>{surface.get('max', 'N/A')}</td></tr>"
+                html += f"<tr><th>Mean</th><td>{surface.get('mean', 'N/A')}</td></tr>"
+                html += f"<tr><th>Std Dev</th><td>{surface.get('std', 'N/A')}</td></tr>"
+
+            html += f"<tr><th>ObsValue Dim</th><td>{ioda_summary.get('obsvalue_dim', 'N/A')}</td></tr>"
+            html += f"<tr><th>Effective Dim</th><td>{ioda_summary.get('effective_dim', 'N/A')}</td></tr>"
+            html += "</table></div>"
+        else:
+            print("NNNNNNNNNNNNNNNNNNNNN")
+
 
 
 

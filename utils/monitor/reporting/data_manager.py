@@ -71,3 +71,15 @@ class DataManager:
             "obs_spaces",
             f"{obs_space}.png"
         )
+
+    #### WARNING:ABS PATH
+    def get_obs_space_ioda_info(self, run_type, cycle_id, obs_space):
+        # data_dir_name = os.path.basename(self.web_data_root.rstrip(os.sep))
+
+        return os.path.join(
+            self.web_data_root,
+            run_type,
+            cycle_id,
+            "ioda_summary",
+            f"{obs_space}.json"
+        )

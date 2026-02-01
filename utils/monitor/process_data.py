@@ -4,7 +4,7 @@ import argparse
 import logging
 import sys
 
-from processing.data_products import DataProducts
+from processing.website_data.website_plots import WebsitePlots
 
 
 def parse_args():
@@ -49,13 +49,13 @@ def main():
     logger.info(f"Output dir  : {args.out}")
 
     try:
-        products = DataProducts(
+        plots = WebsitePlots(
             db_path=args.db,
             data_root=args.data_root,
             output_dir=args.out
         )
 
-        products.generate()
+        plots.generate()
 
     except Exception as e:
         logger.exception("Data product generation failed")
