@@ -45,16 +45,6 @@ class PlotGenerator:
     def __init__(self, output_dir):
         self.output_dir = output_dir
 
-        # Example variable scales for consistent color
-        # self.VAR_SCALES = {
-            # "airTemperature": (-50, 50),
-            # "seaSurfaceTemperature": (-2, 35),
-            # "salinity": (0, 40),
-            # "seaSurfaceSalinity": (0, 40),
-            # # add more variables as needed
-        # }
-
-        # self.var_scales = VariablePlotScales()
         self.color_manager = ColorScaleManager()
 
         if not HAS_MATPLOTLIB:
@@ -70,6 +60,78 @@ class PlotGenerator:
                 cartopy.config['pre_existing_data_dir'] = cartopy_data_dir
             else:
                 print(f"Warning: Cartopy data not found at {cartopy_data_dir}")
+
+    def generate_history_plot(
+        self,
+        title,
+        data,
+        val_key,
+        std_key,
+        fname,
+        y_label,
+        days=None,
+        clamp_bottom=True,
+    ):
+        """
+        Generate a single time-series plot.
+
+        Args:
+            days (int | None):
+                - None → entire history
+                - N → last N days (assuming 4 cycles/day)
+        """
+        if not HAS_MATPLOTLIB or not data:
+            return None
+
+        dates = []
+        values = []
+        stds = []
+
+        # Parse data
+        for r in data:
+            try:
+                dt_str = f"{r['date']}{r['cycle']:02d}"
+                dt = datetime.strptime(dt_str, "%Y%m%d%H")
+
+                v = r.get(val_key)
+                if v is None:
+                    continue
+
+                s = r.get(std_key) if std_key else None
+
+                dates.append(dt)
+                values.append(v)
+                stds.append(s)
+            except Exception:
+                continue
+
+        if not dates:
+            return None
+
+        # --- WINDOWING LOGIC ---
+        if days is not None:
+            points = days * 4  # 4 cycles/day
+            if len(dates) > points:
+                dates = dates[-points:]
+                values = values[-points:]
+                stds = stds[-points:]
+
+        out_path = os.path.join(self.output_dir, fname)
+
+        self._plot_series(
+            dates,
+            values,
+            stds,
+            title,
+            y_label,
+            out_path,
+            clamp_bottom,
+        )
+
+        return fname
+
+
+
 
     def generate_dual_plots(
         self, title, data, val_key, std_key, fname_base, y_label,

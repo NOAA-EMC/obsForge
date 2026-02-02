@@ -72,6 +72,7 @@ class MonitorSchema:
                 id INTEGER PRIMARY KEY,
                 category_id INTEGER,
                 name TEXT UNIQUE NOT NULL,
+                ioda_spec TEXT,  -- <--- the JSON structure
                 FOREIGN KEY(category_id) REFERENCES obs_space_categories(id)
             )
             """

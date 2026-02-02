@@ -30,13 +30,19 @@ class ObsSpaceGenerator:
 
             spaces_in_cat = self.reader.get_obs_spaces_for_category(category)
 
-            for space in spaces_in_cat:
-                safe_name = space.replace("/", "_").replace(" ", "_")
+            for obs_space in spaces_in_cat:
+                safe_name = obs_space.replace("/", "_").replace(" ", "_")
                 filename = f"obs_{run_type}_{safe_name}.html"
-                self._write_detail_page(run_type, space, filename)
+                self._write_detail_page(run_type, obs_space, filename)
 
     def _write_detail_page(self, run_type, space, filename):
         """Generates a dedicated page for a specific Obs Space."""
+
+        cycles = self.reader.get_cycles_for_run(run_type)
+        last_cycles = cycles[-4:]  # last 4 cycles
+        current_cycle = cycles[-1] if cycles else None
+        current_cycle_name = current_cycle["cycle_name"]
+
 
         page_path = os.path.join(self.output_dir, filename)
         run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
@@ -66,6 +72,7 @@ class ObsSpaceGenerator:
         html += "<div class='section'><h2>General Information</h2>"
         html += "<table class='flag-table' style='width: auto; min-width: 400px;'>"
         html += f"<tr><th>Observation Space</th><td>{space}</td></tr>"
+        html += f"<tr><th>Cycle</th><td>{current_cycle_name}</td></tr>"
         if dom:
             html += f"<tr><th>Latitude Range</th><td>[{dom.get('min_lat', 0):.1f}, {dom.get('max_lat', 0):.1f}]</td></tr>"
             html += f"<tr><th>Longitude Range</th><td>[{dom.get('min_lon', 0):.1f}, {dom.get('max_lon', 0):.1f}]</td></tr>"
@@ -97,12 +104,21 @@ class ObsSpaceGenerator:
         html += "</div></div>"
         '''
 
+        # --- IODA Summary (JSON) ---
+        ioda_info_file = self.data.get_obs_space_ioda_info(run_type, current_cycle_name, space)
+        if os.path.exists(ioda_info_file):
+            ioda_struct = ObsSpaceIodaStructure()
+            ioda_struct.read_json(ioda_info_file)
+            html_fragment = ioda_struct.as_html()
+            html += html_fragment
+            logger.info(f"Found ioda structure file {ioda_info_file}")
+        else:
+            logger.error(f"Missing ioda structure file {ioda_info_file}")
+
+
         # --- Recent Data Products (last 4 cycles) ---
         # if self.data_products:
         html += "<div class='section'><h2>Recent Data Products</h2><div class='plot-grid'>"
-
-        cycles = self.reader.get_cycles_for_run(run_type)
-        last_cycles = cycles[-4:]  # last 4 cycles
 
         for cycle in last_cycles:
             cycle_name = cycle["cycle_name"]
@@ -113,23 +129,8 @@ class ObsSpaceGenerator:
         html += "</div></div>"
 
 
-        # --- IODA Summary (JSON) ---
-        ioda_info_file = self.data.get_obs_space_ioda_info(run_type, cycle_name, space)
-        logger.info(f"FFFFFFFFFFFFF  {ioda_info_file}")
-        # summary_file = os.path.join(self.data.web_data_root, "ioda_summary", f"{space}.json")
-        if os.path.exists(ioda_info_file):
-            logger.info("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-            # with open(ioda_info_file, "r") as f:
-                # # ioda_summary = json.load(f)
-                # ioda_data = json.load(f)
 
-            ioda_struct = ObsSpaceIodaStructure()
-            ioda_struct.read_json(ioda_info_file)
-            html_fragment = ioda_struct.as_html()
-            html += html_fragment
-
-
-            '''
+        '''
             html += "<div class='section'><h2>IODA Summary</h2>"
             html += "<table class='flag-table' style='width:auto; min-width:300px;'>"
 
@@ -146,9 +147,7 @@ class ObsSpaceGenerator:
             html += f"<tr><th>ObsValue Dim</th><td>{ioda_summary.get('obsvalue_dim', 'N/A')}</td></tr>"
             html += f"<tr><th>Effective Dim</th><td>{ioda_summary.get('effective_dim', 'N/A')}</td></tr>"
             html += "</table></div>"
-            '''
-        else:
-            logger.info("NNNNNNNNNNNNNNNNNNNNN")
+        '''
 
 
 

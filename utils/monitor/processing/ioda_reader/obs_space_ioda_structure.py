@@ -35,6 +35,7 @@ class IodaNumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return super().default(obj)
 
+
 class ObsSpaceIodaStructure:
     def __init__(self):
         self._schema = {
@@ -98,6 +99,18 @@ class ObsSpaceIodaStructure:
         with open(input_path, 'r') as f:
             self._schema = json.load(f)
 
+    # --- Database Integration Methods ---
+
+    def to_db(self):
+        return json.dumps(self._schema, cls=IodaNumpyEncoder)
+
+    @classmethod
+    def from_db(cls, json_string):
+        obj = cls()
+        if json_string:
+            obj._schema = json.loads(json_string)
+        return obj
+
     # --- Inquiry Services ---
     def get_groups(self):
         return list(self._schema["groups"].keys())
@@ -109,6 +122,93 @@ class ObsSpaceIodaStructure:
         return self._schema["groups"].get(group, {}).get(var, {})
 
     # --- HTML Service ---
+
+    def as_html(self):
+        """Render the IODA structure as a collapsible, aligned HTML spec."""
+
+        def is_group_open(name):
+            return name in ("MetaData", "ObsValue")
+
+        html = []
+
+        # --- OUTER CONTAINER (collapsed by default) ---
+        html.append("<div class='ioda-structure-container'>")
+        html.append("<details>")
+        html.append(
+            "<summary style='font-size: 1.4em; font-weight: bold; cursor: pointer;'>"
+            "IODA Structure"
+            "</summary>"
+        )
+        html.append("<div style='padding: 15px; margin-top: 10px;'>")
+
+        # --- GLOBAL ATTRIBUTES (collapsed) ---
+        if self._schema.get("global_attributes"):
+            html.append("<details>")
+            html.append("<summary><strong>Global Attributes</strong></summary>")
+            html.append("<table class='structure-table'>")
+            for k, v in self._schema["global_attributes"].items():
+                html.append(f"<tr><td><code>{k}</code></td><td>{v}</td></tr>")
+                # html.append(f"<tr><td><code>{k}</code></td></tr>")
+            html.append("</table>")
+            html.append("</details>")
+
+        # --- DIMENSIONS (collapsed, names only) ---
+        if self._schema.get("dimensions"):
+            html.append("<details>")
+            html.append("<summary><strong>Dimensions</strong></summary>")
+            html.append("<ul>")
+            for name, d in self._schema["dimensions"].items():
+                html.append(f"<li><code>{name}</code>: {d['size']} {'(Unlimited)' if d['isunlimited'] else ''}</li>")
+            # for name in self._schema["dimensions"].keys():
+                # html.append(f"<li><code>{name}</code></li>")
+            html.append("</ul>")
+            html.append("</details>")
+
+        # --- GROUPS & VARIABLES ---
+        html.append("<h4>Groups & Variables</h4>")
+
+        for group in self.get_groups():
+            open_attr = " open" if is_group_open(group) else ""
+            html.append(f"<details{open_attr}>")
+            html.append(f"<summary><strong>{group}</strong></summary>")
+
+            # Shared column layout → alignment across groups
+            html.append("""
+            <table class='structure-table' style='width:100%; table-layout:fixed'>
+              <thead>
+                <tr>
+                  <th style='width:25%'>Variable</th>
+                  <th style='width:15%'>Type</th>
+                  <th style='width:25%'>Dimensions</th>
+                  <th style='width:35%'>Attributes</th>
+                </tr>
+              </thead>
+              <tbody>
+            """)
+
+            for var in self.get_vars_in_group(group):
+                spec = self.get_var_spec(group, var)
+
+                attrs = spec.get("attributes", {})
+                attr_html = (
+                    "<br>".join(f"<i>{k}</i>: {v}" for k, v in attrs.items())
+                    if attrs else "<i>None</i>"
+                )
+
+                html.append("<tr>")
+                html.append(f"<td><code>{var}</code></td>")
+                html.append(f"<td>{spec['dtype']}</td>")
+                html.append(f"<td>{', '.join(spec['dimensions'])}</td>")
+                html.append(f"<td><small>{attr_html}</small></td>")
+                html.append("</tr>")
+
+            html.append("</tbody></table>")
+            html.append("</details>")
+
+        # --- CLOSE EVERYTHING ---
+        html.append("</div></details></div>")
+        return "\n".join(html)
+
 
     def old_as_html(self):
         """Generates a technical specification fragment for the website."""
@@ -136,7 +236,7 @@ class ObsSpaceIodaStructure:
         return "\n".join(html)
 
 
-    def as_html(self):
+    def previous_as_html(self):
         """Generates a comprehensive, fully collapsible technical specification."""
         
         # Start the main collapsible container

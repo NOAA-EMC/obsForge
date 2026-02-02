@@ -4,7 +4,8 @@ import argparse
 import logging
 import sys
 
-from processing.website_data.website_plots import WebsitePlots
+# from processing.website_data.website_plots import WebsitePlots
+from processing.website_data.web_data_products import WebsiteDataProducts
 
 
 def parse_args():
@@ -49,7 +50,8 @@ def main():
     logger.info(f"Output dir  : {args.out}")
 
     try:
-        plots = WebsitePlots(
+        # plots = WebsitePlots(
+        plots = WebsiteDataProducts(
             db_path=args.db,
             data_root=args.data_root,
             output_dir=args.out

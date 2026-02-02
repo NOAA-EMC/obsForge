@@ -63,7 +63,7 @@ class MonitorDB:
             (name,)
         ).fetchone()[0]
 
-    def get_or_create_obs_space(self, name, cat_id):
+    def old_get_or_create_obs_space(self, name, cat_id):
         """Registers an Obs Space."""
         self.conn.execute(
             "INSERT OR IGNORE INTO obs_spaces (name, category_id) VALUES (?, ?)",
@@ -73,6 +73,38 @@ class MonitorDB:
             "SELECT id FROM obs_spaces WHERE name=?",
             (name,)
         ).fetchone()[0]
+
+    def get_or_create_obs_space(self, name, cat_id, ioda_structure=None):
+        """
+        Registers an Obs Space and optionally attaches its immutable IODA structure.
+        """
+        # 1. Standard Insert/Ignore for the basic record
+        self.conn.execute(
+            "INSERT OR IGNORE INTO obs_spaces (name, category_id) VALUES (?, ?)",
+            (name, cat_id)
+        )
+
+        # 2. If a structure is provided, attempt to update the column.
+        # We wrap this in a try/except to stay compatible with the old schema.
+        if ioda_structure is not None:
+            try:
+                self.conn.execute(
+                    "UPDATE obs_spaces SET ioda_spec = ? WHERE name = ? AND ioda_spec IS NULL",
+                    (ioda_structure.to_db(), name)
+                )
+            except sqlite3.OperationalError as e:
+                if "no such column: ioda_spec" in str(e):
+                    logger.warning(f"Column 'ioda_spec' missing. Skipping structure for {name}.")
+                else:
+                    raise e
+
+        # 3. Retrieve and return the ID as before
+        res = self.conn.execute(
+            "SELECT id FROM obs_spaces WHERE name=?",
+            (name,)
+        ).fetchone()
+        
+        return res[0] if res else None
 
     def get_or_create_variable(self, name, dtype="float", ndim=1):
         """Registers a standard variable."""
