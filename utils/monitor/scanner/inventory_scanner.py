@@ -29,9 +29,31 @@ class InventoryScanner:
 
     def scan_filesystem(self, known_cycles: set = None, limit: int = None) -> list:
         """
-        Scans for master logs and yields CycleData objects.
-        args:
-            limit (int): If provided, only process the last N (most recent) cycles.
+        Scans for cycles logged in master logs, parses tasks, and 
+        populates task file inventory.
+        """
+        cycles = []
+        
+        # Step 1: Discover all logged cycles
+        logged_cycles = self._discover_logged_cycles(limit=limit)
+        
+        for date_str, cycle_int, master_log_path in logged_cycles:
+            # Step 2: Parse tasks from master log only
+            cycle_obj = self._process_cycle_logs(date_str, cycle_int, master_log_path)
+            
+            if not cycle_obj.tasks:
+                continue
+            
+            # Step 3: Populate file inventory for tasks
+            self._populate_task_file_inventory(cycle_obj)
+            
+            cycles.append(cycle_obj)
+        
+        return cycles
+
+    def _discover_logged_cycles(self, limit: int = None):
+        """
+        Returns a list of (date_str, cycle_int, master_log_path)
         """
         logs_root = os.path.join(self.data_root, "logs")
         if not os.path.isdir(logs_root):
@@ -42,9 +64,9 @@ class InventoryScanner:
         master_logs = sorted(glob.glob(pattern))
 
         if limit and limit > 0:
-            logger.info(f"Limiting scan to the last {limit} cycles.")
             master_logs = master_logs[-limit:]
 
+        cycles = []
         for m_log_path in master_logs:
             filename = os.path.basename(m_log_path)
             m = re.match(r"(\d{8})(\d{2})\.log", filename)
@@ -52,26 +74,45 @@ class InventoryScanner:
                 continue
 
             date_str, cycle_int = m.group(1), int(m.group(2))
-            
-            cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
-            if cycle_obj.tasks:
-                yield cycle_obj
+            cycles.append((date_str, cycle_int, m_log_path))
 
-    def _process_cycle(self, date_str, cycle_int, master_log_path):
+        return cycles
+
+    def _process_cycle_logs(self, date_str, cycle_int, master_log_path):
+        """
+        Returns a CycleData object with tasks and logfiles only.
+        Does NOT scan any task output files.
+        """
         cycle_obj = CycleData(date=date_str, cycle=cycle_int)
+
         raw_tasks = parse_master_log(master_log_path)
         unique_tasks = {t['task_name']: t for t in raw_tasks}
 
+        tasks = self._create_task_run_data(unique_tasks)
+
         cycle_log_dir = os.path.join(
-            self.data_root, "logs", f"{date_str}{cycle_int:02d}"
+            self.data_root, 
+            "logs", 
+            f"{date_str}{cycle_int:02d}"
         )
 
-        for t in unique_tasks.values():
+        for task_data in tasks:
+            log_path = self._find_task_logfile(task_data, cycle_log_dir)
+            if log_path:
+                task_data.logfile = log_path
+            cycle_obj.tasks.append(task_data)
+
+        return cycle_obj
+
+    def _create_task_run_data(self, task_list):
+        tasks = []
+        for t in task_list.values():
             raw_name = t['task_name']
             run_type, task_name = self._normalize_task_name(raw_name)
 
             task_data = TaskRunData(
                 task_name=task_name,
+                raw_task_name=raw_name,
                 run_type=run_type,
                 logfile="missing",
                 job_id=t['job_id'],
@@ -83,19 +124,40 @@ class InventoryScanner:
                 start_time=t.get('start_time'),
                 end_time=t.get('end_time')
             )
+            tasks.append(task_data)
 
-            for c in [f"{raw_name}_prep.log", f"{raw_name}.log"]:
-                p = os.path.join(cycle_log_dir, c)
-                if os.path.exists(p):
-                    task_data.logfile = p
-                    files = parse_output_files_from_log(p, self.data_root)
-                    task_data.files = self.build_file_inventory(
-                        self._expand_directories(files)
-                    )
-                    break
+        return tasks
 
-            cycle_obj.tasks.append(task_data)
-        return cycle_obj
+    def _find_task_logfile(self, task_data, cycle_log_dir):
+        raw_name = task_data.raw_task_name
+
+        for c in (f"{raw_name}_prep.log", f"{raw_name}.log"):
+            p = os.path.join(cycle_log_dir, c)
+            if os.path.exists(p):
+                return p
+
+        return None
+
+
+    def _get_task_file_list_from_logs(self, log_path):
+        """
+        Reads a task log, extracts paths (files or dirs), and returns a flat list of file paths.
+        """
+        files_from_logs = parse_output_files_from_log(log_path, self.data_root)
+        flat_files = self._expand_directories(files_from_logs)
+        return flat_files
+
+    def _populate_task_file_inventory(self, cycle_obj):
+        for task_data in cycle_obj.tasks:
+            if not task_data.logfile or not os.path.exists(task_data.logfile):
+                continue
+
+            files = self._get_task_file_list_from_logs(task_data.logfile)
+            task_data.files = self._create_file_inventory_data(files)
+            # self._inspect_file_inventory(task_data.files)
+            self._inspect_file_system_info(task_data.files)
+            self._inspect_file_content(task_data.files)
+
 
     def _normalize_task_name(self, raw_name):
         parts = raw_name.split('_')
@@ -104,7 +166,13 @@ class InventoryScanner:
             return prefix, raw_name[len(prefix)+1:]
         return 'unknown', raw_name
 
+
     def _expand_directories(self, rel_paths):
+        """
+        Converts a list of relative paths into a full set of file paths.
+        Expands directories recursively for .nc and .bufr files.
+        Returns a list of relative paths.
+        """
         expanded = set()
         for rel in rel_paths:
             full = os.path.join(self.data_root, rel)
@@ -121,67 +189,97 @@ class InventoryScanner:
                 expanded.add(rel)
         return list(expanded)
 
-    def build_file_inventory(self, rel_paths):
-        inventory_list = []
+    def _create_file_inventory_data(self, rel_paths):
+        """
+        Converts a list of relative paths into FileInventoryData objects.
+        Does not inspect file contents.
+        Only sets basic metadata (category, obs_space_name, rel_path).
+        """
+        inventory = []
         for rel in rel_paths:
-            full_path = os.path.join(self.data_root, rel)
             path_parts = rel.split(os.sep)
             category = path_parts[-2] if len(path_parts) > 1 else "unknown"
-            filename = path_parts[-1]
-            obs_space = self._clean_obs_space_name(filename)
+            obs_space = self._clean_obs_space_name(path_parts[-1])
 
-            integrity = "UNKNOWN"
-            size = 0
-            obs_count = 0
-            mtime = 0
-            error = None
-            props = {}
-            stats = []
-            domain = None
-
-            if not os.path.exists(full_path):
-                integrity = "MISSING"
-            else:
-                try:
-                    stat_info = os.stat(full_path)
-                    size = stat_info.st_size
-                    mtime = int(stat_info.st_mtime)
-
-                    if size == 0:
-                        integrity = "EMPTY"
-                    else:
-                        history = self.known_state.get(rel)
-                        prev_mtime = history['mtime'] if history else 0
-
-                        if mtime > prev_mtime:
-                            res = self._check_content_integrity(full_path)
-                            integrity, meta, stats, domain, anomalies = res
-                            obs_count = meta.get('obs', 0)
-                            error = meta.get('err')
-                            props = meta
-                            if anomalies:
-                                props['outliers'] = anomalies
-                        else:
-                            integrity = "OK_SKIPPED"
-
-                except OSError as e:
-                    integrity = "ERR_ACC"
-                    error = str(e)
-
-            inventory_list.append(FileInventoryData(
+            inventory.append(FileInventoryData(
                 rel_path=rel,
                 category=category,
                 obs_space_name=obs_space,
-                integrity=integrity,
-                size_bytes=size,
-                mtime=mtime,
-                obs_count=obs_count,
-                error_msg=error,
-                properties=props,
-                stats=stats,
-                domain=domain
+                integrity="UNKNOWN",
+                size_bytes=0,
+                mtime=0,
+                obs_count=0,
+                error_msg=None,
+                properties={},
+                stats=[],
+                domain=None
             ))
-        return inventory_list
+        return inventory
+
+
+    def _inspect_file_system_info(self, file_inventory: list):
+        """
+        Populates basic file info for a list of FileInventoryData:
+          - existence
+          - size
+          - mtime
+          - integrity: MISSING, EMPTY, OK_SKIPPED
+        Does not inspect file content.
+        """
+        for f in file_inventory:
+            f.error_msg = None  # reset errors
+            f.obs_count = 0
+            f.stats = []
+            f.domain = None
+            f.properties = {}
+
+            full_path = os.path.join(self.data_root, f.rel_path)
+
+            if not os.path.exists(full_path):
+                f.integrity = "MISSING"
+                continue
+
+            try:
+                stat_info = os.stat(full_path)
+                f.size_bytes = stat_info.st_size
+                f.mtime = int(stat_info.st_mtime)
+
+                if f.size_bytes == 0:
+                    f.integrity = "EMPTY"
+                else:
+                    # Still unknown if content is valid; mark as pending inspection
+                    f.integrity = "OK_PENDING"
+
+            except OSError as e:
+                f.integrity = "ERR_ACC"
+                f.error_msg = str(e)
+
+    def _inspect_file_content(self, file_inventory: list):
+        """
+        For files that exist and are non-empty, inspect contents:
+          - Calls _check_content_integrity
+          - Updates obs_count, stats, domain, properties, integrity
+        """
+        for f in file_inventory:
+            if f.integrity not in ("OK_PENDING",):
+                # Skip missing/empty/error files
+                continue
+
+            full_path = os.path.join(self.data_root, f.rel_path)
+
+            try:
+                integrity, meta, stats, domain, anomalies = self._check_content_integrity(full_path)
+                f.integrity = integrity
+                f.obs_count = meta.get("obs", 0)
+                f.stats = stats
+                f.domain = domain
+                f.properties = meta
+                if anomalies:
+                    f.properties['outliers'] = anomalies
+            except Exception as e:
+                f.integrity = "CORRUPT"
+                f.error_msg = str(e)
+
 
     def _clean_obs_space_name(self, filename):
         prefixes = "|".join(self.VALID_PREFIXES)
@@ -530,3 +628,218 @@ class InventoryScanner:
                     pass
                     
         return stats, anomalies
+
+##################################################################
+
+    def deprecate_process_cycle(self, date_str, cycle_int, master_log_path):
+        cycle_obj = CycleData(date=date_str, cycle=cycle_int)
+        raw_tasks = parse_master_log(master_log_path)
+        unique_tasks = {t['task_name']: t for t in raw_tasks}
+
+        tasks = self._create_task_run_data(unique_tasks)
+
+        cycle_log_dir = os.path.join(
+            self.data_root, "logs", f"{date_str}{cycle_int:02d}"
+        )
+
+        for task_data in tasks:
+            log_path = self._find_task_logfile(task_data, cycle_log_dir)
+
+            if log_path:
+                task_data.logfile = log_path
+                task_data.files = self._scan_task_output(log_path)
+
+            cycle_obj.tasks.append(task_data)
+
+        return cycle_obj
+
+    def old_scan_filesystem(self, known_cycles: set = None, limit: int = None) -> list:
+        """
+        Scans for master logs and yields CycleData objects.
+        args:
+            limit (int): If provided, only process the last N (most recent) cycles.
+        """
+        logs_root = os.path.join(self.data_root, "logs")
+        if not os.path.isdir(logs_root):
+            logger.error(f"Logs directory not found: {logs_root}")
+            return []
+
+        pattern = os.path.join(logs_root, "[0-9]*.log")
+        master_logs = sorted(glob.glob(pattern))
+
+        if limit and limit > 0:
+            logger.info(f"Limiting scan to the last {limit} cycles.")
+            master_logs = master_logs[-limit:]
+
+        for m_log_path in master_logs:
+            filename = os.path.basename(m_log_path)
+            m = re.match(r"(\d{8})(\d{2})\.log", filename)
+            if not m:
+                continue
+
+            date_str, cycle_int = m.group(1), int(m.group(2))
+            
+            cycle_obj = self._process_cycle(date_str, cycle_int, m_log_path)
+            if cycle_obj.tasks:
+                yield cycle_obj
+
+    def deprecate_scan_filesystem(self, known_cycles: set = None, limit: int = None) -> list:
+        """
+        Scans for cycles that were logged and yields CycleData objects with tasks.
+        """
+        logged_cycles = self._discover_logged_cycles(limit=limit)
+        if not logged_cycles:
+            return []
+
+        for date_str, cycle_int, master_log_path in logged_cycles:
+            cycle_obj = self._process_cycle(date_str, cycle_int, master_log_path)
+            if cycle_obj.tasks:
+                yield cycle_obj
+
+
+    def old_process_cycle(self, date_str, cycle_int, master_log_path):
+        cycle_obj = CycleData(date=date_str, cycle=cycle_int)
+        raw_tasks = parse_master_log(master_log_path)
+        unique_tasks = {t['task_name']: t for t in raw_tasks}
+
+        cycle_log_dir = os.path.join(
+            self.data_root, "logs", f"{date_str}{cycle_int:02d}"
+        )
+
+        for t in unique_tasks.values():
+            raw_name = t['task_name']
+            run_type, task_name = self._normalize_task_name(raw_name)
+
+            task_data = TaskRunData(
+                task_name=task_name,
+                run_type=run_type,
+                logfile="missing",
+                job_id=t['job_id'],
+                status=t['status'],
+                exit_code=t['exit_code'],
+                attempt=t['attempt'],
+                host=t['host'],
+                runtime_sec=t['duration'],
+                start_time=t.get('start_time'),
+                end_time=t.get('end_time')
+            )
+
+            for c in [f"{raw_name}_prep.log", f"{raw_name}.log"]:
+                p = os.path.join(cycle_log_dir, c)
+                if os.path.exists(p):
+                    task_data.logfile = p
+                    files = parse_output_files_from_log(p, self.data_root)
+                    task_data.files = self.build_file_inventory(
+                        self._expand_directories(files)
+                    )
+                    break
+
+            cycle_obj.tasks.append(task_data)
+        return cycle_obj
+
+    def _inspect_file_inventory(self, inventory_list):
+        """
+        Goes through a list of FileInventoryData objects and calls _check_content_integrity
+        to populate fields like size, obs_count, domain, etc.
+        """
+        for f in inventory_list:
+            full_path = os.path.join(self.data_root, f.rel_path)
+            if os.path.exists(full_path):
+                try:
+                    stat_info = os.stat(full_path)
+                    f.size_bytes = stat_info.st_size
+                    f.mtime = int(stat_info.st_mtime)
+
+                    # Only inspect if size > 0
+                    if f.size_bytes > 0:
+                        integrity, meta, stats, domain, anomalies = self._check_content_integrity(full_path)
+                        f.integrity = integrity
+                        f.properties = meta
+                        f.stats = stats
+                        f.domain = domain
+                        f.obs_count = meta.get('obs', 0)
+                        if anomalies:
+                            f.properties['outliers'] = anomalies
+                    else:
+                        f.integrity = "EMPTY"
+                except Exception as e:
+                    f.integrity = "ERR_ACC"
+                    f.error_msg = str(e)
+            else:
+                f.integrity = "MISSING"
+
+
+
+    def build_file_inventory(self, rel_paths):
+        inventory_list = []
+        for rel in rel_paths:
+            full_path = os.path.join(self.data_root, rel)
+            path_parts = rel.split(os.sep)
+            category = path_parts[-2] if len(path_parts) > 1 else "unknown"
+            filename = path_parts[-1]
+            obs_space = self._clean_obs_space_name(filename)
+
+            integrity = "UNKNOWN"
+            size = 0
+            obs_count = 0
+            mtime = 0
+            error = None
+            props = {}
+            stats = []
+            domain = None
+
+            if not os.path.exists(full_path):
+                integrity = "MISSING"
+            else:
+                try:
+                    stat_info = os.stat(full_path)
+                    size = stat_info.st_size
+                    mtime = int(stat_info.st_mtime)
+
+                    if size == 0:
+                        integrity = "EMPTY"
+                    else:
+                        history = self.known_state.get(rel)
+                        prev_mtime = history['mtime'] if history else 0
+
+                        if mtime > prev_mtime:
+                            res = self._check_content_integrity(full_path)
+                            integrity, meta, stats, domain, anomalies = res
+                            obs_count = meta.get('obs', 0)
+                            error = meta.get('err')
+                            props = meta
+                            if anomalies:
+                                props['outliers'] = anomalies
+                        else:
+                            integrity = "OK_SKIPPED"
+
+                except OSError as e:
+                    integrity = "ERR_ACC"
+                    error = str(e)
+
+            inventory_list.append(FileInventoryData(
+                rel_path=rel,
+                category=category,
+                obs_space_name=obs_space,
+                integrity=integrity,
+                size_bytes=size,
+                mtime=mtime,
+                obs_count=obs_count,
+                error_msg=error,
+                properties=props,
+                stats=stats,
+                domain=domain
+            ))
+        return inventory_list
+
+    # def _scan_task_output(self, log_path):
+        # files = parse_output_files_from_log(log_path, self.data_root)
+        # expanded = self._expand_directories(files)
+        # return self.build_file_inventory(expanded)
+
+    # def _populate_task_file_inventory(self, cycle_obj: CycleData):
+        # for task_data in cycle_obj.tasks:
+            # if not task_data.logfile:
+                # continue  # skip tasks without a logfile
+            # task_data.files = self._scan_task_output(task_data.logfile)
+

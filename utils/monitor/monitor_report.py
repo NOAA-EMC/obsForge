@@ -43,9 +43,14 @@ class MonitorReporter:
         self.parser.add_argument(
             "--db", required=True, help="Path to SQLite DB file"
         )
+        # subparsers = self.parser.add_subparsers(
+            # dest="command", required=True
+        # )
+        # above works with newer python 3.7
         subparsers = self.parser.add_subparsers(
-            dest="command", required=True
+            dest="command"
         )
+        subparsers.required = True
 
         # Commands
         p_inv = subparsers.add_parser("inventory", help="Show matrix")

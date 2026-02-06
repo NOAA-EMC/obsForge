@@ -29,6 +29,7 @@ class FileInventoryData:
 class TaskRunData:
     """Represents the execution of a specific task."""
     task_name: str
+    raw_task_name: str      # needed in parsing
     run_type: str
     logfile: str
     job_id: Optional[str] = None
