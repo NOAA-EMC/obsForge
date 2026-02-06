@@ -102,8 +102,11 @@ class PlotGenerator:
                 dates.append(dt)
                 values.append(v)
                 stds.append(s)
-            except Exception:
-                continue
+            # except Exception:
+                # continue
+            except Exception as e:
+                logger.error(f"Bad record skipped: {r} ({e})")
+
 
         if not dates:
             return None
@@ -220,6 +223,7 @@ class PlotGenerator:
 
             # MODE CHECK: Do we have per-point Standard Deviation from the DB?
             has_spatial_std = (stds[0] is not None)
+            # has_spatial_std = any(s is not None for s in stds)
 
             if has_spatial_std:
                 # --- MODE 1: PHYSICAL VARIANCE (SPATIAL) ---

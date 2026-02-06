@@ -35,7 +35,7 @@ class ObsSpaceGenerator:
                 filename = f"obs_{run_type}_{safe_name}.html"
                 self._write_detail_page(run_type, obs_space, filename)
 
-    def _write_detail_page(self, run_type, space, filename):
+    def _write_detail_page(self, run_type, obs_space, filename):
         """Generates a dedicated page for a specific Obs Space."""
 
         cycles = self.reader.get_cycles_for_run(run_type)
@@ -52,18 +52,18 @@ class ObsSpaceGenerator:
             """Compute relative path from this page to the target."""
             return os.path.relpath(target_file, start=os.path.dirname(page_path))
 
-        schema = self.reader.get_obs_space_schema(space)
-        dom = self.reader.get_obs_space_domains(run_type, space)
+        schema = self.reader.get_obs_space_schema(obs_space)
+        dom = self.reader.get_obs_space_domains(run_type, obs_space)
 
         # HTML Header & Title
         # <base> is needed for web and local links
         back_link = _rel_path(run_dashboard_path)
         html = (
-            f"<!DOCTYPE html><html><head><title>{space} Details</title>"
+            f"<!DOCTYPE html><html><head><title>{obs_space} Details</title>"
             f'<base href="../../../">'
             f"<style>{CSS_STYLES}</style></head><body>"
-            f"<header><h1>{run_type.upper()} <span style='font-weight:normal'>| {space}</span></h1>"
-            # f"<header><h1>{space} <span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
+            f"<header><h1>{run_type.upper()} <span style='font-weight:normal'>| {obs_space}</span></h1>"
+            # f"<header><h1>{obs_space} <span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
             f"<a href='{back_link}' style='color:white; font-weight:bold'>&larr; Back</a></header>"
             f"<div class='container'>"
         )
@@ -71,7 +71,7 @@ class ObsSpaceGenerator:
         # --- General Information (Metadata Table) ---
         html += "<div class='section'><h2>General Information</h2>"
         html += "<table class='flag-table' style='width: auto; min-width: 400px;'>"
-        html += f"<tr><th>Observation Space</th><td>{space}</td></tr>"
+        html += f"<tr><th>Observation Space</th><td>{obs_space}</td></tr>"
         html += f"<tr><th>Cycle</th><td>{current_cycle_name}</td></tr>"
         if dom:
             html += f"<tr><th>Latitude Range</th><td>[{dom.get('min_lat', 0):.1f}, {dom.get('max_lat', 0):.1f}]</td></tr>"
@@ -91,11 +91,11 @@ class ObsSpaceGenerator:
             if var_info['group_name'] == 'ObsValue':
                 var_name = var_info['name']
                 # Commented out actual plot generation for now
-                # p_data = self.reader.get_variable_physics_series(run_type, space, var_name)
+                # p_data = self.reader.get_variable_physics_series(run_type, obs_space, var_name)
                 # if p_data:
                 #     f_full, _ = self.plotter.generate_dual_plots(
                 #         f"{var_name} (Mean ± \u03C3)", p_data, "mean_val", "std_dev",
-                #         f"deep_{run_type}_{space}_{var_name}", "Value", clamp_bottom=False
+                #         f"deep_{run_type}_{obs_space}_{var_name}", "Value", clamp_bottom=False
                 #     )
                 html += f"<div class='plot-card'><h3>{var_name}</h3>"
                 html += "<div class='no-plot'>Plot generation currently disabled</div>"
@@ -104,14 +104,21 @@ class ObsSpaceGenerator:
         html += "</div></div>"
         '''
 
-        # --- IODA Summary (JSON) ---
-        ioda_info_file = self.data.get_obs_space_ioda_info(run_type, current_cycle_name, space)
+        # --- IODA Structure (JSON) ---
+
+        ioda_info_file = self.data.get_product_absolute_path(
+            "ioda_structure",
+            obs_space,
+            run_type,
+            current_cycle_name,
+        )
+
         if os.path.exists(ioda_info_file):
             ioda_struct = ObsSpaceIodaStructure()
             ioda_struct.read_json(ioda_info_file)
             html_fragment = ioda_struct.as_html()
             html += html_fragment
-            logger.info(f"Found ioda structure file {ioda_info_file}")
+            # logger.info(f"Found ioda structure file {ioda_info_file}")
         else:
             logger.error(f"Missing ioda structure file {ioda_info_file}")
 
@@ -122,7 +129,12 @@ class ObsSpaceGenerator:
 
         for cycle in last_cycles:
             cycle_name = cycle["cycle_name"]
-            plot_file = self.data.get_obs_space_plot(run_type, cycle_name, space)
+            plot_file = self.data.get_product_relative_path(
+                "obs_space_var_data",
+                obs_space,
+                run_type,
+                current_cycle_name,
+            )   
             html += f"<div class='plot-card'><h3>Cycle {cycle_name}</h3>"
             html += f"<img src='{plot_file}' class='plot-img'></div>"
 
@@ -158,7 +170,7 @@ class ObsSpaceGenerator:
         html += "<div class='section'><h2>Recent File History</h2><table class='flag-table'>"
         html += "<thead><tr><th>Cycle</th><th>Observations</th><th>Integrity</th></tr></thead><tbody>"
 
-        history = self.reader.get_obs_space_counts(run_type, space, days=5)
+        history = self.reader.get_obs_space_counts(run_type, obs_space, days=5)
         if history:
             for h in reversed(history[-10:]):
                 status_cls = "status-OK" if h['total_obs'] > 0 else "status-WARNING"

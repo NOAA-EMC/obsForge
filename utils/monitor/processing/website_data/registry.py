@@ -7,6 +7,7 @@ class DataProduct:
     """Base class for all data products."""
     name = None
     ext = None
+    scope = None
 
     def generate(self, product_path, run_type, data_object_name, cycle, reader, data_root):
         raise NotImplementedError

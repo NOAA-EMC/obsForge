@@ -2,7 +2,6 @@ import os
 import logging
 
 from processing.data_service import ComputeDataService
-from processing.ioda_reader.reader import IodaReader
 from processing.plotting.plot_generator import PlotGenerator
 
 from .registry import register_product, DataProduct
@@ -14,6 +13,7 @@ logger = logging.getLogger(__name__)
 class ObsSpaceVolumePlotProduct(DataProduct):
     name = "obs_space_volume"
     ext = "png"
+    scope = "obs_space"
 
     def generate(self, product_path, run_type, data_object_name, cycle, reader, data_root):
 

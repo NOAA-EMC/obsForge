@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 @register_product
-class ObsSpacePlotProduct(DataProduct):
-    name = "obs_spaces"
+class ObsSpaceVarDataPlotProduct(DataProduct):
+    name = "obs_space_var_data"
     ext = "png"
+    scope = "obs_space"
 
     def generate(self, product_path, run_type, data_object_name, cycle, reader, data_root):
         cycle_name = cycle["cycle_name"]
@@ -49,7 +50,7 @@ class ObsSpacePlotProduct(DataProduct):
 
         # dim = self.obs_reader.get_obsvalue_dim(data_file_path)
         dim = self.obs_reader.get_effective_dim()
-        logger.info(f"dimension = {dim} for  {data_file_path}")
+        # logger.info(f"dimension = {dim} for  {data_file_path}")
         if dim != 2:
             self._create_placeholder_plot(product_path, obs_space, cycle_name)
             return product_path
@@ -63,7 +64,7 @@ class ObsSpacePlotProduct(DataProduct):
 
         # 3. Generate plot
         variable = data['var_name']
-        logger.info(f"generating plot for = {variable} in {obs_space} data file:  {data_file_path}")
+        # logger.info(f"generating plot for = {variable} in {obs_space} data file:  {data_file_path}")
         # plot_output_dir needs to go
         plot_output_dir = ""
         plotter = PlotGenerator(plot_output_dir)

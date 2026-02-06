@@ -1,13 +1,15 @@
 import os
 
 from .registry import register_product, DataProduct
+
 from processing.ioda_reader.obs_space_ioda_structure import ObsSpaceIodaStructure
 
 
 @register_product
 class IodaStructureProduct(DataProduct):
-    name = "ioda_summary" # to be renamed to ioda_structure or simply ioda
+    name = "ioda_structure"
     ext = "json"
+    scope = "obs_space"
 
     def generate(self, product_path, run_type, data_object_name, cycle, reader, data_root):
         # if data_object_name is not a name of an obs_space, return

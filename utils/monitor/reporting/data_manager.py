@@ -2,6 +2,8 @@ import os
 import shutil
 from collections import defaultdict
 
+from processing.website_data.products import WebDataServer
+
 
 class DataManager:
     def __init__(self, products_root, web_data_root, max_cycles=4):
@@ -12,27 +14,23 @@ class DataManager:
         # Track what we have locally
         self.cycles = defaultdict(set)  # run_type -> {cycle_id}
 
+        self.server = WebDataServer(self.products_root)
+
     # --------------------------------------------------
     # Public API
     # --------------------------------------------------
 
-    def fetch(self, run_type, cycle_id):
+    def fetch_all_products(self, run_type, cycle_id):
         """
         Copy products_root/run_type/cycle_id
         to web_data_root/run_type/cycle_id
         """
-        src = os.path.join(self.products_root, run_type, cycle_id)
         dst = os.path.join(self.web_data_root, run_type, cycle_id)
-
-        if not os.path.isdir(src):
-            raise FileNotFoundError(f"Products not found: {src}")
-
-        # Ensure run directory exists
         os.makedirs(os.path.dirname(dst), exist_ok=True)
 
         # Copy only if not already present
         if not os.path.exists(dst):
-            shutil.copytree(src, dst)
+            self.server.fetch_all_products(run_type, cycle_id, dst)
 
         self.cycles[run_type].add(cycle_id)
 
@@ -58,28 +56,21 @@ class DataManager:
             shutil.rmtree(path, ignore_errors=True)
             self.cycles[run_type].discard(cycle_id)
 
-    def get_obs_space_plot(self, run_type, cycle_id, obs_space):
-        """
-        Return root-relative URL to an obs-space plot file
-        """
+    def get_product_relative_path(self, product_name, data_object_name, run_type, cycle_id):
+        rel_path = self.server.get_product_relative_path(
+            product_name, 
+            data_object_name,
+            run_type, 
+            cycle_id, 
+        )
         data_dir_name = os.path.basename(self.web_data_root.rstrip(os.sep))
+        return os.path.join(data_dir_name, rel_path)
 
-        return os.path.join(
-            data_dir_name,
-            run_type,
-            cycle_id,
-            "obs_spaces",
-            f"{obs_space}.png"
+    def get_product_absolute_path(self, product_name, data_object_name, run_type, cycle_id):
+        rel_path = self.server.get_product_relative_path(
+            product_name, 
+            data_object_name,
+            run_type, 
+            cycle_id, 
         )
-
-    #### WARNING:ABS PATH
-    def get_obs_space_ioda_info(self, run_type, cycle_id, obs_space):
-        # data_dir_name = os.path.basename(self.web_data_root.rstrip(os.sep))
-
-        return os.path.join(
-            self.web_data_root,
-            run_type,
-            cycle_id,
-            "ioda_summary",
-            f"{obs_space}.json"
-        )
+        return os.path.join(self.web_data_root, rel_path)

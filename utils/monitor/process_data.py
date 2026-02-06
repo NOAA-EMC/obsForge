@@ -4,8 +4,7 @@ import argparse
 import logging
 import sys
 
-# from processing.website_data.website_plots import WebsitePlots
-from processing.website_data.web_data_products import WebsiteDataProducts
+from processing.website_data.products import WebsiteDataProducts
 
 
 def parse_args():
@@ -31,6 +30,13 @@ def parse_args():
         help="Directory where generated products will be written"
     )
 
+    parser.add_argument(
+        "--limit-cycles",
+        type=int,
+        default=None,
+        help="Only process the N most recent cycles",
+    )
+
     return parser.parse_args()
 
 
@@ -50,14 +56,14 @@ def main():
     logger.info(f"Output dir  : {args.out}")
 
     try:
-        # plots = WebsitePlots(
-        plots = WebsiteDataProducts(
+        data = WebsiteDataProducts(
             db_path=args.db,
             data_root=args.data_root,
-            output_dir=args.out
+            output_dir=args.out,
+            limit_cycles=args.limit_cycles
         )
 
-        plots.generate()
+        data.generate()
 
     except Exception as e:
         logger.exception("Data product generation failed")

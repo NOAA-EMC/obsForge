@@ -1,4 +1,6 @@
-remove "DEEP DIVE" crap
+reorder gdas, obs name
+
+add limit-cycles argument to product generation, elsewhere
 
 moving average 30 days
 

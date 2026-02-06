@@ -6,10 +6,10 @@ from .css_styles import CSS_STYLES
 logger = logging.getLogger(__name__)
 
 class CategoryGenerator:
-    def __init__(self, output_dir, reader, plotter):
+    def __init__(self, output_dir, reader, website_data):
         self.output_dir = output_dir
         self.reader = reader
-        self.plotter = plotter
+        self.data = website_data
 
     def generate(self, run_type):
         categories = self.reader.get_all_categories()
@@ -25,6 +25,11 @@ class CategoryGenerator:
 
     def _write_category_page(self, run_type, category, filename):
         """Generates the detail page for a category, listing all Obs Spaces with plots."""
+
+        cycles = self.reader.get_cycles_for_run(run_type)
+        last_cycles = cycles[-4:]  # last 4 cycles
+        current_cycle = cycles[-1] if cycles else None
+        current_cycle_name = current_cycle["cycle_name"]
 
         # Paths
         page_path = os.path.join(self.output_dir, filename)
@@ -70,12 +75,12 @@ class CategoryGenerator:
         </div>
         """
 
-        for space in obs_spaces:
+        for obs_space in obs_spaces:
             # --- Domain Info ---
-            dom = self.reader.get_obs_space_domains(run_type, space)
+            dom = self.reader.get_obs_space_domains(run_type, obs_space)
             domain_html = ""
 
-            schema_info = self.reader.get_obs_space_schema_details(space)
+            schema_info = self.reader.get_obs_space_schema_details(obs_space)
             is_3d_profile = any(r.get('dimensionality', 0) >= 3 for r in schema_info)
 
             if dom:
@@ -93,53 +98,58 @@ class CategoryGenerator:
                     domain_html = f"<div class='domain-info'>{' &nbsp;|&nbsp; '.join(parts)}</div>"
 
             # Obs-space detail page filename
-            safe_name = space.replace("/", "_").replace(" ", "_")
+            safe_name = obs_space.replace("/", "_").replace(" ", "_")
             space_filename = f"obs_{run_type}_{safe_name}.html"
             space_link = _rel_path(os.path.join(self.output_dir, "..", "observations", space_filename))
 
             html += (
                 f"<div class='section'>"
-                f"<h2><a href='{space_link}'>{space} &rarr;</a></h2>"
+                f"<h2><a href='{space_link}'>{obs_space} &rarr;</a></h2>"
                 f"{domain_html}<div class='plot-grid'>"
             )
 
             # --- Volume Plot ---
-            c_data = self.reader.get_obs_space_counts(run_type, space, days=None)
-            if c_data:
-                f_c_full, f_c_7d = self.plotter.generate_dual_plots(
-                    "Total Obs (± Historical \u03C3)", c_data, "total_obs",
-                    None, f"{run_type}_{safe_name}_cnt", "Count"
-                )
-                html += f"<div class='plot-card'><h3>Volume</h3>"
-                if f_c_full:
-                    html += (
-                        f"<img src='{_rel_path(os.path.join(plots_dir, f_c_full))}' class='plot-img-all'>"
-                        f"<img src='{_rel_path(os.path.join(plots_dir, f_c_7d))}' class='plot-img-7d'>"
-                    )
-                else:
-                    html += "<div class='no-plot'>No plot</div>"
-                html += "</div>"
+            cycle_id = current_cycle_name
+            v_path = self.data.get_product_relative_path(
+                "obs_space_volume",
+                obs_space,
+                run_type,
+                cycle_id,
+            )
+            v7_path = self.data.get_product_relative_path(
+                "obs_space_volume7",
+                obs_space,
+                run_type,
+                cycle_id,
+            )
+
+            html += f"<div class='plot-card'><h3>Volume</h3>"
+            html += (
+                f"<img src='{v_path}' class='plot-img-all'>"
+                f"<img src='{v7_path}' class='plot-img-7d'>"
+            )
+            html += "</div>"
 
             # --- Physics Plot ---
-            schema = self.reader.get_obs_space_schema(space)
-            phys_var = next((r['name'] for r in schema if r.get('group_name') == 'ObsValue'), None)
-            if phys_var:
-                p_data = self.reader.get_variable_physics_series(run_type, space, phys_var, days=None)
-                if p_data:
-                    f_p_full, f_p_7d = self.plotter.generate_dual_plots(
-                        f"{phys_var} (Mean ± Spatial \u03C3)", p_data,
-                        "mean_val", "std_dev",
-                        f"{run_type}_{safe_name}_phys", "Value", clamp_bottom=False
-                    )
-                    html += f"<div class='plot-card'><h3>{phys_var}</h3>"
-                    if f_p_full:
-                        html += (
-                            f"<img src='{_rel_path(os.path.join(plots_dir, f_p_full))}' class='plot-img-all'>"
-                            f"<img src='{_rel_path(os.path.join(plots_dir, f_p_7d))}' class='plot-img-7d'>"
-                        )
-                    else:
-                        html += "<div class='no-plot'>No plot</div>"
-                    html += "</div>"
+            m_path = self.data.get_product_relative_path(
+                "obs_space_mean",
+                obs_space,
+                run_type,
+                cycle_id,
+            )
+            m7_path = self.data.get_product_relative_path(
+                "obs_space_mean7",
+                obs_space,
+                run_type,
+                cycle_id,
+            )
+
+            html += f"<div class='plot-card'><h3>Mean/StdDev</h3>"
+            html += (
+                f"<img src='{v_path}' class='plot-img-all'>"
+                f"<img src='{v7_path}' class='plot-img-7d'>"
+            )
+            html += "</div>"
 
             html += "</div></div>"  # Close plot-grid and section
 

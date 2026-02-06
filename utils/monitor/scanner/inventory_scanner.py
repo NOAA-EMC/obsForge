@@ -89,7 +89,7 @@ class InventoryScanner:
                 if os.path.exists(p):
                     task_data.logfile = p
                     files = parse_output_files_from_log(p, self.data_root)
-                    task_data.files = self.validate_file_inventory(
+                    task_data.files = self.build_file_inventory(
                         self._expand_directories(files)
                     )
                     break
@@ -121,7 +121,7 @@ class InventoryScanner:
                 expanded.add(rel)
         return list(expanded)
 
-    def validate_file_inventory(self, rel_paths):
+    def build_file_inventory(self, rel_paths):
         inventory_list = []
         for rel in rel_paths:
             full_path = os.path.join(self.data_root, rel)

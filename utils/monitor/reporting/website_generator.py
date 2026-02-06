@@ -6,13 +6,12 @@ from datetime import datetime
 from .css_styles import CSS_STYLES
 from .category_pages import CategoryGenerator
 from .obs_space_pages import ObsSpaceGenerator
-from .data_manager import DataManager
 
+from .data_manager import DataManager
 from .data_service import ReportDataService
 
 # to be removed:
 from .website_structure import WebsiteStructure
-from processing.plotting.plot_generator import PlotGenerator
 
 
 logging.basicConfig(
@@ -56,7 +55,8 @@ class WebsiteGenerator:
         for rt in self.run_types:
             for cycle in self.cycles[rt]:
                 cycle_id = cycle["cycle_name"]  # or cycle.name
-                self.website_data.fetch(rt, cycle_id)
+                self.website_data.fetch_all_products(rt, cycle_id)
+                # self.website_data.fetch(rt, cycle_id)
 
 
     def generate(self):
@@ -75,14 +75,12 @@ class WebsiteGenerator:
         for rt in self.run_types:
             logger.info(f"Generating website for run type: {rt}")
 
-            plotter = PlotGenerator(self.structure.plots_dir(rt))
-
-            self._generate_dashboard(rt, plotter)
+            self._generate_dashboard(rt)
 
             category_gen = CategoryGenerator(
                 self.structure.categories_dir(rt),
                 self.reader,
-                plotter
+                self.website_data,
             )
             category_gen.generate(rt)
 
@@ -103,7 +101,7 @@ class WebsiteGenerator:
         return os.path.relpath(to_path, start=os.path.dirname(from_path))
 
 
-    def _generate_dashboard(self, current_run, plotter):
+    def _generate_dashboard(self, current_run):
         """Builds the main dashboard HTML for a specific run type."""
 
         # HTML Header
@@ -156,8 +154,8 @@ class WebsiteGenerator:
         # Sections
         html += self._render_flagged_section(current_run)
         html += self._render_inventory_section(current_run)
-        html += self._render_timing_section(current_run, plotter)
-        html += self._render_category_section(current_run, plotter)
+        html += self._render_timing_section(current_run)
+        html += self._render_category_section(current_run)
 
         # Close container
         html += "</div></body></html>"
@@ -283,79 +281,88 @@ class WebsiteGenerator:
         html += "</tbody></table></div></div>"
         return html
 
-    def _render_timing_section(self, run_type, plotter):
+    def _render_timing_section(self, run_type):
         """Generates Runtime performance plots (Mean ± σ)."""
+
+        cycles = self.reader.get_cycles_for_run(run_type)
+        last_cycles = cycles[-4:]  # last 4 cycles
+        current_cycle = cycles[-1] if cycles else None
+        current_cycle_name = current_cycle["cycle_name"]
+
         html = (
             "<div class='section'><h2>Task Performance (Mean ± σ)</h2>"
             "<div class='plot-grid'>"
         )
         tasks = self.reader.get_all_task_names(run_type)
 
-        count = 0
         for task in tasks:
-            data = self.reader.get_task_timing_series(run_type, task, days=None)
-            if not data:
-                continue
-
-            # Pass std_key=None to force Temporal (Historical) bands
-            f_full, f_7d = plotter.generate_dual_plots(
-                f"{task}", data, "mean_runtime", None,
-                f"time_{run_type}_{task}", "Seconds"
+            cycle_id = current_cycle_name
+            t_path = self.website_data.get_product_relative_path(
+                "task_runtime",
+                task,
+                run_type,
+                cycle_id,
+            )
+            t7_path = self.website_data.get_product_relative_path(
+                "task_runtime7",
+                task,
+                run_type,
+                cycle_id,
             )
 
             html += f"<div class='plot-card'><h3>{task}</h3>"
-            if f_full:
-                html += (
-                    f"<img src='plots/{f_full}' class='plot-img-all'>"
-                    f"<img src='plots/{f_7d}' class='plot-img-7d'>"
-                )
-            else:
-                html += "<div class='no-plot'>Plot unavailable</div>"
+            html += (
+                f"<img src='{t_path}' class='plot-img-all'>"
+                f"<img src='{t7_path}' class='plot-img-7d'>"
+            )
             html += "</div>"
-            count += 1
 
-        if count == 0:
-            html += "<p>No timing data available.</p>"
         html += "</div></div>"
         return html
 
-    def _render_category_section(self, run_type, plotter):
+    def _render_category_section(self, run_type):
         """Generates Observation Category plots (Mean ± StdDev)."""
+
+        cycles = self.reader.get_cycles_for_run(run_type)
+        last_cycles = cycles[-4:]  # last 4 cycles
+        current_cycle = cycles[-1] if cycles else None
+        current_cycle_name = current_cycle["cycle_name"]
+
         html = (
             "<div class='section'><h2>Observation Categories (Total Obs)</h2>"
             "<div class='plot-grid'>"
         )
-        cats = self.reader.get_all_categories()
 
-        for cat in cats:
-            data = self.reader.get_category_counts(run_type, cat, days=None)
-            if not data:
-                continue
-
-            # Pass std_key=None to force Temporal (Historical) bands
-            fname_base = f"cat_{run_type}_{cat}"
-            f_full, f_7d = plotter.generate_dual_plots(
-                f"{cat} Total Obs", data, "total_obs", None, fname_base, "Count"
-            )
-
-            safe_cat = cat.replace("/", "_").replace(" ", "_")
+        categories = self.reader.get_all_categories()
+        for category in categories:
+            safe_cat = category.replace("/", "_").replace(" ", "_")
             detail_filename = f"{run_type}_{safe_cat}.html"
-            # detail_filename = f"detail_{run_type}_{cat}.html"
-            # self._generate_detail_page(run_type, cat, detail_filename)
 
             html += f"""
             <div class='plot-card'>
                 <a href='categories/{detail_filename}'
                    style='text-decoration:none; color:inherit'>
-                    <h3>{cat} &rarr;</h3>
+                    <h3>{category} &rarr;</h3>
             """
-            if f_full:
-                html += (
-                    f"<img src='plots/{f_full}' class='plot-img-all'>"
-                    f"<img src='plots/{f_7d}' class='plot-img-7d'>"
-                )
-            else:
-                html += "<div class='no-plot'>Plot unavailable</div>"
+
+            cycle_id = current_cycle_name
+            c_path = self.website_data.get_product_relative_path(
+                "category_volume",
+                category,
+                run_type,
+                cycle_id,
+            )
+            c7_path = self.website_data.get_product_relative_path(
+                "category_volume7",
+                category,
+                run_type,
+                cycle_id,
+            )
+
+            html += (
+                f"<img src='{c_path}' class='plot-img-all'>"
+                f"<img src='{c7_path}' class='plot-img-7d'>"
+            )
             html += "</a></div>"
         html += "</div></div>"
         return html

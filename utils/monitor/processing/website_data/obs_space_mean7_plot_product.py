@@ -10,37 +10,47 @@ logger = logging.getLogger(__name__)
 
 
 @register_product
-class ObsSpaceVolume7PlotProduct(DataProduct):
-    name = "obs_space_volume7"
+class ObsSpaceMean7PlotProduct(DataProduct):
+    name = "obs_space_mean7"
     ext = "png"
     scope = "obs_space"
 
     def generate(self, product_path, run_type, data_object_name, cycle, reader, data_root):
+        schema = reader.get_obs_space_schema(data_object_name)
+        if not schema:
+            return
 
-        # if data_object_name is not a name of an obs_space, return
-        data = reader.get_obs_space_counts(run_type, data_object_name, days=None)
+        v = next((r['name'] for r in schema if r.get('group_name') == 'ObsValue'), None)
+        if not v:
+            return
+
+        data = reader.get_variable_physics_series(
+            run_type, 
+            data_object_name, 
+            v, 
+            days=None
+        )
+        # the obs_space may not be processed by this run type
         if not data:
             return
 
         obs_space = data_object_name
-        safe_name = obs_space.replace("/", "_").replace(" ", "_")
 
         plot_output_dir = ""
         plotter = PlotGenerator(plot_output_dir)
 
-        title = "Total Obs (± Historical \u03C3)"
-        fname_base = f"{run_type}_{safe_name}_cnt"
-        val_key = "total_obs"
-        std_key = None      # could be std deviation
-        y_label = "Count"
+        title = f"{v} (Mean ± Spatial \u03C3)"
+        val_key = "mean_val"
+        std_key = "std_dev"
+        y_label = "Value"
 
         plotter.generate_history_plot(
             title,
             data,
             val_key,
             std_key,
-            # fname=f"{fname_base}_all.png",
             product_path,
             y_label=y_label,
             days=7,
+            clamp_bottom=False
         )
