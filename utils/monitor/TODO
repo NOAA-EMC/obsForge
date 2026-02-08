@@ -1,8 +1,12 @@
+moving average 30 days
+
+toggle doesnt work
+
 reorder gdas, obs name
 
 add limit-cycles argument to product generation, elsewhere
 
-moving average 30 days
+known_state unused in scanners
 
 toggle 7days/full history
 

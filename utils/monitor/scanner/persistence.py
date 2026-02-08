@@ -100,6 +100,10 @@ class Registrar:
         # Commit once per cycle
         self.db.commit()
 
+    def persist_cycles(self, cycles):
+        for cycle in cycles:
+            self.persist_cycle(cycle)
+
     def _persist_task(self, task: TaskRunData, cycle: CycleData):
         task_id = self.db.get_or_create_task(task.task_name)
         task_run_id, _ = self.db.log_task_run(

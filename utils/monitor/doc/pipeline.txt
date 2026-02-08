@@ -1,0 +1,21 @@
+the monitoring system has several top level scripts
+that run as a pipeline
+they can be run also in a cron job
+the intention is that it will run every 6 hours
+
+the monitoring pipeline currently consists of
+---------------------------------------------
+scanning log files
+scanning data dir tree
+processing:
+	computing data products from the source data (nc files from the dir tree)
+		all data products for website
+		data plots (png), ioda structure (json files), ...
+		inspection of ioda files (QC)
+	data products are stored in a separate dir tree;
+	need to add the description of the created data products to the db
+wesite generation
+	website pulls last 4 cycles from the previous processing step 
+	generates html
+	website dir contains index.tml html/ data/
+	the website can be archived since it holds no more than 4 cycles of data products

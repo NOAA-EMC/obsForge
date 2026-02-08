@@ -1,0 +1,16 @@
+Obsforge monitoring system on hpc
+---------------------------------
+the monitoring system uses sqlite3 database to 
+maintain and update inventory,
+inspect and qc the data, 
+compute derived data products
+and generate a website.
+ 
+the input is the root of the data directory tree.
+the system can be run in a pipeline on the tree
+and it can also be run as a cron job to track data generation.
+Data is produced in 4 cycles per day (00,06,12,18)
+there are several run types (gdas, gfs, gcdas, ...)
+each run type consists of several tasks;
+each task produces data for several observation categories;
+each obs category consist of several obs spaces;

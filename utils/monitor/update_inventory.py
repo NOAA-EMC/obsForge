@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """
 Step 1: Scan & Register Inventory.
-
-Scan filesystem → build in-memory inventory → persist via Registrar.
 """
+
 
 import argparse
 import logging
 import sys
 
-from database.monitor_db import MonitorDB
-from scanner.inventory_scanner import InventoryScanner
-from scanner.persistence import ScannerStateReader, Registrar
+from scanner.workflow import Scanner
 
 
 def configure_logging(debug_mode: bool):
@@ -54,30 +51,16 @@ def main():
     logger.info(f"DB: {args.db}")
     logger.info(f"Scanning root: {args.data_root}")
 
-    # --- DB + Registrar ---
-    db = MonitorDB(args.db)
-    registrar = Registrar(db)
-
-    # --- Load previous scan state ---
-    state_reader = ScannerStateReader(args.db)
-    known_state = state_reader.get_known_state()
-
-    scanner = InventoryScanner(
-        args.data_root,
-        known_state=known_state,
+    # --- Scanner ---
+    scanner = Scanner(
+        db_path=args.db,
+        data_root=args.data_root,
     )
 
-    # --- Scan + Persist ---
-    for cycle in scanner.scan_filesystem(
-        limit=args.limit_cycles
-    ):
-        logger.info(
-            f"Processing cycle {cycle.date} {cycle.cycle:02d}"
-        )
-        registrar.persist_cycle(cycle)
+    scanner.run(limit_cycles=args.limit_cycles)
 
     # --- Reporting ---
-    report = registrar.report()
+    report = scanner.report()
 
     logger.info(
         f"Done. Cycles: {report['cycles']} | "
@@ -88,7 +71,7 @@ def main():
         f"{report['skipped']} Skipped."
     )
 
-    return report
+    return
 
 
 if __name__ == "__main__":

@@ -1,0 +1,23 @@
+the data is organized in a dir tree
+the data comes in cycles - 4 times per day; 00, 06, 12, 18
+there is one ioda (netcdf) file for every obs space for every cycle;
+all ioda files corresponding to the same obs space have the same ioda structure, 
+but different data
+
+each run type has a data directory for every cycle
+all tasks generate logs in a single directory
+there is a master log for all tasks for every cycle
+each task has a log file
+
+the monitoring system has several top level scripts
+that run as a pipeline
+they can be run also in a cron job
+the intention is that it will run every 6 hours
+
+RunType
+ └── Cycle
+      ├── Tasks
+      │    └── (logs from *this cycle*)
+      └── Obs Categories
+           └── Obs Spaces
+                └── (data from *this cycle*)
