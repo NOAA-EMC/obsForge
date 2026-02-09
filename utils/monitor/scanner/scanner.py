@@ -47,7 +47,7 @@ class Scanner:
         self.registrar = Registrar(db)
 
     def run(self, limit_cycles=None):
-        logger.info("starting...")
+        # logger.info("starting...")
 
         # --- Load previous scan state ---
         # unused.....
@@ -60,7 +60,7 @@ class Scanner:
             known_state=known_state,
         )
         log_scan_cycles = log_scanner.scan_cycles(limit=limit_cycles)
-        dump_cycles(log_scan_cycles, "j1")
+        # dump_cycles(log_scan_cycles, "j1")
         # logger.info(f"----- log file scan completed {log_scan_cycles}")
         # self.registrar.persist_cycles(log_scan_cycles)
         # logger.info("----- persisted log scan cycles to db")
@@ -71,7 +71,7 @@ class Scanner:
         )
         # temporary fix:
         fs_scan_cycles = fs_scanner.inspect_cycles(log_scan_cycles)
-        dump_cycles(fs_scan_cycles, "j2")
+        # dump_cycles(fs_scan_cycles, "j2")
         # logger.info(f"----- file system scan completed {fs_scan_cycles}")
         # self.registrar.persist_cycles(fs_scan_cycles)
         # logger.info("----- persisted file system scan cycles to db")
@@ -82,7 +82,7 @@ class Scanner:
         )
         # temporary fix:
         fc_scan_cycles = fc_scanner.inspect_cycles(fs_scan_cycles)
-        dump_cycles(fc_scan_cycles, "j3")
+        # dump_cycles(fc_scan_cycles, "j3")
         # logger.info(f"----- file content scan completed {fc_scan_cycles}")
         self.registrar.persist_cycles(fc_scan_cycles)
         logger.info("----- persisted content scan cycles to db")

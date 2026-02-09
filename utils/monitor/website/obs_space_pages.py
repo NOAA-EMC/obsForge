@@ -45,19 +45,21 @@ class ObsSpaceGenerator:
 
 
         page_path = os.path.join(self.output_dir, filename)
-        run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
+        # run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
+        run_dashboard_path = os.path.join("html", run_type, f"index.html")
         # plots_dir = os.path.join(self.output_dir, "..", "plots")
 
-        def _rel_path(target_file):
-            """Compute relative path from this page to the target."""
-            return os.path.relpath(target_file, start=os.path.dirname(page_path))
+        # def _rel_path(target_file):
+            # """Compute relative path from this page to the target."""
+            # return os.path.relpath(target_file, start=os.path.dirname(page_path))
 
         schema = self.reader.get_obs_space_schema(obs_space)
         dom = self.reader.get_obs_space_domains(run_type, obs_space)
 
         # HTML Header & Title
         # <base> is needed for web and local links
-        back_link = _rel_path(run_dashboard_path)
+        # back_link = _rel_path(run_dashboard_path)
+        back_link = run_dashboard_path
         html = (
             f"<!DOCTYPE html><html><head><title>{obs_space} Details</title>"
             f'<base href="../../../">'

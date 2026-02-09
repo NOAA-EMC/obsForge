@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 
-from reporting.website_generator import WebsiteGenerator
+from website.website_generator import WebsiteGenerator
 
 
 def main():

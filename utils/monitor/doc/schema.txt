@@ -1,0 +1,43 @@
+-------------------------------------------
+schema for computations with obs space data
+-------------------------------------------
+needs to describe:
+	monitored workflow entities
+	abstract data: obs spaces
+	abstract physics concepts
+	physical data: file inventory/OS info
+	computing system state
+
+
+workflow entities:
+are described by a collection of log files
+	run_types (gfs, gdas, ...)
+Each run_type consists of a collection of tasks
+	tasks
+	task runs
+
+the central object is 
+	obs_space
+obs_spaces are organized into disjoint categories:
+	obs_space_category
+each obs_space consists of a collection of ioda files, one per cycle
+there are 4 cycles per day
+	file_inventory
+each file has OS info 
+and it has derived data which is computed from inspecting its content
+	file_content
+all files that belong to the same obs_space have the same ioda structure
+different obs_spaces may have the same ioda structure
+	ioda_structure
+
+ioda structure is flat (attributes, MetaData, ObsValue, ObsError, PreQC)
+each group contains variables
+MetaData contains coordinates (lon, lat, depth...) which should be data, not metadata
+in marine data there is only one variable in ObsValue
+for each variable in ObsValue there should be a corresponding variable in ObsError and PreQC
+marine data has either 2 or 3 coordinates 
+for atmos data we may have different groups and different relationships
+
+variables are described by standardized names (e.g. seaSurfaceTemperature)
+each physical variable can be assigned physics metadata:
+dimensionality, physical range of values, etc.

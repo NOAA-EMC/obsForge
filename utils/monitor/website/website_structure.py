@@ -11,17 +11,11 @@ class WebsiteStructure:
     def run_root(self, rt):
         return os.path.join(self.html_dir, rt)
 
-    # def plots_dir(self, rt):
-        # return os.path.join(self.run_root(rt), "plots")
-
     def categories_dir(self, rt):
         return os.path.join(self.run_root(rt), "categories")
 
     def obsspaces_dir(self, rt):
         return os.path.join(self.run_root(rt), "obs_spaces")
-
-    # def cycles_dir(self, rt):
-        # return os.path.join(self.run_root(rt), "cycles")
 
     # ---- Directory creation ----
 
@@ -32,9 +26,7 @@ class WebsiteStructure:
         for rt in self.run_types:
             for d in (
                 self.run_root(rt),
-                # self.plots_dir(rt),
                 self.categories_dir(rt),
                 self.obsspaces_dir(rt),
-                # self.cycles_dir(rt),
             ):
                 os.makedirs(d, exist_ok=True)

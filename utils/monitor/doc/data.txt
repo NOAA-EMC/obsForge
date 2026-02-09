@@ -21,3 +21,12 @@ RunType
       └── Obs Categories
            └── Obs Spaces
                 └── (data from *this cycle*)
+
+run_type
+  └── date
+        └── cycle
+              └── domain           (atmos, ocean)
+                    └── obs_space_category (optional / inferred)
+                          └── obs_space
+                                └── file instance
+

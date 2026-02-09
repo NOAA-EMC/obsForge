@@ -33,14 +33,11 @@ class CategoryGenerator:
 
         # Paths
         page_path = os.path.join(self.output_dir, filename)
-        # run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
-        # run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
         run_dashboard_path = os.path.join("html", run_type, f"index.html")
-        # plots_dir = os.path.join(self.output_dir, "..", "plots")
 
-        def _rel_path(target_file):
-            """Helper to compute relative path from this page."""
-            return os.path.relpath(target_file, start=os.path.dirname(page_path))
+        # def _rel_path(target_file):
+            # """Helper to compute relative path from this page."""
+            # return os.path.relpath(target_file, start=os.path.dirname(page_path))
 
         # Obs spaces for this category
         obs_spaces = self.reader.get_obs_spaces_for_category(category)
@@ -53,10 +50,11 @@ class CategoryGenerator:
         )   
 
         # Header with dynamic Back Link
-        back_link = _rel_path(run_dashboard_path)
+        # back_link = _rel_path(run_dashboard_path)
+        back_link = run_dashboard_path
         html += (
-            f"<header><h1>{category} "
-            f"<span style='font-weight:normal'>| {run_type.upper()}</span></h1>"
+            f"<span style='font-weight:normal'>{run_type.upper()}</span></h1>| "
+            f"<header><h1>{category}"
             f"<a href='{back_link}' style='color:white; font-weight:bold'>&larr; Back</a></header>"
         )   
 
@@ -102,7 +100,6 @@ class CategoryGenerator:
             # Obs-space detail page filename
             safe_name = obs_space.replace("/", "_").replace(" ", "_")
             space_filename = f"obs_{run_type}_{safe_name}.html"
-            # space_link = _rel_path(os.path.join(self.output_dir, "..", "observations", space_filename))
             space_link = os.path.join("html", run_type, "obs_spaces", space_filename)
 
             html += (
@@ -149,8 +146,8 @@ class CategoryGenerator:
 
             html += f"<div class='plot-card'><h3>Mean/StdDev</h3>"
             html += (
-                f"<img src='{v_path}' class='plot-img-all'>"
-                f"<img src='{v7_path}' class='plot-img-7d'>"
+                f"<img src='{m_path}' class='plot-img-all'>"
+                f"<img src='{m7_path}' class='plot-img-7d'>"
             )
             html += "</div>"
 
