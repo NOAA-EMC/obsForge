@@ -114,9 +114,9 @@ class StageOutput(Task):
 
         # Copy obsforge BUFR status log file
         bufr_status_log_src = os.path.join(self.task_config.COMIN_ATMOS_OBSFORGE,
-                                           "obsforge_atmos_bufr_status.log")
+                                           f"{self.task_config.OPREFIX}obsforge_atmos_bufr_status.log")
         bufr_status_log_dest = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
-                                            "obsforge_atmos_bufr_status.log")
+                                            f"{self.task_config.OPREFIX}obsforge_atmos_bufr_status.log")
         if os.path.exists(bufr_status_log_src):
             FileHandler({'copy': [[bufr_status_log_src, bufr_status_log_dest]]}).sync()
             logger.info(f"Copied BUFR status log from {bufr_status_log_src} to {bufr_status_log_dest}")
