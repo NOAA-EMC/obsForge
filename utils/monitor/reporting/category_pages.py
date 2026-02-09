@@ -34,8 +34,9 @@ class CategoryGenerator:
         # Paths
         page_path = os.path.join(self.output_dir, filename)
         # run_dashboard_path = os.path.join(self.output_dir, "..", f"{run_type}.html")
-        run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
-        plots_dir = os.path.join(self.output_dir, "..", "plots")
+        # run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
+        run_dashboard_path = os.path.join("html", run_type, f"index.html")
+        # plots_dir = os.path.join(self.output_dir, "..", "plots")
 
         def _rel_path(target_file):
             """Helper to compute relative path from this page."""
@@ -47,6 +48,7 @@ class CategoryGenerator:
         # HTML Header
         html = ( 
             f"<!DOCTYPE html><html><head><title>{category}</title>"
+            f'<base href="../../../">'
             f"<style>{CSS_STYLES}</style></head><body>"
         )   
 
@@ -100,7 +102,8 @@ class CategoryGenerator:
             # Obs-space detail page filename
             safe_name = obs_space.replace("/", "_").replace(" ", "_")
             space_filename = f"obs_{run_type}_{safe_name}.html"
-            space_link = _rel_path(os.path.join(self.output_dir, "..", "observations", space_filename))
+            # space_link = _rel_path(os.path.join(self.output_dir, "..", "observations", space_filename))
+            space_link = os.path.join("html", run_type, "obs_spaces", space_filename)
 
             html += (
                 f"<div class='section'>"

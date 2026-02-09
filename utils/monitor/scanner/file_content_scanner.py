@@ -1,11 +1,19 @@
-import os
 import logging
 from typing import List
+
+import glob
+import os
+import re
+from datetime import datetime
+import numpy as np
+from netCDF4 import Dataset, num2date, date2num  # Added date2num
 
 from scanner.models import CycleData, TaskRunData, FileInventoryData
 from scanner.persistence import Registrar
 
 logger = logging.getLogger("FileContentScanner")
+
+
 
 
 class FileContentScanner:
@@ -31,13 +39,16 @@ class FileContentScanner:
             # for task in cycle.tasks:
                 # self.inspect_task_files(task)
 
-    # to be deprecated
-    # def scan_cycles(self, known_cycles: set = None, limit: int = None) -> list:
     def inspect_cycles(self, cycles: List[CycleData], limit: int = None) -> list:
+        if limit and limit > 0:
+            logger.info(f"scanning limited to {limit} cycles")
+            cycles = cycles[-limit:]
+
         for cycle in cycles:
             logger.info(f"Inspecting cycle {cycle.date} {cycle.cycle:02d}")
             for task in cycle.tasks:
                 self._inspect_file_content(task.files)
+
         return cycles
 
     def _inspect_file_content(self, file_inventory: list):

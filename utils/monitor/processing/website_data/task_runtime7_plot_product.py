@@ -39,7 +39,8 @@ class TaskRuntime7PlotProduct(DataProduct):
         std_key = None
         y_label = "Seconds"
 
-        plotter.generate_history_plot(
+        # plotter.generate_history_plot(
+        plotter.generate_history_plot_with_moving_avg(
             title,
             data,
             val_key,

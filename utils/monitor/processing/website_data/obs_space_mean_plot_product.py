@@ -44,7 +44,8 @@ class ObsSpaceMeanPlotProduct(DataProduct):
         std_key = "std_dev"
         y_label = "Value"
 
-        plotter.generate_history_plot(
+        # plotter.generate_history_plot(
+        plotter.generate_history_plot_with_moving_avg(
             title,
             data,
             val_key,

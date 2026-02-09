@@ -3,12 +3,11 @@
 Step 1: Scan & Register Inventory.
 """
 
-
 import argparse
 import logging
 import sys
 
-from scanner.workflow import Scanner
+from scanner.scanner import Scanner
 
 
 def configure_logging(debug_mode: bool):

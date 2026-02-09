@@ -34,7 +34,8 @@ class ObsSpaceVolume7PlotProduct(DataProduct):
         std_key = None      # could be std deviation
         y_label = "Count"
 
-        plotter.generate_history_plot(
+        # plotter.generate_history_plot(
+        plotter.generate_history_plot_with_moving_avg(
             title,
             data,
             val_key,

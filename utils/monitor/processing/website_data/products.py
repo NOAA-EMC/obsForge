@@ -97,12 +97,12 @@ class WebsiteDataProducts:
                 # logger.info(f"--> {task}")
                 self._generate_data_products(run_type, "task", task)
 
-            logger.info("Generating category data products")
+            logger.info(f"Generating category data products for {run_type}")
             for category in self.all_categories:
                 # logger.info(f"--> {category}")
                 self._generate_data_products(run_type, "category", category)
 
-            logger.info("Generating obs space data products")
+            logger.info(f"Generating obs space data products for {run_type}")
             for obs_space in self.all_obs_spaces:
                 # logger.info(f"--> {obs_space}")
                 self._generate_data_products(run_type, "obs_space", obs_space)

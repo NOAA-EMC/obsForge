@@ -20,21 +20,18 @@ class FileSystemScanner:
 
     # temporary
     # def scan_cycles(self, cycles: List[CycleData], limit: int = None) -> list:
-        # if limit and limit > 0:
-            # logger.info(f"scanning limited to {limit} cycles")
-            # cycles = cycles[-limit:]
-        # for cycle in cycles:
-            # logger.info(f"cycle {cycle.date} {cycle.cycle:02d}")
-            # for task in cycle.tasks:
-                # self.inspect_task_files(task)
-
     # to be deprecated
     # def scan_cycles(self, known_cycles: set = None, limit: int = None) -> list:
     def inspect_cycles(self, cycles: List[CycleData], limit: int = None) -> list:
+        if limit and limit > 0:
+            logger.info(f"scanning limited to {limit} cycles")
+            cycles = cycles[-limit:]
+
         for cycle in cycles:
             logger.info(f"Inspecting cycle {cycle.date} {cycle.cycle:02d}")
             for task in cycle.tasks:
                 self._inspect_file_system_info(task.files)
+
         return cycles
 
 

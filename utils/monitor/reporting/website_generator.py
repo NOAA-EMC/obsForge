@@ -108,6 +108,7 @@ class WebsiteGenerator:
         run_root = self.structure.run_root(current_run)
         html = (
             f"<!DOCTYPE html><html><head>"
+            f'<base href="../../">'
             f"<title>ObsForge: {current_run.upper()}</title>"
             f"<style>{CSS_STYLES}</style></head><body>"
         )
@@ -124,11 +125,11 @@ class WebsiteGenerator:
             f"</header>"
         )
 
-        # Navigation Tabs (legacy layout)
+        # Navigation Tabs 
         html += "<div class='nav-tabs'>"
         for rt in self.run_types:
             cls = "active" if rt == current_run else ""
-            link = f"../{rt}/index.html"
+            link = f"html/{rt}/index.html"
             html += f"<a href='{link}' class='nav-btn {cls}'>{rt.upper()}</a>"
         html += "</div>"
 
@@ -334,13 +335,26 @@ class WebsiteGenerator:
         )
 
         categories = self.reader.get_all_categories()
+     
         for category in categories:
+            data = self.reader.get_category_counts(run_type, category, days=None)
+            if not data:
+                continue
+
             safe_cat = category.replace("/", "_").replace(" ", "_")
             detail_filename = f"{run_type}_{safe_cat}.html"
+            cat_link = os.path.join("html", run_type, "categories", detail_filename)
+
+            # html += f"""
+            # <div class='plot-card'>
+                # <a href='categories/{detail_filename}'
+                   # style='text-decoration:none; color:inherit'>
+                    # <h3>{category} &rarr;</h3>
+            # """
 
             html += f"""
             <div class='plot-card'>
-                <a href='categories/{detail_filename}'
+                <a href='{cat_link}'
                    style='text-decoration:none; color:inherit'>
                     <h3>{category} &rarr;</h3>
             """

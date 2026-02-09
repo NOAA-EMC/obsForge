@@ -46,7 +46,7 @@ class ObsSpaceGenerator:
 
         page_path = os.path.join(self.output_dir, filename)
         run_dashboard_path = os.path.join(self.output_dir, "..", f"index.html")
-        plots_dir = os.path.join(self.output_dir, "..", "plots")
+        # plots_dir = os.path.join(self.output_dir, "..", "plots")
 
         def _rel_path(target_file):
             """Compute relative path from this page to the target."""
