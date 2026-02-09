@@ -64,7 +64,7 @@ class ObsSpaceVarDataPlotProduct(DataProduct):
 
         # 3. Generate plot
         variable = data['var_name']
-        # logger.info(f"generating plot for = {variable} in {obs_space} data file:  {data_file_path}")
+        logger.info(f"generating plot for = {variable} in {obs_space} data file:  {data_file_path}")
         # plot_output_dir needs to go
         plot_output_dir = ""
         plotter = PlotGenerator(plot_output_dir)

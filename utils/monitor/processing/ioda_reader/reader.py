@@ -99,6 +99,60 @@ class IodaReader:
 
     def get_effective_dim(self):
         """
+        Returns:
+            2: If the file contains a plottable surface field (lat, lon, value).
+            3+: If the file contains profiles, channels, or multi-level data (Default/Safe).
+        """
+        try:
+            with nc.Dataset(self.file_path) as ds:
+                # 1. Look for the actual data variables (usually in ObsValue)
+                # We check the shape of the data itself, not just metadata.
+                data_group = ds.groups.get("ObsValue", ds)
+                
+                # Get the first available data variable to inspect its "nature"
+                vars_to_check = list(data_group.variables.keys())
+                if not vars_to_check:
+                    return 3 # No data? Don't plot.
+
+                sample_var = data_group.variables[vars_to_check[0]]
+                
+                # BLOCKER A: Multi-dimensionality
+                # If a variable is (nlocs, nchans) or (nlocs, nlevels), rank is 2.
+                # A plottable surface field MUST have rank 1 (nlocs,).
+                if len(sample_var.dimensions) > 1:
+                    return 3 
+
+                # 2. Inspect Metadata for hidden vertical/spectral variance
+                md = ds.groups.get("MetaData", None)
+                if not md:
+                    return 2 # No metadata to contradict the surface assumption
+
+                # Dimensions that turn a map into a profile or spectral set
+                blockers = [
+                    "depth", "pressure", "air_pressure", "height", 
+                    "altitude", "level", "channel", "sensor_chan", 
+                    "wavelength", "frequency"
+                ]
+
+                for b in blockers:
+                    if b in md.variables:
+                        v = md.variables[b]
+                        # If the coordinate has more than one value...
+                        if v.size > 1:
+                            # ...and those values aren't all identical
+                            # (Using a small sample check for performance)
+                            data_sample = v[:]
+                            if not np.all(data_sample == data_sample[0]):
+                                return 3 # It's a profile or multi-channel file
+
+                return 2 # If we got here, it's a flat surface field.
+
+        except Exception as e:
+            # On error, return 3 to prevent potentially broken/messy plots
+            return 3
+
+    def old_get_effective_dim(self):
+        """
         Returns an approximate physical dimensionality:
           2 = surface
           3 = profile / channel / level
