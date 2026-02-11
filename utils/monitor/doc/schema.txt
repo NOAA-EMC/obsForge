@@ -1,3 +1,5 @@
+    obs_space is a data type:
+    A run type realizes an obs space as time-indexed data
 -------------------------------------------
 schema for computations with obs space data
 -------------------------------------------
@@ -7,6 +9,34 @@ needs to describe:
 	abstract physics concepts
 	physical data: file inventory/OS info
 	computing system state
+
+----------------------------------------------------------------
+run_types
+id     INTEGER PRIMARY KEY
+name   TEXT UNIQUE
+
+obs_spaces
+id               INTEGER PRIMARY KEY
+name             TEXT UNIQUE
+ioda_structure_id INTEGER REFERENCES ioda_structures(id)
+
+ioda_structures
+id            INTEGER PRIMARY KEY
+json_content  TEXT   -- serialized structure
+
+files
+id      INTEGER PRIMARY KEY
+path    TEXT UNIQUE
+size    INTEGER
+mtime   INTEGER
+
+obs_space_data
+id             INTEGER PRIMARY KEY
+run_type_id    INTEGER REFERENCES run_types(id)
+obs_space_id   INTEGER REFERENCES obs_spaces(id)
+cycle_date     TEXT  -- e.g., 'YYYYMMDD'
+cycle_hour     TEXT  -- '00', '06', '12', '18'
+file_id        INTEGER REFERENCES files(id)
 
 
 workflow entities:

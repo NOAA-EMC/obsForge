@@ -1,8 +1,9 @@
 import os
 
 from .registry import register_product, DataProduct
-
-from processing.ioda_reader.obs_space_ioda_structure import ObsSpaceIodaStructure
+from processing.ioda_reader.ioda_structure import IodaStructure
+# from processing.ioda_reader.ioda_content import IodaContent
+from processing.ioda_reader.ioda_file import IodaFile
 
 
 @register_product
@@ -20,6 +21,10 @@ class IodaStructureProduct(DataProduct):
             return
 
         full_path = os.path.join(data_root, file_info["file_path"])
-        struct = ObsSpaceIodaStructure()
-        struct.read_ioda(full_path)
-        struct.write_json(product_path)
+        # struct = IodaStructure()
+        # struct.read_ioda(full_path)
+        # content = IodaContent(full_path)
+        file = IodaFile(full_path)
+        structure = file.extract_structure()
+        # structure = content.extract_structure()
+        structure.write_json(product_path)

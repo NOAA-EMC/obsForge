@@ -36,7 +36,7 @@ class IodaNumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-class ObsSpaceIodaStructure:
+class IodaStructure:
     def __init__(self):
         self._schema = {
             "global_attributes": {},
@@ -44,6 +44,7 @@ class ObsSpaceIodaStructure:
             "groups": {}
         }
 
+    '''
     def read_ioda(self, file_path):
         from .reader import IodaReader  
         
@@ -82,6 +83,7 @@ class ObsSpaceIodaStructure:
                             "chunks": chunking
                         }
                     }
+    '''
 
     def load_from_dict(self, data_dict):
         self._schema = data_dict
@@ -120,6 +122,8 @@ class ObsSpaceIodaStructure:
 
     def get_var_spec(self, group, var):
         return self._schema["groups"].get(group, {}).get(var, {})
+
+'''
 
     # --- HTML Service ---
 
@@ -208,86 +212,4 @@ class ObsSpaceIodaStructure:
         # --- CLOSE EVERYTHING ---
         html.append("</div></details></div>")
         return "\n".join(html)
-
-
-    def old_as_html(self):
-        """Generates a technical specification fragment for the website."""
-        html = ["<div class='ioda-structure-container'>", "<h3>IODA Structure Definition</h3>"]
-        
-        for group in self.get_groups():
-            html.append(f"<details open><summary><strong>Group: {group}</strong></summary>")
-            html.append("<table class='structure-table'>")
-            html.append("<thead><tr><th>Variable</th><th>Type</th><th>Dims</th><th>Attributes</th></tr></thead><tbody>")
-            
-            for var in self.get_vars_in_group(group):
-                spec = self.get_var_spec(group, var)
-                attr_str = "<br>".join([f"<i>{k}</i>: {v}" for k, v in spec['attributes'].items()])
-                
-                html.append("<tr>")
-                html.append(f"<td><code>{var}</code></td>")
-                html.append(f"<td>{spec['dtype']}</td>")
-                html.append(f"<td>{', '.join(spec['dimensions'])}</td>")
-                html.append(f"<td><small>{attr_str}</small></td>")
-                html.append("</tr>")
-            
-            html.append("</tbody></table></details><br>")
-        
-        html.append("</div>")
-        return "\n".join(html)
-
-
-    def previous_as_html(self):
-        """Generates a comprehensive, fully collapsible technical specification."""
-        
-        # Start the main collapsible container
-        html = [
-            "<div class='ioda-structure-container'>",
-            "<details class='main-spec-toggle'>",
-            "<summary style='font-size: 1.2em; font-weight: bold; cursor: pointer;'>",
-            "📊 IODA Specification (Click to Expand/Collapse)",
-            "</summary>",
-            "<div style='padding: 15px; border-left: 3px solid #005eb8; margin-top: 10px;'>"
-        ]
-
-        # 1. Global Attributes Section
-        if self._schema.get("global_attributes"):
-            html.append("<h4>Global Attributes</h4>")
-            html.append("<table class='structure-table'>")
-            for k, v in self._schema["global_attributes"].items():
-                html.append(f"<tr><td><strong>{k}</strong></td><td>{v}</td></tr>")
-            html.append("</table><br>")
-
-        # 2. Dimensions Section
-        if self._schema.get("dimensions"):
-            html.append("<h4>Dimensions</h4>")
-            html.append("<ul>")
-            for name, d in self._schema["dimensions"].items():
-                html.append(f"<li><code>{name}</code>: {d['size']} {'(Unlimited)' if d['isunlimited'] else ''}</li>")
-            html.append("</ul><br>")
-
-        # 3. Groups and Variables (The detailed part)
-        html.append("<h4>Groups & Variables</h4>")
-        for group in self.get_groups():
-            html.append(f"<details style='margin-left: 10px; margin-bottom: 5px;'>")
-            html.append(f"<summary><strong>Group: {group}</strong></summary>")
-            html.append("<table class='structure-table' style='width: 100%; font-size: 0.9em;'>")
-            html.append("<thead><tr><th>Variable</th><th>Type</th><th>Dims</th><th>Attributes</th></tr></thead><tbody>")
-     
-            for var in self.get_vars_in_group(group):
-                spec = self.get_var_spec(group, var)
-                # Filter out None/empty attributes
-                attr_list = [f"<i>{k}</i>: {v}" for k, v in spec.get('attributes', {}).items()]
-                attr_str = "<br>".join(attr_list) if attr_list else "<i>None</i>"
-     
-                html.append("<tr>")
-                html.append(f"<td style='vertical-align: top;'><code>{var}</code></td>")
-                html.append(f"<td style='vertical-align: top;'>{spec['dtype']}</td>")
-                html.append(f"<td style='vertical-align: top;'>{', '.join(spec['dimensions'])}</td>")
-                html.append(f"<td><small>{attr_str}</small></td>")
-                html.append("</tr>")
-
-            html.append("</tbody></table></details>")
-
-        # Close all the tags
-        html.append("</div></details></div>")
-        return "\n".join(html)
+'''

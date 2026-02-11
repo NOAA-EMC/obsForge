@@ -3,7 +3,8 @@ import logging
 import json
 
 from .css_styles import CSS_STYLES
-from processing.ioda_reader.obs_space_ioda_structure import ObsSpaceIodaStructure
+from .ioda_html import IodaHTML
+from processing.ioda_reader.ioda_structure import IodaStructure
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,10 @@ class ObsSpaceGenerator:
         )
 
         if os.path.exists(ioda_info_file):
-            ioda_struct = ObsSpaceIodaStructure()
-            ioda_struct.read_json(ioda_info_file)
-            html_fragment = ioda_struct.as_html()
+            ioda_structure = IodaStructure()
+            ioda_structure.read_json(ioda_info_file)
+            # html_fragment = ioda_struct.as_html()
+            html_fragment = IodaHTML().render(ioda_structure)
             html += html_fragment
             # logger.info(f"Found ioda structure file {ioda_info_file}")
         else:

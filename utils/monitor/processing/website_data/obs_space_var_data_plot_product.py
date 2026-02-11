@@ -2,7 +2,8 @@ import os
 import logging
 
 from processing.data_service import ComputeDataService
-from processing.ioda_reader.reader import IodaReader
+# from processing.ioda_reader.reader import IodaReader
+from processing.ioda_reader.ioda_file import IodaFile
 from processing.plotting.plot_generator import PlotGenerator
 
 from .registry import register_product, DataProduct
@@ -46,17 +47,20 @@ class ObsSpaceVarDataPlotProduct(DataProduct):
         rel_file_path = file_info["file_path"]
         data_file_path = os.path.join(data_root, rel_file_path)
 
-        self.obs_reader = IodaReader(data_file_path)
+        # self.obs_reader = IodaReader(data_file_path)
+        self.ioda_file = IodaFile(data_file_path)
 
         # dim = self.obs_reader.get_obsvalue_dim(data_file_path)
-        dim = self.obs_reader.get_effective_dim()
+        # dim = self.obs_reader.get_effective_dim()
+        dim = self.ioda_file.get_effective_dim()
         # logger.info(f"dimension = {dim} for  {data_file_path}")
         if dim != 2:
             self._create_placeholder_plot(product_path, obs_space, cycle_name)
             return product_path
 
         # 2. Read surface data from NetCDF
-        data = self.obs_reader.get_surface_data()
+        # data = self.obs_reader.get_surface_data()
+        data = self.ioda_file.get_surface_data()
         if not data:
             logger.error(f"NetCDF found no data in file: {file_path}")
             self._create_placeholder_plot(product_path, obs_space, cycle_name)
