@@ -109,7 +109,9 @@ class WebsiteDataProducts:
 
     def _generate_data_products(self, run_type, scope, data_object_name):
         cycles = self.reader.get_cycles_for_run(run_type)
-        # logger.info(f"Generating data products for {run_type}, cycles = {cycles}")
+        if self.limit_cycles and self.limit_cycles > 0:
+            logger.info(f"Generating data products for {run_type} is limited to {self.limit_cycles} cycles")
+            cycles = cycles[-self.limit_cycles:]
 
         for name, product in PRODUCT_REGISTRY.items():
             if product.scope != scope:

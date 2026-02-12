@@ -1,5 +1,3 @@
-    obs_space is a data type:
-    A run type realizes an obs space as time-indexed data
 -------------------------------------------
 schema for computations with obs space data
 -------------------------------------------
@@ -11,33 +9,47 @@ needs to describe:
 	computing system state
 
 ----------------------------------------------------------------
-run_types
-id     INTEGER PRIMARY KEY
-name   TEXT UNIQUE
 
-obs_spaces
-id               INTEGER PRIMARY KEY
-name             TEXT UNIQUE
-ioda_structure_id INTEGER REFERENCES ioda_structures(id)
+files 
+    id     
+    path  
+    size 
+    mtime
 
 ioda_structures
-id            INTEGER PRIMARY KEY
-json_content  TEXT   -- serialized structure
+    id     
+    schema
+    hash 
 
-files
-id      INTEGER PRIMARY KEY
-path    TEXT UNIQUE
-size    INTEGER
-mtime   INTEGER
+datasets
+    id   
+    name
 
-obs_space_data
-id             INTEGER PRIMARY KEY
-run_type_id    INTEGER REFERENCES run_types(id)
-obs_space_id   INTEGER REFERENCES obs_spaces(id)
-cycle_date     TEXT  -- e.g., 'YYYYMMDD'
-cycle_hour     TEXT  -- '00', '06', '12', '18'
-file_id        INTEGER REFERENCES files(id)
+dataset_cycles
+    id 
+    dataset_id
+    cycle_date
+    cycle_hour
 
+obs_spaces
+    id 
+    name
+    ioda_structure_id
+
+# variables of type obs_space in a dataset
+dataset_obs_spaces
+    id
+    dataset_id
+    obs_space_id
+
+# the data files for the variables of type obs_space,
+# one file per cycle
+obs_space_files
+    id
+    dataset_obs_space_id
+    dataset_cycle_id
+    file_id
+-----------------------------
 
 workflow entities:
 are described by a collection of log files
@@ -46,19 +58,8 @@ Each run_type consists of a collection of tasks
 	tasks
 	task runs
 
-the central object is 
-	obs_space
-obs_spaces are organized into disjoint categories:
-	obs_space_category
-each obs_space consists of a collection of ioda files, one per cycle
-there are 4 cycles per day
-	file_inventory
 each file has OS info 
 and it has derived data which is computed from inspecting its content
-	file_content
-all files that belong to the same obs_space have the same ioda structure
-different obs_spaces may have the same ioda structure
-	ioda_structure
 
 ioda structure is flat (attributes, MetaData, ObsValue, ObsError, PreQC)
 each group contains variables
