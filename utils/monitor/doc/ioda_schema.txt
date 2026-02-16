@@ -1,0 +1,40 @@
+ioda_structure:
+├─ global_attributes
+│   ├─ dataOriginalFormatSpec
+│   ├─ data_type
+│   ├─ subsets
+│   ├─ data_description
+│   ├─ sensor_name
+│   ├─ sensor_full_name
+│   ├─ sensor_id
+│   ├─ data_provider
+│   ├─ satellite_name
+│   ├─ satellite_full_name
+│   └─ satellite_id
+├─ dimensions
+│   └─ <dimension_name>
+│       ├─ size
+│       └─ isunlimited
+├─ groups
+│   └─ <group_name>
+│       └─ <variable_name>
+│           ├─ dtype
+│           ├─ dimensions: [ ... ]
+│           ├─ attributes
+│           │   ├─ _FillValue
+│           │   ├─ long_name
+│           │   ├─ units
+│           │   └─ valid_range (optional)
+│           └─ storage
+│               ├─ filters
+│               │   ├─ zlib
+│               │   ├─ szip
+│               │   ├─ zstd
+│               │   ├─ bzip2
+│               │   ├─ blosc
+│               │   ├─ shuffle
+│               │   ├─ complevel
+│               │   └─ fletcher32
+│               └─ chunks: [ ... ]
+
+

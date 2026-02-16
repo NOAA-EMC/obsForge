@@ -7,6 +7,7 @@ the monitoring pipeline currently consists of
 ---------------------------------------------
 scanning log files
 scanning data dir tree
+>>>> metadata registry engine
 processing:
 	computing data products from the source data (nc files from the dir tree)
 		all data products for website

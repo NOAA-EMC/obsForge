@@ -13,8 +13,7 @@ dataset
         └── cycle
               └── domain           (atmos, ocean)
                     └── obs_space_category (optional)
-                          └── obs_space
-                                └── file instance
+                          └── obs space file instance (.nc file)
 
 definitions:
 ------------

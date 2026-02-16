@@ -1,0 +1,15 @@
+Computations
+
+A data set is a collection of obs spaces.
+An obs space contains a description of several Lagrangian fields.
+A Lagrangian field consists of a scalar or vector variables 
+with the corresponding coordinates on the manifold (spherical shell).
+Additional data in the obs space describes stochastic aspects of
+the Lagrangian fields.
+
+Data set Operations
+
+move, copy, diff
+view
+
+
