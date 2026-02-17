@@ -67,11 +67,14 @@ def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
 
     datasets = []
     for name in sorted(dataset_names):
-        # ds = Dataset(db_path=db_path, name=name, root_dir=data_root)
         ds = Dataset(name=name, root_dir=data_root)
+
         ds.register_cycles()
         ds.register_obs_spaces()
         ds.register_files()
+
+        ds.print_obs_space_files_report()
+
         ds.to_db(session)
 
         logger.info(f"Registered dataset: {name} (ID={ds.id})")

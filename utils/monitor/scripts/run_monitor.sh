@@ -61,6 +61,7 @@ fi
     echo "=================================================="
     echo "Starting Monitor Pipeline: $(date)"
     echo "Run Dir: $RUN_DIR"
+    echo "Database: $DATABASE"
     echo "Cycle Limit: $LIMIT_CYCLES"
     echo "=================================================="
 
