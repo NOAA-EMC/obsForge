@@ -463,3 +463,91 @@ class Dataset:
                 )[cycle] = dosf
 
                 logger.debug(f"Found file: {file_obj.path}")
+
+
+    def sync_ioda_structures(self, session: Session) -> None:
+        from .ioda_structure import IodaStructure
+
+        for obs_space_name, cycle_map in self.obs_space_files.items():
+            # Find the DatasetObsSpace domain object
+            dos = next((o for o in self.obs_spaces if o.obs_space.name == obs_space_name), None)
+            if not dos: continue
+            
+            obs_space_domain = dos.obs_space
+
+            for cycle, dosf in cycle_map.items():
+                file_path = dosf.file.path
+                
+                # Pass 1: Get/Create IODA Blueprint
+                struct_id = IodaStructure.get_or_create_id(file_path, session)
+                
+                # Use the ObsSpace domain logic to verify/set the blueprint
+                obs_space_domain.verify_and_set_structure(session, struct_id, file_path)
+                
+                # Optional: Link the specific file instance to its structure
+                # dosf.file.ioda_structure_id = struct_id
+
+
+    def old_sync_ioda_structures(self, session: Session) -> None:
+        """
+        Pass 1.5: Verify and Register IODA Structures for all discovered files.
+        Checks for discrepancies between filename-derived ObsSpace and IODA content.
+        """
+        from .ioda_structure import IodaStructure
+        from .ioda_structure_orm import IodaStructureORM
+        from .obs_space_orm import ObsSpaceORM
+
+        logger.info(f"Syncing IODA structures for dataset: {self.name}")
+
+        # Iterate through the 2D map: obs_space_name -> cycle -> DatasetObsSpaceFile
+        for obs_space_name, cycle_map in self.obs_space_files.items():
+            for cycle, dosf in cycle_map.items():
+                file_path = dosf.file.path
+                
+                if not os.path.exists(file_path):
+                    logger.warning(f"File missing during IODA sync: {file_path}")
+                    continue
+
+                try:
+                    # 1. & 2. Get or Create the IODA structure (Pass 1 - Discovery)
+                    # This returns the structure_id and handles the hashing/persistence
+                    struct_id = IodaStructure.get_or_create_id(file_path, session)
+                    
+                    # 3. Check for discrepancies
+                    # We look up the ObsSpace that this file *actually* points to in the DB
+                    # based on the IODA structure found.
+                    
+                    # First, link the File record to this structure (for future Pass 2 values)
+                    # Assuming dosf.file has an id after to_db()
+                    # You may need to ensure dosf.file is persisted or has its structure_id set
+                    
+                    # 4. Discrepancy Flagging
+                    # Compare 'obs_space_name' (from filename) with existing structures
+                    self._validate_obs_space_consistency(
+                        session, struct_id, obs_space_name, file_path
+                    )
+
+                    # Update the ObsSpace record to point to this IODA structure blueprint
+                    # This links the "Type" of data to its "Skeleton"
+                    obs_space_record = session.scalar(
+                        select(ObsSpaceORM).where(ObsSpaceORM.name == obs_space_name)
+                    )
+                    if obs_space_record:
+                        if obs_space_record.ioda_structure_id is None:
+                            obs_space_record.ioda_structure_id = struct_id
+                        elif obs_space_record.ioda_structure_id != struct_id:
+                            logger.error(
+                                f"STRUCTURAL DISCREPANCY: File {file_path} "
+                                f"matches ObsSpace '{obs_space_name}' but its "
+                                f"IODA structure differs from the registered blueprint!"
+                            )
+
+                except Exception as e:
+                    logger.error(f"Failed to sync IODA structure for {file_path}: {e}")
+                    session.rollback()
+
+    def _validate_obs_space_consistency(self, session, struct_id, expected_name, path):
+        """Internal helper to flag if a file's content doesn't match its category."""
+        # Optional: You could check if this structure ID is already associated 
+        # with a DIFFERENT ObsSpace name.
+        pass

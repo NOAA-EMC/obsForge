@@ -75,6 +75,8 @@ def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
 
         ds.print_obs_space_files_report()
 
+        ds.sync_ioda_structures(session)
+
         ds.to_db(session)
 
         logger.info(f"Registered dataset: {name} (ID={ds.id})")

@@ -35,10 +35,10 @@ def main():
     args = parser.parse_args()
 
 
-    test_ioda(args.db)
+    # test_ioda(args.db)
 
-    # datasets = register_datasets(args.data_root, args.db)
-    # print(f"Registered datasets: {[ds.name for ds in datasets]}")
+    datasets = register_datasets(args.data_root, args.db)
+    print(f"Registered datasets: {[ds.name for ds in datasets]}")
 
     '''
     for ds in datasets:
