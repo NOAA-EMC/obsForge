@@ -323,21 +323,24 @@ class GsiToIoda(Task):
         tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}varbc_params.tar")
         with tarfile.open(tarball_out, "w") as tar:
             for sat in satlist:
-                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
-                if os.path.exists(bias_file):
+                bias_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
+                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.nc')
+                if os.path.exists(bias_file_in):
                     logger.info(f"Adding {bias_file} to tarball")
-                    tar.add(bias_file, arcname=os.path.basename(bias_file))
-                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
-                if os.path.exists(tlapse_file):
+                    tar.add(bias_file_in, arcname=os.path.basename(bias_file))
+                tlapse_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
+                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.txt')
+                if os.path.exists(tlapse_file_in):
                     logger.info(f"Adding {tlapse_file} to tarball")
-                    tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
+                    tar.add(tlapse_file_in, arcname=os.path.basename(tlapse_file))
         logger.info(f"Finished creating bias correction tarball at {tarball_out}")
 
         # copy aircraft bias file to COMOUT
-        acft_bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.gsi.nc')
-        if os.path.exists(acft_bias_file):
+        acft_bias_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.gsi.nc')
+        acft_bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.nc')
+        if os.path.exists(acft_bias_file_in):
             dest = os.path.join(comout, os.path.basename(acft_bias_file))
-            FileHandler({'copy_opt': [[acft_bias_file, dest]]}).sync()
+            FileHandler({'copy_opt': [[acft_bias_file_in, dest]]}).sync()
             logger.info(f"Copied aircraft bias file to {dest}")
         else:
-            logger.warning(f"Aircraft bias file {acft_bias_file} does not exist, skipping copy to COMOUT")
+            logger.warning(f"Aircraft bias file {acft_bias_file_in} does not exist, skipping copy to COMOUT")
