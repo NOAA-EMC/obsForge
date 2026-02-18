@@ -320,7 +320,7 @@ class GsiToIoda(Task):
                               'atmos_gsi')
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
-        tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")
+        tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}varbc_params.tar")
         with tarfile.open(tarball_out, "w") as tar:
             for sat in satlist:
                 bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
