@@ -329,7 +329,7 @@ class GsiToIoda(Task):
                 if os.path.exists(bias_file_in):
                     logger.info(f"Adding {bias_file} to tarball")
                     tar.add(bias_file_in, arcname=os.path.basename(bias_file))
-                    # add the same file with a different name for the covariance file 
+                    # add the same file with a different name for the covariance file
                     # (this is needed for the UFO varbc reader to read in the covariance info)
                     tar.add(bias_file_in, arcname=os.path.basename(cov_file))
                 tlapse_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
@@ -344,8 +344,8 @@ class GsiToIoda(Task):
             if os.path.exists(acft_bias_file_in):
                 logger.info(f"Adding {acft_bias_file} to tarball")
                 tar.add(acft_bias_file_in, arcname=os.path.basename(acft_bias_file))
-                # add the same file with a different name for the covariance file 
-                #(this is needed for the UFO varbc reader to read in the covariance info)
+                # add the same file with a different name for the covariance file
+                # (this is needed for the UFO varbc reader to read in the covariance info)
                 tar.add(acft_bias_file_in, arcname=os.path.basename(acft_cov_file))
 
         logger.info(f"Finished creating bias correction tarball at {tarball_out}")
