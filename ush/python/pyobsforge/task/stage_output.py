@@ -118,7 +118,9 @@ class StageOutput(Task):
         bufr_status_log_dest = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
                                             f"{self.task_config.OPREFIX}obsforge_atmos_bufr_status.log")
         if os.path.exists(bufr_status_log_src):
-            os.makedirs(self.task_config.COMOUT_ATMOS_OBS, exist_ok=True)
+            # If no observation files were copied, ensure the output directory exists
+            if not copy_list:
+                os.makedirs(self.task_config.COMOUT_ATMOS_OBS, exist_ok=True)
             FileHandler({'copy': [[bufr_status_log_src, bufr_status_log_dest]]}).sync()
             logger.info(f"Copied BUFR status log from {bufr_status_log_src} to {bufr_status_log_dest}")
         else:
