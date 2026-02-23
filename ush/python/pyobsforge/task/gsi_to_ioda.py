@@ -327,7 +327,7 @@ class GsiToIoda(Task):
                 bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.bias.nc')
                 cov_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.bias_cov.nc')
                 if os.path.exists(bias_file_in):
-                    logger.info(f"Adding {bias_file} to tarball")
+                    logger.info(f"Adding {bias_file_in} to tarball as {os.path.basename(bias_file)}")
                     tar.add(bias_file_in, arcname=os.path.basename(bias_file))
                     # add the same file with a different name for the covariance file
                     # (this is needed for the UFO varbc reader to read in the covariance info)
