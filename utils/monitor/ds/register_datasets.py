@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from .db_base import Base
 from .obs_space_orm import ObsSpaceORM
-from .dataset_orm import DatasetORM, DatasetCycleORM, DatasetObsSpaceORM
+from .dataset_orm import DatasetORM, DatasetCycleORM, DatasetFieldORM
 
 from .dataset import Dataset
 

@@ -24,8 +24,10 @@ from ds.test_ioda import test_ioda
 # from sqlalchemy.orm import sessionmaker
 # from ds.file_orm import Base
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+from logging_config import configure_logging
+
+# logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
 def main():
@@ -34,6 +36,9 @@ def main():
     parser.add_argument("--data-root", required=True, help="Root directory of data")
     args = parser.parse_args()
 
+    # configure_logging(level=logging.INFO, log_file="gdas.log")
+    configure_logging(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
     # test_ioda(args.db)
 

@@ -10,17 +10,6 @@ needs to describe:
 
 ----------------------------------------------------------------
 
-ioda_structures
-    id     
-    schema
-    hash 
-
-obs_spaces
-----------
-    id PK
-    name
-    ioda_structure_id
-
 files
 -----
     id PK
@@ -28,6 +17,7 @@ files
     size INT
     mtime DATETIME
     # hash TEXT (optional)
+    # dir?
 
 obs_spaces
 ----------
@@ -49,9 +39,9 @@ dataset_cycles
     cycle_hour TEXT
     UNIQUE(dataset_id, cycle_date, cycle_hour)
 
-# variables of type obs_space in a dataset
-dataset_obs_spaces
-------------------
+# fields are variables of type obs_space in a dataset
+dataset_fields
+--------------
     id PK
     dataset_id FK -> datasets.id
     obs_space_id FK -> obs_spaces.id
@@ -59,10 +49,10 @@ dataset_obs_spaces
 
 # the data files for the variables of type obs_space,
 # one file per cycle
-dataset_obs_space_files
+dataset_files
 ----------------------
     id PK
-    dataset_obs_space_id FK -> dataset_obs_spaces.id
+    dataset_field_id FK -> dataset_field.id
     dataset_cycle_id FK -> dataset_cycles.id
     file_id FK -> files.id
     UNIQUE(dataset_obs_space_id, dataset_cycle_id)

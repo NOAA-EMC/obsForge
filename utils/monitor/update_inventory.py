@@ -44,6 +44,7 @@ def main():
     )
 
     args = parser.parse_args()
+
     configure_logging(args.debug)
     logger = logging.getLogger("UpdateInventory")
 
@@ -57,6 +58,7 @@ def main():
     )
 
     scanner.run(limit_cycles=args.limit_cycles)
+    # scanner.scan_inventory(limit_cycles=args.limit_cycles)
 
     # --- Reporting ---
     report = scanner.report()

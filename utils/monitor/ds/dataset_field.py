@@ -1,42 +1,14 @@
 import logging
 from typing import Optional
 
-from .dataset_orm import DatasetObsSpaceORM
+from .dataset_orm import DatasetFieldORM
 from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
 
 
-'''
-# from typing import List, Optional, Tuple, Set 
-# import os
-# from datetime import date
-
-from sqlalchemy import (
-    # Column,
-    # Integer,
-    # String,
-    # ForeignKey,
-    # Date,
-    # CheckConstraint,
-    # UniqueConstraint,
-    select,
-)
-# from sqlalchemy.orm import declarative_base, relationship, Session
-from sqlalchemy.orm import Session
-
-# from .db_base import Base  # SQLAlchemy declarative base
-from .dataset_orm import (
-    DatasetORM, 
-    DatasetCycleORM, 
-    DatasetObsSpaceORM,
-    DatasetObsSpaceFileORM
-)
-from .obs_space_orm import ObsSpaceORM
-'''
-
-class DatasetObsSpace:
+class DatasetField:
     """
     Represents a variable of type ObsSpace within a Dataset.
     Owned by a Dataset, but refers to a separate ObsSpace type.
@@ -46,8 +18,8 @@ class DatasetObsSpace:
         self.obs_space = obs_space
         self.id = None  # set when persisted
 
-    def to_orm(self, dataset_id: int, obs_space_id: int) -> DatasetObsSpaceORM:
-        return DatasetObsSpaceORM(
+    def to_orm(self, dataset_id: int, obs_space_id: int) -> DatasetFieldORM:
+        return DatasetFieldORM(
             id=self.id,
             dataset_id=dataset_id,
             obs_space_id=obs_space_id
@@ -60,9 +32,9 @@ class DatasetObsSpace:
             return
 
         existing = session.scalar(
-            select(DatasetObsSpaceORM).where(
-                (DatasetObsSpaceORM.dataset_id == self.dataset.id) &
-                (DatasetObsSpaceORM.obs_space_id == self.obs_space.id)
+            select(DatasetFieldORM).where(
+                (DatasetFieldORM.dataset_id == self.dataset.id) &
+                (DatasetFieldORM.obs_space_id == self.obs_space.id)
             )
         )
         if existing:

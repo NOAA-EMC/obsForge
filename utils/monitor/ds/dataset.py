@@ -22,16 +22,16 @@ from sqlalchemy.orm import Session
 from .dataset_orm import (
     DatasetORM, 
     DatasetCycleORM, 
-    DatasetObsSpaceORM,
-    DatasetObsSpaceFileORM
+    DatasetFieldORM,
+    DatasetFileORM
 )
 from .obs_space_orm import ObsSpaceORM
 
 from .file import File
 from .obs_space import ObsSpace
 from .dataset_cycle import DatasetCycle
-from .dataset_obs_space import DatasetObsSpace
-from .dataset_obs_space_file import DatasetObsSpaceFile
+from .dataset_field import DatasetField
+from .dataset_file import DatasetFile
 
 
 logger = logging.getLogger(__name__)
@@ -54,9 +54,12 @@ class Dataset:
         self.id = id
         self.name = name
         self.root_dir = root_dir
-        self.cycles: List[DatasetCycle] = []
-        self.obs_spaces: List[DatasetObsSpaces] = []
-        self.obs_space_files: dict[str, dict["DatasetCycle", "DatasetObsSpaceFile"]]
+
+        self.dataset_cycles: List[DatasetCycle] = []
+        self.dataset_fields: List[DatasetField] = []
+
+        # to be deprecated:
+        self.obs_space_files: dict[str, dict["DatasetCycle", "DatasetFile"]]
 
 
     def to_orm(self) -> "DatasetORM":
@@ -102,28 +105,28 @@ class Dataset:
     # --------------------------------------------------------
 
     def add_cycle(self, cycle_date: date, cycle_hour: str):
-        self.cycles.append(DatasetCycle(self, cycle_date, cycle_hour))
+        self.dataset_cycles.append(DatasetCycle(self, cycle_date, cycle_hour))
 
     def list_cycles(self) -> List[Tuple[date, str]]:
-        return [(c.cycle_date, c.cycle_hour) for c in self.cycles]
+        return [(c.cycle_date, c.cycle_hour) for c in self.dataset_cycles]
 
     def cycles_summary(self) -> str:
         return (
-            f"Dataset {self.name}: {len(self.cycles)} cycles "
-            f"from {min(self.cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_date} "
-            f"{min(self.cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_hour} "
-            f"to {max(self.cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_date} "
-            f"{max(self.cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_hour}"
-            if self.cycles else
+            f"Dataset {self.name}: {len(self.dataset_cycles)} cycles "
+            f"from {min(self.dataset_cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_date} "
+            f"{min(self.dataset_cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_hour} "
+            f"to {max(self.dataset_cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_date} "
+            f"{max(self.dataset_cycles, key=lambda c: (c.cycle_date, c.cycle_hour)).cycle_hour}"
+            if self.dataset_cycles else
             f"Dataset {self.name}: 0 cycles"
         )
 
     def obs_spaces_summary(self) -> str:
         return (
-            f"Dataset {self.name}: {len(self.obs_spaces)} obs_spaces "
-            # f"from {self.obs_spaces[0].obs_space.name} "
-            # f"to {self.obs_spaces[-1].obs_space.name}"
-            if self.obs_spaces else
+            f"Dataset {self.name}: {len(self.dataset_fields)} obs_spaces "
+            # f"from {self.dataset_fields[0].obs_space.name} "
+            # f"to {self.dataset_fields[-1].obs_space.name}"
+            if self.dataset_fields else
             f"Dataset {self.name}: 0 obs_spaces"
         )
 
@@ -139,16 +142,16 @@ class Dataset:
         from typing import List, Tuple
         from collections import defaultdict
 
-        if not self.cycles or not self.obs_spaces:
+        if not self.dataset_cycles or not self.dataset_fields:
             return []
 
         # Sort cycles
-        sorted_cycles = sorted(self.cycles, key=lambda c: (c.cycle_date, c.cycle_hour))
+        sorted_cycles = sorted(self.dataset_cycles, key=lambda c: (c.cycle_date, c.cycle_hour))
         report = []
 
         # obs_space count per cycle
         obs_count_per_cycle = [
-            (cycle, sum(1 for obs in self.obs_spaces if cycle in self.obs_space_files.get(obs.obs_space.name, {})))
+            (cycle, sum(1 for obs in self.dataset_fields if cycle in self.obs_space_files.get(obs.obs_space.name, {})))
             for cycle in sorted_cycles
         ]
 
@@ -193,11 +196,11 @@ class Dataset:
         self.self_to_db(session)
 
         # Persist cycles
-        for cycle in self.cycles:
+        for cycle in self.dataset_cycles:
             cycle.to_db(session)
 
         # Persist obs_spaces
-        for dos in self.obs_spaces:
+        for dos in self.dataset_fields:
             dos.to_db(session)
 
         # Persist obs_space_files (2D)
@@ -218,8 +221,8 @@ class Dataset:
             id=orm_obj.id,
         )
 
-        for c in orm_obj.cycles:
-            ds.cycles.append(
+        for c in orm_obj.dataset_cycles:
+            ds.dataset_cycles.append(
                 DatasetCycle(
                     self,
                     cycle_date=c.cycle_date,
@@ -233,7 +236,7 @@ class Dataset:
 
     def register_cycles(self) -> None:
         """
-        Scan self.root_dir and populate self.cycles.
+        Scan self.root_dir and populate self.dataset_cycles.
 
         Expects directory layout:
 
@@ -243,6 +246,8 @@ class Dataset:
                     06/
                     12/
                     18/
+
+        This should be consistent with get_cycle_dir
         """
 
         DATASET_DIR_PATTERN = re.compile(
@@ -396,6 +401,8 @@ class Dataset:
 
     def register_obs_spaces(self, cycle_dir: Optional[str] = None) -> None:
 
+        logger.debug(f"Scanning obs spaces for dataset '{self.name}'")
+
         if cycle_dir is None:
             cycle_dir = self.find_first_valid_cycle_dir()
 
@@ -404,15 +411,15 @@ class Dataset:
 
         scan_results = self._scan_cycle_dir(cycle_dir)
 
-        existing = {dos.obs_space.name for dos in getattr(self, "obs_spaces", [])}
+        existing = {dos.obs_space.name for dos in getattr(self, "dataset_fields", [])}
 
         for obs_space_name, _ in scan_results:
             existing.add(obs_space_name)
             logger.debug(f"Found obs space: {obs_space_name}")
 
 
-        self.obs_spaces = [
-            DatasetObsSpace(self, obs_space=ObsSpace(name=name))
+        self.dataset_fields = [
+            DatasetField(self, obs_space=ObsSpace(name=name))
             for name in sorted(existing)
         ]
 
@@ -422,11 +429,14 @@ class Dataset:
     def register_files(self) -> None:
         """
         Scan all cycles for leaf .nc files and populate self.obs_space_files
-        as a 2D structure: obs_space_name -> cycle -> DatasetObsSpaceFile.
+        as a 2D structure: obs_space_name -> cycle -> DatasetFile.
         """
+
+        logger.debug(f"Scanning obs space files for dataset '{self.name}'")
+
         self.obs_space_files = {}
 
-        for cycle in self.cycles:
+        for cycle in self.dataset_cycles:
             cycle_dir = cycle.get_cycle_dir()
             if not os.path.isdir(cycle_dir):
                 logger.warning(f"Cycle directory not found: {cycle_dir}")
@@ -438,12 +448,12 @@ class Dataset:
             scan_results = self._scan_cycle_dir(cycle_dir)
 
             for obs_space_name, file_path in scan_results:
-                # Find corresponding DatasetObsSpace
-                dataset_obs_space = next(
-                    (dos for dos in self.obs_spaces if dos.obs_space.name == obs_space_name),
+                # Find corresponding DatasetField
+                dataset_field = next(
+                    (dos for dos in self.dataset_fields if dos.obs_space.name == obs_space_name),
                     None
                 )
-                if dataset_obs_space is None:
+                if dataset_field is None:
                     logger.warning(
                         f"ObsSpace {obs_space_name} not registered; skipping file {file_path}"
                     )
@@ -451,8 +461,8 @@ class Dataset:
 
                 file_obj = File.from_path(file_path)
 
-                dosf = DatasetObsSpaceFile(
-                    dataset_obs_space=dataset_obs_space,
+                dosf = DatasetFile(
+                    dataset_field=dataset_field,
                     dataset_cycle=cycle,
                     file=file_obj
                 )
@@ -468,9 +478,11 @@ class Dataset:
     def sync_ioda_structures(self, session: Session) -> None:
         from .ioda_structure import IodaStructure
 
+        logger.debug(f"sync_ioda_structures")
+
         for obs_space_name, cycle_map in self.obs_space_files.items():
-            # Find the DatasetObsSpace domain object
-            dos = next((o for o in self.obs_spaces if o.obs_space.name == obs_space_name), None)
+            # Find the DatasetField domain object
+            dos = next((o for o in self.dataset_fields if o.obs_space.name == obs_space_name), None)
             if not dos: continue
             
             obs_space_domain = dos.obs_space
@@ -488,66 +500,17 @@ class Dataset:
                 # dosf.file.ioda_structure_id = struct_id
 
 
-    def old_sync_ioda_structures(self, session: Session) -> None:
-        """
-        Pass 1.5: Verify and Register IODA Structures for all discovered files.
-        Checks for discrepancies between filename-derived ObsSpace and IODA content.
-        """
-        from .ioda_structure import IodaStructure
-        from .ioda_structure_orm import IodaStructureORM
-        from .obs_space_orm import ObsSpaceORM
-
-        logger.info(f"Syncing IODA structures for dataset: {self.name}")
-
-        # Iterate through the 2D map: obs_space_name -> cycle -> DatasetObsSpaceFile
-        for obs_space_name, cycle_map in self.obs_space_files.items():
-            for cycle, dosf in cycle_map.items():
-                file_path = dosf.file.path
-                
-                if not os.path.exists(file_path):
-                    logger.warning(f"File missing during IODA sync: {file_path}")
-                    continue
-
-                try:
-                    # 1. & 2. Get or Create the IODA structure (Pass 1 - Discovery)
-                    # This returns the structure_id and handles the hashing/persistence
-                    struct_id = IodaStructure.get_or_create_id(file_path, session)
-                    
-                    # 3. Check for discrepancies
-                    # We look up the ObsSpace that this file *actually* points to in the DB
-                    # based on the IODA structure found.
-                    
-                    # First, link the File record to this structure (for future Pass 2 values)
-                    # Assuming dosf.file has an id after to_db()
-                    # You may need to ensure dosf.file is persisted or has its structure_id set
-                    
-                    # 4. Discrepancy Flagging
-                    # Compare 'obs_space_name' (from filename) with existing structures
-                    self._validate_obs_space_consistency(
-                        session, struct_id, obs_space_name, file_path
-                    )
-
-                    # Update the ObsSpace record to point to this IODA structure blueprint
-                    # This links the "Type" of data to its "Skeleton"
-                    obs_space_record = session.scalar(
-                        select(ObsSpaceORM).where(ObsSpaceORM.name == obs_space_name)
-                    )
-                    if obs_space_record:
-                        if obs_space_record.ioda_structure_id is None:
-                            obs_space_record.ioda_structure_id = struct_id
-                        elif obs_space_record.ioda_structure_id != struct_id:
-                            logger.error(
-                                f"STRUCTURAL DISCREPANCY: File {file_path} "
-                                f"matches ObsSpace '{obs_space_name}' but its "
-                                f"IODA structure differs from the registered blueprint!"
-                            )
-
-                except Exception as e:
-                    logger.error(f"Failed to sync IODA structure for {file_path}: {e}")
-                    session.rollback()
-
     def _validate_obs_space_consistency(self, session, struct_id, expected_name, path):
         """Internal helper to flag if a file's content doesn't match its category."""
         # Optional: You could check if this structure ID is already associated 
         # with a DIFFERENT ObsSpace name.
         pass
+
+
+    # def compute_derived_attributes(self):
+        # for cycle in self.cycles:
+            # cycle.compute_derived_attributes()
+# 
+    # def to_db_derived_attributes(session, self):
+        # for cycle in self.cycles:
+            # cycle.to_db_derived_attributes(session)
