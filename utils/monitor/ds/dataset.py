@@ -6,13 +6,6 @@ from datetime import datetime, date
 from typing import List, Optional, Tuple, Set
 
 from sqlalchemy import (
-    # Column,
-    # Integer,
-    # String,
-    # ForeignKey,
-    # Date,
-    # CheckConstraint,
-    # UniqueConstraint,
     select,
 )
 # from sqlalchemy.orm import declarative_base, relationship, Session
@@ -505,6 +498,66 @@ class Dataset:
         # Optional: You could check if this structure ID is already associated 
         # with a DIFFERENT ObsSpace name.
         pass
+
+########################################################################
+
+    def add_file_to_field(self, file_obj: File, cycle: DatasetCycle, obs_space: ObsSpace) -> DatasetFile:
+        """
+        Coordinates the in-memory linking of a File to a Cycle and an ObsSpace.
+        Ensures the DatasetField (the ObsSpace blueprint for this Dataset) exists.
+        """
+        # 1. Find or create the DatasetField (Deduplication)
+        # We look for a field that matches the ObsSpace name
+        dataset_field = next(
+            (f for f in self.dataset_fields if f.obs_space.name == obs_space.name),
+            None
+        )
+
+        if dataset_field is None:
+            # First time we see this ObsSpace in this Dataset
+            dataset_field = DatasetField(dataset=self, obs_space=obs_space)
+            self.dataset_fields.append(dataset_field)
+        
+        # 2. Create the specific file link (DatasetFile)
+        # This is the "fact" that a specific file exists for this Cycle and Field
+        ds_file = DatasetFile(
+            dataset_field=dataset_field,
+            dataset_cycle=cycle,
+            file=file_obj
+        )
+
+        # encapsulate....
+        dataset_field.files.append(ds_file)
+
+        # 3. Update the (soon to be deprecated) 2D map to keep your current reports working
+        # self.obs_space_files.setdefault(
+            # obs_space.name, {}
+        # )[cycle] = ds_file
+
+        return dataset_field
+
+    def read_cycle(self, cycle_date: date, cycle_hour: str) -> Optional[DatasetCycle]:
+        """
+        In-memory constructor helper. 
+        If the directory exists, it builds the DatasetCycle and populates the dataset.
+        """
+        # Create cycle to get the directory path
+        # make it a class method....
+        temp_cycle = DatasetCycle(self, cycle_date, cycle_hour)
+        cycle_dir = temp_cycle.get_cycle_dir()
+
+        if not os.path.isdir(cycle_dir):
+            logger.warning(f"Cycle directory does not exist: {cycle_dir}")
+            return None
+
+        # Build it using the static constructor we defined earlier
+        cycle = DatasetCycle.from_directory(self, cycle_date, cycle_hour)
+        
+        # Store in our master list if successful
+        if cycle and cycle not in self.dataset_cycles:
+            self.dataset_cycles.append(cycle)
+            
+        return cycle
 
 
     # def compute_derived_attributes(self):

@@ -14,9 +14,17 @@ a new DatasetCycle object new_cycle is added to Dataset.
 execute 
     new_cycle.read_cycle(self, cycle_dir)
 
-
+2.
 The following is a method on the new DatasetCycle object.
 The method DatasetCycle.read_cycle(dataset, cycle_dir) 
+
+scan all files
+select files with good names
+for each file create its ObsSpace
+for each file, obs_space 
+    field = dataset.add_file(file, cycle, obs_space)
+    this_cycle.add_field(field)
+
 
 2. 
 method:     directory files --> File objects
@@ -25,6 +33,13 @@ method:     directory files --> File objects
 method:     list of File objects --> select by name format
     If a filename does not conform to the obs space format,
     the file is marked as IGNORED.
+
+3.
+for every file
+    extract ioda structure,
+    If the ioda structure is not valid, the file is marked as CORRUPTED.
+    extract the obs space name from the filename
+    create an ObsSpace instance for this name with the extracted IodaStructure   
 
 3. 
 method:     Determine the ObsSpace for every file

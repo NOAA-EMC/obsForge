@@ -1,8 +1,10 @@
 import logging
 from typing import Optional
 
-from .dataset_orm import DatasetFieldORM
 from sqlalchemy import select
+from .dataset_orm import DatasetFieldORM
+
+from .dataset_file import DatasetFile
 
 
 logger = logging.getLogger(__name__)
@@ -11,12 +13,16 @@ logger = logging.getLogger(__name__)
 class DatasetField:
     """
     Represents a variable of type ObsSpace within a Dataset.
-    Owned by a Dataset, but refers to a separate ObsSpace type.
+    It has a list of DatasetFile objects, each is linked
+    to a field and an ObsSpace
+    The list of files probably needs to be synced to db.....
     """
     def __init__(self, dataset: "Dataset", obs_space: "ObsSpace"):
         self.dataset = dataset
         self.obs_space = obs_space
         self.id = None  # set when persisted
+
+        self.files: List[DatasetFile] = []
 
     def to_orm(self, dataset_id: int, obs_space_id: int) -> DatasetFieldORM:
         return DatasetFieldORM(

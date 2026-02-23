@@ -8,63 +8,110 @@ from .ioda_structure_orm import (
 )
 
 class IodaStructure:
+    def __init__(self, 
+        nodes_info: list, 
+        fingerprint: str, 
+        id: Optional[int] = None
+    ):
+        # The internal state
+        self.nodes_info = nodes_info
+        self.fingerprint = fingerprint
+        self.id = id
+
+    @classmethod
+    def from_file(cls, file_path: str) -> Optional["IodaStructure"]:
+        """
+        Returns an instance of IodaStructure with the hash and nodes populated.
+        Returns None if corrupted/unreadable.
+        """
+        try:
+            with nc.Dataset(file_path, 'r') as ds:
+                # Use your existing _scan_structure
+                nodes_info = cls._scan_structure(ds)
+                
+                if nodes_info is None:
+                    return None
+                    
+                # Use your existing _generate_hash
+                fingerprint = cls._generate_hash(nodes_info)
+                
+                return cls(nodes_info=nodes_info, fingerprint=fingerprint)
+        except Exception as e:
+            logger.debug(f"Failed to read structure from {file_path}: {e}")
+            return None
+
     @classmethod
     def get_or_create_id(cls, file_path, session):
-        with nc.Dataset(file_path, 'r') as ds:
-            # We now only care about the NAMES of attributes for the blueprint
-            nodes_info = cls._scan_structure(ds)
-            fingerprint = cls._generate_hash(nodes_info)
+        struct_obj = cls.from_file(file_path)
+        if struct_obj is None:
+            return None
+        return struct_obj.to_db(session)
 
-        existing = session.query(IodaStructureORM.id).filter_by(structure_hash=fingerprint).first()
+    def to_db(self, session: Session) -> int:
+        # Check if hash exists
+        existing = session.query(IodaStructureORM.id).filter_by(
+            structure_hash=self.fingerprint
+        ).first()
+        
         if existing:
-            return existing[0]
+            self.id = existing[0]
+            return self.id
 
-        return cls._register_new_structure(nodes_info, fingerprint, session)
+        self.id = self._register_new_structure(self.nodes_info, self.fingerprint, session)
+        return self.id
 
     @staticmethod
     def _scan_structure(ds):
-        """Walks the file to extract the skeleton and attribute NAMES."""
+        """
+        Walks the file to extract the skeleton and attribute NAMES.
+        Returns a list of node dictionaries or None if the scan fails.
+        """
         nodes_dict = {}
 
-        # 1. Dimensions
-        for name in ds.dimensions:
-            nodes_dict[name] = {
-                'path': name,
-                'node_type': 'DIMENSION',
-                'dtype': None,
-                'dims': [],
-                'attr_names': []
-            }
-
-        # 2. Recursive Walk
-        def walk(group, prefix=""):
-            # Global/Group Attributes
-            group_path = prefix if prefix else "/"
-            if group_path not in nodes_dict:
-                nodes_dict[group_path] = {
-                    'path': group_path,
-                    'node_type': 'GROUP',
+        try:
+            # 1. Dimensions
+            for name in ds.dimensions:
+                nodes_dict[name] = {
+                    'path': name,
+                    'node_type': 'DIMENSION',
                     'dtype': None,
                     'dims': [],
-                    'attr_names': group.ncattrs()
+                    'attr_names': []
                 }
 
-            # Variables
-            for name, var in group.variables.items():
-                full_path = f"{prefix}{name}"
-                nodes_dict[full_path] = {
-                    'path': full_path,
-                    'node_type': 'VARIABLE',
-                    'dtype': str(var.dtype),
-                    'dims': list(var.dimensions),
-                    'attr_names': var.ncattrs() # Just the keys
-                }
+            # 2. Recursive Walk
+            def walk(group, prefix=""):
+                # Global/Group Attributes
+                group_path = prefix if prefix else "/"
+                if group_path not in nodes_dict:
+                    nodes_dict[group_path] = {
+                        'path': group_path,
+                        'node_type': 'GROUP',
+                        'dtype': None,
+                        'dims': [],
+                        'attr_names': group.ncattrs()
+                    }
 
-            for name, grp in group.groups.items():
-                walk(grp, f"{prefix}{name}/")
+                # Variables
+                for name, var in group.variables.items():
+                    full_path = f"{prefix}{name}"
+                    nodes_dict[full_path] = {
+                        'path': full_path,
+                        'node_type': 'VARIABLE',
+                        'dtype': str(var.dtype),
+                        'dims': list(var.dimensions),
+                        'attr_names': var.ncattrs()
+                    }
 
-        walk(ds)
-        return list(nodes_dict.values())
+                for name, grp in group.groups.items():
+                    walk(grp, f"{prefix}{name}/")
+
+            walk(ds)
+            return list(nodes_dict.values())
+            
+        except Exception as e:
+            logger.debug(f"Internal structure scan failed: {e}")
+            return None
 
     @staticmethod
     def _generate_hash(nodes_info):
