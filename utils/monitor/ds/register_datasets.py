@@ -9,6 +9,7 @@ from .obs_space_orm import ObsSpaceORM
 from .dataset_orm import DatasetORM, DatasetCycleORM, DatasetFieldORM
 
 from .dataset import Dataset
+from .dataset_cycle import DatasetCycle
 
 from pathlib import Path
 from .file import File
@@ -18,6 +19,66 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+def discover_datasets(data_root: str) -> List[Dataset]:
+    """
+    Scan data_root and return Dataset domain objects
+    """
+    if not os.path.exists(data_root):
+        raise FileNotFoundError(f"Data root not found: {data_root}")
+
+    dataset_names = set()
+
+    for entry in os.listdir(data_root):
+        full_path = os.path.join(data_root, entry)
+
+        if not os.path.isdir(full_path):
+            continue
+
+        if "." in entry:
+            prefix = entry.split(".")[0]
+            dataset_names.add(prefix)
+
+    return [
+        Dataset(name=name, root_dir=data_root)
+        for name in sorted(dataset_names)
+    ]
+
+
+def read_datasets(datasets: List[Dataset]):
+    for ds in datasets:
+        cycle_dir = ds.find_first_valid_cycle_dir(ds.root_dir)
+        cycle = DatasetCycle.from_directory(ds, cycle_dir)
+
+        logger.info(f"Constructed: {cycle} from {cycle_dir}")
+
+        ds.add_cycle(cycle)
+
+        logger.info(f"Read dataset: {ds.name} (ID={ds.id})")
+
+
+def persist_datasets(datasets: List[Dataset], db_path: str) -> List[Dataset]:
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+    session = Session(engine)
+
+    for ds in datasets:
+        ds.to_db(session)
+        logger.info(f"Persisted dataset: {ds.name} (ID={ds.id})")
+
+    session.commit()
+    session.close()
+
+    return datasets
+
+
+def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
+    datasets = discover_datasets(data_root)
+    read_datasets(datasets)
+    return persist_datasets(datasets, db_path)
+    # return datasets
+
+##########################################################################
+
 # def create_db_session(db_path: str):
     # # Create engine & session
     # engine = create_engine(f"sqlite:///{db_path}")
@@ -25,8 +86,7 @@ logging.basicConfig(level=logging.INFO)
     # session = Session(engine)
     # return session
 
-
-def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
+def old_register_datasets(data_root: str, db_path: str) -> List[Dataset]:
     """
     Scan a data root and register all datasets found.
 
@@ -69,6 +129,17 @@ def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
     for name in sorted(dataset_names):
         ds = Dataset(name=name, root_dir=data_root)
 
+        cycle_dir = ds.find_first_valid_cycle_dir(data_root)
+        cycle = DatasetCycle.from_directory(ds, cycle_dir)
+        logger.info(f"Constructed: {cycle} from {cycle_dir}")
+
+        ds.add_cycle(cycle)
+
+        logger.info(f"done...... ")
+        import sys
+        sys.exit(1)
+
+        '''
         ds.register_cycles()
         ds.register_obs_spaces()
         ds.register_files()
@@ -76,6 +147,7 @@ def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
         ds.print_obs_space_files_report()
 
         ds.sync_ioda_structures(session)
+        '''
 
         ds.to_db(session)
 
@@ -88,7 +160,7 @@ def register_datasets(data_root: str, db_path: str) -> List[Dataset]:
 
 
 
-def register_directory_files(session, directory: str, recursive=False):
+def old_register_directory_files(session, directory: str, recursive=False):
     """
     Scan directory for .nc files and register them in DB.
     """

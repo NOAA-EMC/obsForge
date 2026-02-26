@@ -11,21 +11,23 @@ logger = logging.getLogger(__name__)
 class DatasetFile:
     def __init__(
         self,
+        file: "File",
         dataset_field: "DatasetField",
         dataset_cycle: "DatasetCycle",
-        file: "File",
         id: Optional[int] = None
     ):
-        self.id = id
         self.dataset_field = dataset_field
         self.dataset_cycle = dataset_cycle
         self.file = file
+        self.id = id
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DatasetFile(id={self.id}, "
-            f"obs_space={self.dataset_field.obs_space.name}, "
-            f"cycle={self.dataset_cycle.cycle_date} {self.dataset_cycle.cycle_hour}, "
+            # f"obs_space={self.dataset_field.obs_space.name}, "
+            f"obs_space={self.dataset_field.obs_space}, "
+            # f"cycle={self.dataset_cycle.cycle_date} {self.dataset_cycle.cycle_hour}, "
+            f"cycle={self.dataset_cycle}, "
             f"file={self.file.path})>"
         )
 
@@ -39,18 +41,21 @@ class DatasetFile:
         )
 
     def to_db(self, session: "Session") -> None:
-        """Persist this DatasetFile entry."""
+        """
+            Persist this DatasetFile entry.
+            Assume the field and the cycle had been persisted before.
+        """
         # Ensure File is persisted
         if self.file.id is None:
             self.file.to_db(session)
 
         # Ensure DatasetField is persisted
-        if self.dataset_field.id is None:
-            self.dataset_field.to_db(session)
+        # if self.dataset_field.id is None:
+            # self.dataset_field.to_db(session)
 
         # Ensure DatasetCycle is persisted
-        if self.dataset_cycle.id is None:
-            self.dataset_cycle.to_db(session)
+        # if self.dataset_cycle.id is None:
+            # self.dataset_cycle.to_db(session)
 
         # Check if the entry already exists
         exists = session.scalar(
@@ -68,6 +73,7 @@ class DatasetFile:
         orm_obj = self.to_orm()
         session.add(orm_obj)
         session.flush()
+
         self.id = orm_obj.id
 
 

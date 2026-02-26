@@ -22,7 +22,13 @@ class DatasetField:
         self.obs_space = obs_space
         self.id = None  # set when persisted
 
+        # the files are not persisted here, but in cycles
         self.files: List[DatasetFile] = []
+
+    def add_file(self, f: DatasetFile, cycle):
+        dsf = DatasetFile(f, self, cycle)
+        self.files.append(dsf)
+        return dsf
 
     def to_orm(self, dataset_id: int, obs_space_id: int) -> DatasetFieldORM:
         return DatasetFieldORM(
@@ -32,8 +38,6 @@ class DatasetField:
         )
 
     def to_db(self, session):
-        # persist underlying ObsSpace first
-        self.obs_space.to_db(session)
         if self.id is not None:
             return
 
@@ -46,6 +50,10 @@ class DatasetField:
         if existing:
             self.id = existing.id
             return
+
+        # persist underlying ObsSpace
+        obs_space_id = self.obs_space.to_db(session)
+        # now obs_space_id == self.obs_space.id
 
         orm = self.to_orm(
             dataset_id=self.dataset.id,

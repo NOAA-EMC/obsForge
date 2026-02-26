@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .obs_space_orm import ObsSpaceORM
+from .ioda_structure import IodaStructure
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +20,21 @@ class ObsSpace:
     def __init__(
         self,
         name: str,
+        ioda_structure: IodaStructure,
         id: Optional[int] = None,
         ioda_structure_id: Optional[int] = None,
     ):
-        self.id = id
         self.name = name
+        self.ioda_structure = ioda_structure
+
+        self.id = id
+
+        # to be deprecated:
         self.ioda_structure_id = ioda_structure_id
+
+    def __repr__(self) -> str:
+        return f"ObsSpace name='{self.name}', id={self.id}"
+        # return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.ioda_structure_id})"
 
 
     # methods for parsing the name
@@ -68,8 +78,6 @@ class ObsSpace:
 
 
     @classmethod
-
-    @classmethod
     def from_file(cls, file_path: str, prefix: Optional[str] = None) -> Optional["ObsSpace"]:
         """
         Static in-memory constructor.
@@ -84,14 +92,73 @@ class ObsSpace:
         if structure is None:
             return None
 
-        return cls(name=name, ioda_structure=structure)
+        this_obs_space = cls(name=name, ioda_structure=structure)
+        # logger.debug(f"constructed {this_obs_space} from {file_path}")
+        return this_obs_space
 
 
     def to_orm(self):
         return ObsSpaceORM(
             name=self.name,
-            ioda_structure_id=self.ioda_structure_id,
+            ioda_structure_id=self.ioda_structure.id,
+            # ioda_structure_id=self.ioda_structure_id,
         )
+
+    # --------------------------------------------------------
+    # Persistence
+    # --------------------------------------------------------
+
+    def to_db(self, session: Session) -> int:
+        """Ensure this ObsSpace exists in the DB. Idempotent."""
+
+        if self.id is not None:
+            return self.id
+
+        current_ioda_structure_id = self.ioda_structure.to_db(session)
+
+        existing = session.execute(
+            select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
+        ).scalar_one_or_none()
+
+        if existing:
+            if current_ioda_structure_id != existing.ioda_structure_id:
+                logger.error(
+                    f"STRUCTURAL DISCREPANCY DETECTED\n"
+                    f"ObsSpace: {self.name}\n"
+                    # f"File: {file_path}\n"
+                    f"Expected Ioda Struct ID: {existing.ioda_structure_id}\n"
+                    f"Actual Ioda Struct ID:   {current_ioda_structure_id}"
+                )
+
+            self.id = existing.id
+            return self.id
+
+        orm_obj = self.to_orm()
+        session.add(orm_obj)
+        session.commit()
+        # session.flush() # Changed from commit() to allow Dataset to manage transaction
+        self.id = orm_obj.id
+        # logger.debug(f"to_db {self}")
+
+        return self.id
+
+
+#############################################################################
+
+    @classmethod
+    def from_db(cls, session: Session, obs_space_id: int) -> Optional["ObsSpace"]:
+        orm_obj = session.get(ObsSpaceORM, obs_space_id)
+        if orm_obj is None:
+            return None
+
+        return cls(
+            id=orm_obj.id,
+            name=orm_obj.name,
+            ioda_structure_id=orm_obj.ioda_structure_id,
+        )
+
+
+
 
     def verify_and_set_structure(self, session: Session, new_struct_id: int, file_path: str):
         """
@@ -103,11 +170,11 @@ class ObsSpace:
             self.sync_from_db(session)
 
         if self.ioda_structure_id is None:
-            logger.info(f"ObsSpace '{self.name}': Setting initial IODA structure blueprint from {file_path}")
+            logger.debug(f"ObsSpace '{self.name}': Setting initial IODA structure blueprint from {file_path}")
             self.ioda_structure_id = new_struct_id
             # Immediately update the DB to 'lock in' the blueprint for this type
             self.update_structure_in_db(session)
-        
+
         elif self.ioda_structure_id != new_struct_id:
             logger.error(
                 f"STRUCTURAL DISCREPANCY DETECTED\n"
@@ -117,7 +184,7 @@ class ObsSpace:
                 f"Actual Struct ID:   {new_struct_id}"
             )
             # You could raise a custom Exception here if you want to stop processing
-    
+
     def sync_from_db(self, session: Session):
         """Refresh local state from DB based on name."""
         existing = session.execute(
@@ -138,41 +205,3 @@ class ObsSpace:
         )
         session.flush()
 
-    # --------------------------------------------------------
-    # Persistence
-    # --------------------------------------------------------
-
-    def to_db(self, session: Session) -> int:
-        """Ensure this ObsSpace exists in the DB. Idempotent."""
-        if self.id is not None:
-            return self.id
-
-        existing = session.execute(
-            select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
-        ).scalar_one_or_none()
-
-        if existing:
-            self.id = existing.id
-            self.ioda_structure_id = existing.ioda_structure_id
-            return self.id
-
-        orm_obj = self.to_orm()
-        session.add(orm_obj)
-        session.flush() # Changed from commit() to allow Dataset to manage transaction
-        self.id = orm_obj.id
-        return self.id
-
-    @classmethod
-    def from_db(cls, session: Session, obs_space_id: int) -> Optional["ObsSpace"]:
-        orm_obj = session.get(ObsSpaceORM, obs_space_id)
-        if orm_obj is None:
-            return None
-
-        return cls(
-            id=orm_obj.id,
-            name=orm_obj.name,
-            ioda_structure_id=orm_obj.ioda_structure_id,
-        )
-
-    def __repr__(self) -> str:
-        return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.ioda_structure_id})"

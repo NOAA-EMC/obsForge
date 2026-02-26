@@ -78,7 +78,7 @@ else
 fi
 
 # --- Check Python ---
-which python
-python --version
-python -m pip list | grep SQLAlchemy
+# which python
+# python --version
+# python -m pip list | grep SQLAlchemy
 

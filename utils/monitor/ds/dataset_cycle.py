@@ -1,10 +1,16 @@
 import os
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
+from pathlib import Path
+from typing import Tuple
 
-from .dataset_orm import DatasetCycleORM
 from sqlalchemy import select
+from .dataset_orm import DatasetCycleORM
+from .file_scanner import FileScanner
+from .obs_space import ObsSpace
+from .ioda_structure import IodaStructure
+from .dataset_field import DatasetField
 
 
 logger = logging.getLogger(__name__)
@@ -34,15 +40,23 @@ class DatasetCycle:
         self.cycle_date = cycle_date
         self.cycle_hour = cycle_hour
 
+        # each field has one file
+        # these files are persisted
+        # the fields are merged with dataset fields
         self.fields: List[DatasetField] = []
-        # self.files: List[DatasetFile] = []
 
+    def __repr__(self) -> str:
+        return f"Cycle {self.cycle_date}  {self.cycle_hour}"
+
+    def add_field(self, field):
+        self.fields.append(field)
 
     @classmethod
-    def from_directory(cls, dataset: "Dataset", cycle_date: date, cycle_hour: str) -> "DatasetCycle":
+    def from_directory(cls, dataset: "Dataset", cycle_dir: str) -> "DatasetCycle":
+        cycle_date, cycle_hour = cls.parse_cycle_dir(cycle_dir)
+
         this_cycle = cls(dataset=dataset, cycle_date=cycle_date, cycle_hour=cycle_hour)
 
-        cycle_dir = this_cycle.get_cycle_dir()
         all_leaf_files = FileScanner.get_all_leaf_files(cycle_dir)
 
         prefix = dataset.name 
@@ -50,15 +64,22 @@ class DatasetCycle:
         selected, rejected = FileScanner.filter_files(all_leaf_files, pattern)
 
         for file_obj in selected:
+            # logger.info(f"cycle file: {file_obj.path}")
             obs_space = ObsSpace.from_file(file_obj.path, prefix=prefix)
             
             if obs_space:
-                field = dataset.add_file_to_field(file_obj, this_cycle, obs_space)
-                this_cycle.fields.append(field)
+                field = DatasetField(dataset, obs_space)
+                dsf = field.add_file(file_obj, this_cycle)
+
+                # logger.debug(f"added file: {dsf}")
+
+                this_cycle.add_field(field)
+
+        logger.info(f"read {this_cycle} from {cycle_dir}")
 
         return this_cycle
 
-
+    '''
     def get_cycle_dir(self) -> str:
         """
         Return the directory path for this cycle:
@@ -70,6 +91,43 @@ class DatasetCycle:
             f"{self.dataset.name}.{date_str}", 
             self.cycle_hour
         )
+    '''
+
+    @classmethod
+    def cycle_dir(cls, dataset, cycle_date, cycle_hour):
+        """
+        Compute the directory path for a cycle
+        without instantiating a DatasetCycle.
+        """
+        date_str = cycle_date.strftime("%Y%m%d")
+        return os.path.join(
+            dataset.root_dir,
+            f"{dataset.name}.{date_str}",
+            cycle_hour,
+        )
+
+    @classmethod
+    def parse_cycle_dir(cls, path: str) -> Tuple[datetime.date, str]:
+        """
+        Given a path like:
+        <root_dir>/<dataset.name>.<YYYYMMDD>/<cycle_hour>/
+
+        Return:
+            (cycle_date, cycle_hour)
+        """
+        p = Path(path).resolve()
+
+        cycle_hour = p.name                     # last component
+        date_part = p.parent.name               # dataset.name.YYYYMMDD
+
+        # Extract YYYYMMDD (everything after last dot)
+        try:
+            date_str = date_part.split(".")[-1]
+            cycle_date = datetime.strptime(date_str, "%Y%m%d").date()
+        except (IndexError, ValueError):
+            raise ValueError(f"Invalid cycle directory format: {path}")
+
+        return cycle_date, cycle_hour
 
     def _to_orm(self) -> DatasetCycleORM:
         return DatasetCycleORM(
@@ -78,9 +136,23 @@ class DatasetCycle:
             cycle_hour=self.cycle_hour
         )
 
+
     def to_db(self, session):
+
+        self.to_db_self(session)
+        self.to_db_files(session)
+
+        logger.info(f"to_db {self.dataset.name} {self}")
+
+        return self.id
+
+    def to_db_files(self, session):
+        for field in self.fields:
+            field.files[0].to_db(session)
+
+    def to_db_self(self, session):
         if self.id is not None:
-            return
+            return self.id
 
         existing = session.scalar(
             select(DatasetCycleORM).where(
@@ -91,7 +163,7 @@ class DatasetCycle:
         )
         if existing:
             self.id = existing.id
-            return
+            return self.id
 
         orm = DatasetCycleORM(
             dataset_id=self.dataset.id,
@@ -100,7 +172,9 @@ class DatasetCycle:
         )
         session.add(orm)
         session.flush()
+
         self.id = orm.id
+        return self.id
 
 
 
