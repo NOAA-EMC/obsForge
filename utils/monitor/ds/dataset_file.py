@@ -4,7 +4,6 @@ from typing import Optional
 from .dataset_orm import DatasetFileORM
 from sqlalchemy import select
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -48,14 +47,6 @@ class DatasetFile:
         # Ensure File is persisted
         if self.file.id is None:
             self.file.to_db(session)
-
-        # Ensure DatasetField is persisted
-        # if self.dataset_field.id is None:
-            # self.dataset_field.to_db(session)
-
-        # Ensure DatasetCycle is persisted
-        # if self.dataset_cycle.id is None:
-            # self.dataset_cycle.to_db(session)
 
         # Check if the entry already exists
         exists = session.scalar(

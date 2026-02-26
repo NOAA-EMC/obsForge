@@ -25,6 +25,9 @@ class DatasetField:
         # the files are not persisted here, but in cycles
         self.files: List[DatasetFile] = []
 
+    def __repr__(self) -> str:
+        return f"{self.dataset.name} field {self.obs_space}, {len(self.files)} files"
+
     def add_file(self, f: DatasetFile, cycle):
         dsf = DatasetFile(f, self, cycle)
         self.files.append(dsf)

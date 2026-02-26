@@ -118,17 +118,6 @@ class IodaStructure:
         return hashlib.sha256("::".join(components).encode()).hexdigest()
 
 
-    # to be deprecated?
-    @classmethod
-    def get_or_create_id(cls, file_path, session):
-        struct_obj = cls.from_file(file_path)
-        if struct_obj is None:
-            return None
-        return struct_obj.to_db(session)
-
-
-    # PERSISTANCE
-
     def to_db(self, session: Session) -> int:
         # Check if hash exists
         existing = session.query(IodaStructureORM.id).filter_by(

@@ -79,20 +79,6 @@ class DatasetCycle:
 
         return this_cycle
 
-    '''
-    def get_cycle_dir(self) -> str:
-        """
-        Return the directory path for this cycle:
-        <dataset.root_dir>/<dataset.name>.<YYYYMMDD>/<cycle_hour>/
-        """
-        date_str = self.cycle_date.strftime("%Y%m%d")
-        return os.path.join(
-            self.dataset.root_dir, 
-            f"{self.dataset.name}.{date_str}", 
-            self.cycle_hour
-        )
-    '''
-
     @classmethod
     def cycle_dir(cls, dataset, cycle_date, cycle_hour):
         """
@@ -136,9 +122,7 @@ class DatasetCycle:
             cycle_hour=self.cycle_hour
         )
 
-
     def to_db(self, session):
-
         self.to_db_self(session)
         self.to_db_files(session)
 

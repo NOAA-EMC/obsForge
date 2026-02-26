@@ -49,6 +49,14 @@ class DatasetFieldORM(Base):
         back_populates="dataset_field"
     )
 
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "obs_space_id",
+            name="uq_dataset_obs_space"
+        ),
+    )
+
 
 class DatasetFileORM(Base):
     __tablename__ = "dataset_files"
