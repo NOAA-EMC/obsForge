@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from .file_orm import FileORM
 
 
@@ -59,34 +61,32 @@ class File:
         )
 
 
-    def to_db(self, session) -> "File":
-    # def get_or_create(self, session) -> "File":
+    def to_db(self, session: Session) -> "FileORM":
         """
-        Ensure this file exists in DB.
-        If exists → load id and update metadata if needed.
-        If not → insert and assign id.
+        Ensure this File exists in DB.
+        - If it exists: update size/mtime if changed, set self.id, return ORM.
+        - If not: insert, assign PK, set self.id, return ORM.
+        Idempotent and safe against multiple calls.
         """
 
+        # Check if file already exists by path
         existing = session.scalar(
             select(FileORM).where(FileORM.path == self.path)
         )
 
         if existing:
-            # Update metadata if file changed
-            if (
-                existing.size != self.size
-                or existing.mtime != self.mtime
-            ):
+            # Update metadata if changed
+            if existing.size != self.size or existing.mtime != self.mtime:
                 existing.size = self.size
                 existing.mtime = self.mtime
 
             self.id = existing.id
-            return self
+            return existing  # return ORM
 
-        # Not found → create
+        # Not found → create new
         orm_obj = self.to_orm()
         session.add(orm_obj)
-        session.flush()  # assigns PK
-
+        session.flush()  # assign PK
         self.id = orm_obj.id
-        return self
+
+        return orm_obj

@@ -37,6 +37,41 @@ class ObsSpace:
         # return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.netcdf_structure_id})"
 
 
+    def compare(self, other: "ObsSpace") -> bool:
+        """
+        Compare two ObsSpace objects.
+
+        Returns:
+            True  -> same name and same structure
+            False -> names differ OR structures differ
+
+        Logs an error if names match but structures differ.
+        """
+
+        if not isinstance(other, ObsSpace):
+            logger.error(
+                f"Cannot compare ObsSpace with object of type {type(other)}"
+            )
+            return False
+
+        # Different names → not equal, no error
+        if self.name != other.name:
+            return False
+
+        # Same name, check structure hash
+        hash_a = self.netcdf_structure.structure_hash
+        hash_b = other.netcdf_structure.structure_hash
+
+        if hash_a != hash_b:
+            logger.error(
+                f"STRUCTURAL CONFLICT for ObsSpace '{self.name}'\n"
+                f"Hash A: {hash_a}\n"
+                f"Hash B: {hash_b}"
+            )
+            return False
+
+        return True
+
     # methods for parsing the name
     SEPARATOR = "."
     EXTENSION = "nc"
@@ -117,6 +152,7 @@ class ObsSpace:
         ).scalar_one_or_none()
 
         if existing:
+            # can reuse the compare method of this class here
             if current_netcdf_structure_id != existing.netcdf_structure_id:
                 logger.error(
                     f"STRUCTURAL DISCREPANCY DETECTED\n"

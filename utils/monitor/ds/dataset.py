@@ -52,9 +52,6 @@ class Dataset:
         self.dataset_fields: List[DatasetField] = []
         self.dataset_cycles: List[DatasetCycle] = []
 
-        # to be deprecated:
-        self.obs_space_files: dict[str, dict["DatasetCycle", "DatasetFile"]]
-
     def __repr__(self) -> str:
         return (
             f"Dataset {self.name}, "
@@ -77,44 +74,6 @@ class Dataset:
         else:  # n < 0
             selected = cycles[n:]
         return selected
-
-
-    def to_orm(self) -> "DatasetORM":
-        return DatasetORM(
-            id=self.id,
-            name=self.name,
-            root_dir=self.root_dir,
-        )
-
-    def to_db_self(self, session):
-        """
-        Persist the Dataset itself in the database.
-        """
-        from .dataset_orm import DatasetORM  # Import ORM class here only
-
-        # logger.info("Dataset.to_db_self")
-
-        # Check if this dataset already exists
-        existing = session.scalar(
-            select(DatasetORM).where(DatasetORM.name == self.name)
-        )
-
-        if existing:
-            # Update the id to link children later
-            self.id = existing.id
-            return existing
-
-        # logger.info("Dataset.to_db_self --- orm")
-        # Create new ORM object for Dataset
-        orm_obj = DatasetORM(
-            name=self.name,
-            root_dir=self.root_dir
-        )
-
-        session.add(orm_obj)
-        session.flush()  # Ensure id is assigned
-        self.id = orm_obj.id
-        return orm_obj
 
 
     # --------------------------------------------------------
@@ -152,9 +111,14 @@ class Dataset:
                 # existing_field = None
                 cycle_field.dataset = self
                 self.dataset_fields.append(cycle_field)
-                logger.info(f"Added new field {cycle_field} to dataset {self}")
+                # logger.info(f"Added new {cycle_field} to dataset {self}")
             else:
                 existing_field = same_name_fields[0]
+
+                if cycle_field.obs_space.compare(existing_field.obs_space):
+                    continue  # skip this cycle_field
+
+                '''
                 existing_hash = existing_field.obs_space.netcdf_structure.structure_hash
                 new_hash = cycle_field.obs_space.netcdf_structure.structure_hash
 
@@ -166,13 +130,14 @@ class Dataset:
                         f"new_hash={new_hash}"
                     )
                     continue  # skip this cycle_field
+                '''
 
                 # add the file from this field to the existing field
                 # there is exactly one file
                 ds_file = cycle_field.files[0]
                 ds_file.dataset_field = existing_field
                 existing_field.files.append(ds_file)
-                logger.info(f"Added to existing field {cycle_field} to dataset {self}")
+                # logger.info(f"Added to existing field {cycle_field} to dataset {self}")
 
         logger.info(f"Added {cycle} to dataset {self}")
 
@@ -186,28 +151,48 @@ class Dataset:
     # 3. Flush
     # 4. Copy generated id back to domain object
 
-    def to_db(self, session: "Session", n: Optional[int] = None) -> None:
-        logger.info(f"to_db {self}")
+    def to_orm(self) -> "DatasetORM":
+        return DatasetORM(
+            id=self.id,
+            name=self.name,
+            root_dir=self.root_dir,
+        )
 
+    def to_db_self(self, session):
+        """
+        Persist the Dataset itself in the database.
+        """
+        from .dataset_orm import DatasetORM  # Import ORM class here only
+
+        # logger.info("Dataset.to_db_self")
+
+        # Check if this dataset already exists
+        existing = session.scalar(
+            select(DatasetORM).where(DatasetORM.name == self.name)
+        )
+
+        if existing:
+            # Update the id to link children later
+            self.id = existing.id
+            return existing
+
+        orm_obj = self.to_orm()
+        session.add(orm_obj)
+        session.flush()  # Ensure id is assigned
+        self.id = orm_obj.id
+        return orm_obj
+
+    def to_db(self, session: "Session", n: Optional[int] = None) -> None:
         self.to_db_self(session)
 
         # Persist fields without persisting files
         # persisting the obs spaces and underlying NETCDF structures
         for field in self.dataset_fields:
             field.to_db(session)
+            logger.info(f"persisted {field}")
 
         self.to_db_cycles(session, n)
-
-        # for cycle in self.dataset_cycles:
-            # # logger.debug(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            # cycle.to_db(session)
-
-        '''
-        # Persist obs_space_files (2D)
-        for obs_space_name, cycle_map in self.obs_space_files.items():
-            for cycle, dosf in cycle_map.items():
-                dosf.to_db(session)
-        '''
+        logger.info(f"to_db {self}")
 
     def to_db_cycles(self, session, n):
         cycles = Dataset._select_cycles(self.dataset_cycles, n)

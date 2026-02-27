@@ -1,11 +1,11 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
+from sqlalchemy.orm import Session
+
 from .dataset_orm import DatasetFieldORM
-
 from .dataset_file import DatasetFile
-
 
 logger = logging.getLogger(__name__)
 
@@ -26,42 +26,102 @@ class DatasetField:
         self.files: List[DatasetFile] = []
 
     def __repr__(self) -> str:
-        return f"{self.dataset.name} field {self.obs_space}, {len(self.files)} files"
+        return (
+            f"Field id = {self.id}: "
+            f"{self.dataset.name} "
+            f"{self.obs_space},\n"
+            f"{len(self.files)} files"
+        )
 
     def add_file(self, f: DatasetFile, cycle):
         dsf = DatasetFile(f, self, cycle)
         self.files.append(dsf)
         return dsf
 
-    def to_orm(self, dataset_id: int, obs_space_id: int) -> DatasetFieldORM:
+    def to_orm(self) -> DatasetFieldORM:
         return DatasetFieldORM(
             id=self.id,
-            dataset_id=dataset_id,
-            obs_space_id=obs_space_id
-        )
-
-    def to_db(self, session):
-        if self.id is not None:
-            return
-
-        existing = session.scalar(
-            select(DatasetFieldORM).where(
-                (DatasetFieldORM.dataset_id == self.dataset.id) &
-                (DatasetFieldORM.obs_space_id == self.obs_space.id)
-            )
-        )
-        if existing:
-            self.id = existing.id
-            return
-
-        # persist underlying ObsSpace
-        obs_space_id = self.obs_space.to_db(session)
-        # now obs_space_id == self.obs_space.id
-
-        orm = self.to_orm(
             dataset_id=self.dataset.id,
             obs_space_id=self.obs_space.id
         )
+
+    '''
+    def to_db(self, session) -> DatasetFieldORM:
+        """
+        Ensure this DatasetField exists in the DB. Returns the ORM object.
+        Sets self.id.
+        """
+
+        # Already persisted? Return ORM object
+        if self.id is not None:
+            existing = session.get(DatasetFieldORM, self.id)
+            if existing:
+                return existing
+
+        # Check DB for existing field
+        existing = session.scalar(
+            select(DatasetFieldORM).where(
+                and_(
+                    DatasetFieldORM.dataset_id == self.dataset.id,
+                    DatasetFieldORM.obs_space_id == self.obs_space.id
+                )
+            )
+        )
+
+        if existing:
+            self.id = existing.id
+            return existing
+
+        # Persist underlying ObsSpace first
+        self.obs_space.to_db(session)  # ensures self.obs_space.id is set
+
+        orm = self.to_orm()
         session.add(orm)
-        session.flush()
+        session.flush()  # assign database-generated ID
+
         self.id = orm.id
+
+        return orm
+    '''
+
+    def to_db(self, session: Session) -> "DatasetFieldORM":
+        """
+        Ensure this DatasetField exists in the DB. Returns the ORM object.
+        Sets self.id.
+        Safe against duplicates in session or DB.
+        """
+
+        # Already persisted? Return ORM object
+        if self.id is not None:
+            existing = session.get(DatasetFieldORM, self.id)
+            if existing:
+                return existing
+
+        # Persist underlying ObsSpace first
+        self.obs_space.to_db(session)  # ensures self.obs_space.id is set
+
+        # Flush pending inserts so session knows about existing rows
+        session.flush()
+
+        # Check DB + session for existing row
+        existing = session.scalar(
+            select(DatasetFieldORM).where(
+                and_(
+                    DatasetFieldORM.dataset_id == self.dataset.id,
+                    DatasetFieldORM.obs_space_id == self.obs_space.id
+                )
+            )
+        )
+
+        if existing:
+            # Set self.id to avoid duplicate inserts later
+            self.id = existing.id
+            return existing
+
+        # No existing row → safe to create ORM
+        orm = self.to_orm()
+        session.add(orm)
+        session.flush()  # assign database-generated ID
+        self.id = orm.id
+
+        return orm

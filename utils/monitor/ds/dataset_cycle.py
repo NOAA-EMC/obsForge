@@ -5,13 +5,12 @@ from typing import Optional
 from pathlib import Path
 from typing import Tuple
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from .dataset_orm import DatasetCycleORM
 from .file_scanner import FileScanner
 from .obs_space import ObsSpace
 # from .netcdf_structure import NetcdfStructure
 from .dataset_field import DatasetField
-
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,13 @@ class DatasetCycle:
         self.fields: List[DatasetField] = []
 
     def __repr__(self) -> str:
-        return f"Cycle {self.cycle_date}  {self.cycle_hour}"
+        return (
+            f"<Cycle "
+            f"id = {self.id}, "
+            f"{self.cycle_date}  {self.cycle_hour}"
+            f"{len(self.fields)} fields"
+            ">"
+        )
 
     def add_field(self, field):
         self.fields.append(field)
@@ -123,42 +128,54 @@ class DatasetCycle:
         )
 
     def to_db(self, session):
-        self.to_db_self(session)
+        orm = self.to_db_self(session)
         self.to_db_files(session)
 
         logger.info(f"to_db {self.dataset.name} {self}")
 
-        return self.id
+        return orm
 
+    # cycle fields hold exactly one file each
     def to_db_files(self, session):
         for field in self.fields:
             field.files[0].to_db(session)
 
-    def to_db_self(self, session):
-        if self.id is not None:
-            return self.id
+    def to_db_self(self, session) -> DatasetCycleORM:
+        """
+        Ensure this DatasetCycle exists in the DB. Returns the ORM object.
+        Sets self.id.
+        """
 
+        # Already persisted? Return existing ORM
+        if self.id is not None:
+            # Fetch the ORM object if needed
+            existing = session.get(DatasetCycleORM, self.id)
+            if existing:
+                return existing
+
+        # Check DB for existing cycle
         existing = session.scalar(
             select(DatasetCycleORM).where(
-                (DatasetCycleORM.dataset_id == self.dataset.id) &
-                (DatasetCycleORM.cycle_date == self.cycle_date) &
-                (DatasetCycleORM.cycle_hour == self.cycle_hour)
+                and_(
+                    DatasetCycleORM.dataset_id == self.dataset.id,
+                    DatasetCycleORM.cycle_date == self.cycle_date,
+                    DatasetCycleORM.cycle_hour == self.cycle_hour
+                )
             )
         )
+
         if existing:
             self.id = existing.id
-            return self.id
+            return existing
 
-        orm = DatasetCycleORM(
-            dataset_id=self.dataset.id,
-            cycle_date=self.cycle_date,
-            cycle_hour=self.cycle_hour
-        )
+        # Create new ORM object
+        orm = self._to_orm()
         session.add(orm)
-        session.flush()
+        session.flush()   # generate ID without committing
 
         self.id = orm.id
-        return self.id
+
+        return orm
 
 
 
