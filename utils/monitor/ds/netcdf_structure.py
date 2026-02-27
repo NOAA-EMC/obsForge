@@ -4,17 +4,17 @@ from typing import Optional
 import netCDF4 as nc
 from sqlalchemy.orm import Session
 
-from .ioda_structure_orm import (
-    IodaStructureORM, 
-    IodaNodeORM, 
-    IodaStructureAttributeORM, 
-    ioda_variable_dimensions
+from .netcdf_structure_orm import (
+    NetcdfStructureORM, 
+    NetcdfNodeORM, 
+    NetcdfStructureAttributeORM, 
+    netcdf_variable_dimensions
 )
 
 logger = logging.getLogger(__name__)
 
 
-class IodaStructure:
+class NetcdfStructure:
     def __init__(self, 
         nodes_info: list, 
         structure_hash: str, 
@@ -26,12 +26,12 @@ class IodaStructure:
         self.id = id
 
     def __repr__(self) -> str:
-        return f"IodaStructure id = {self.id}, {self.structure_hash}"
+        return f"NetcdfStructure id = {self.id}, {self.structure_hash}"
 
     @classmethod
-    def from_file(cls, file_path: str) -> Optional["IodaStructure"]:
+    def from_file(cls, file_path: str) -> Optional["NetcdfStructure"]:
         """
-        Returns an instance of IodaStructure with the hash and nodes populated.
+        Returns an instance of NetcdfStructure with the hash and nodes populated.
         Returns None if corrupted/unreadable.
         """
         try:
@@ -44,9 +44,9 @@ class IodaStructure:
                     
                 structure_hash = cls._generate_hash(nodes_info)
                 
-                this_ioda_structure = cls(nodes_info=nodes_info, structure_hash=structure_hash)
-                # logger.debug(f"constructed {this_ioda_structure} from {file_path}")
-                return this_ioda_structure
+                this_netcdf_structure = cls(nodes_info=nodes_info, structure_hash=structure_hash)
+                # logger.debug(f"constructed {this_netcdf_structure} from {file_path}")
+                return this_netcdf_structure
         except Exception as e:
             logger.debug(f"Failed to read structure from {file_path}: {e}")
             return None
@@ -120,7 +120,7 @@ class IodaStructure:
 
     def to_db(self, session: Session) -> int:
         # Check if hash exists
-        existing = session.query(IodaStructureORM.id).filter_by(
+        existing = session.query(NetcdfStructureORM.id).filter_by(
             structure_hash=self.structure_hash
         ).first()
         
@@ -135,14 +135,14 @@ class IodaStructure:
     @classmethod
     def _to_db_structure(cls, nodes_info, structure_hash, session):
         # 1. Create Skeleton
-        struct = IodaStructureORM(structure_hash=structure_hash)
+        struct = NetcdfStructureORM(structure_hash=structure_hash)
         session.add(struct)
         session.flush()
 
         node_map = {}
         # 2. Create Nodes and their Attribute Definitions
         for info in nodes_info:
-            node = IodaNodeORM(
+            node = NetcdfNodeORM(
                 structure_id=struct.id,
                 full_path=info['path'],
                 node_type=info['node_type'],
@@ -154,7 +154,7 @@ class IodaStructure:
 
             # Register the EXISTENCE of attributes for this node
             for attr_name in info['attr_names']:
-                session.add(IodaStructureAttributeORM(
+                session.add(NetcdfStructureAttributeORM(
                     node_id=node.id, 
                     attr_name=attr_name
                 ))
@@ -166,7 +166,7 @@ class IodaStructure:
                 for idx, dim_name in enumerate(info['dims']):
                     dim_node = node_map.get(dim_name)
                     if dim_node:
-                        stmt = ioda_variable_dimensions.insert().values(
+                        stmt = netcdf_variable_dimensions.insert().values(
                             variable_node_id=var_node.id,
                             dimension_node_id=dim_node.id,
                             dim_index=idx

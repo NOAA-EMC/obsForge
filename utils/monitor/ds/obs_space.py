@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .obs_space_orm import ObsSpaceORM
-from .ioda_structure import IodaStructure
+from .netcdf_structure import NetcdfStructure
 
 logger = logging.getLogger(__name__)
 
@@ -20,21 +20,21 @@ class ObsSpace:
     def __init__(
         self,
         name: str,
-        ioda_structure: IodaStructure,
+        netcdf_structure: NetcdfStructure,
         id: Optional[int] = None,
-        ioda_structure_id: Optional[int] = None,
+        netcdf_structure_id: Optional[int] = None,
     ):
         self.name = name
-        self.ioda_structure = ioda_structure
+        self.netcdf_structure = netcdf_structure
 
         self.id = id
 
         # to be deprecated:
-        self.ioda_structure_id = ioda_structure_id
+        self.netcdf_structure_id = netcdf_structure_id
 
     def __repr__(self) -> str:
         return f"ObsSpace name='{self.name}', id={self.id}"
-        # return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.ioda_structure_id})"
+        # return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.netcdf_structure_id})"
 
 
     # methods for parsing the name
@@ -88,11 +88,11 @@ class ObsSpace:
         if name is None:
             return None
 
-        structure = IodaStructure.from_file(file_path)
+        structure = NetcdfStructure.from_file(file_path)
         if structure is None:
             return None
 
-        this_obs_space = cls(name=name, ioda_structure=structure)
+        this_obs_space = cls(name=name, netcdf_structure=structure)
         # logger.debug(f"constructed {this_obs_space} from {file_path}")
         return this_obs_space
 
@@ -100,8 +100,8 @@ class ObsSpace:
     def to_orm(self):
         return ObsSpaceORM(
             name=self.name,
-            ioda_structure_id=self.ioda_structure.id,
-            # ioda_structure_id=self.ioda_structure_id,
+            netcdf_structure_id=self.netcdf_structure.id,
+            # netcdf_structure_id=self.netcdf_structure_id,
         )
 
     def to_db(self, session: Session) -> int:
@@ -110,20 +110,20 @@ class ObsSpace:
         if self.id is not None:
             return self.id
 
-        current_ioda_structure_id = self.ioda_structure.to_db(session)
+        current_netcdf_structure_id = self.netcdf_structure.to_db(session)
 
         existing = session.execute(
             select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
         ).scalar_one_or_none()
 
         if existing:
-            if current_ioda_structure_id != existing.ioda_structure_id:
+            if current_netcdf_structure_id != existing.netcdf_structure_id:
                 logger.error(
                     f"STRUCTURAL DISCREPANCY DETECTED\n"
                     f"ObsSpace: {self.name}\n"
                     # f"File: {file_path}\n"
-                    f"Expected Ioda Struct ID: {existing.ioda_structure_id}\n"
-                    f"Actual Ioda Struct ID:   {current_ioda_structure_id}"
+                    f"Expected Netcdf Struct ID: {existing.netcdf_structure_id}\n"
+                    f"Actual Netcdf Struct ID:   {current_netcdf_structure_id}"
                 )
 
             self.id = existing.id

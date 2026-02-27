@@ -9,7 +9,7 @@ from sqlalchemy import select
 from .dataset_orm import DatasetCycleORM
 from .file_scanner import FileScanner
 from .obs_space import ObsSpace
-from .ioda_structure import IodaStructure
+# from .netcdf_structure import NetcdfStructure
 from .dataset_field import DatasetField
 
 

@@ -155,8 +155,8 @@ class Dataset:
                 logger.info(f"Added new field {cycle_field} to dataset {self}")
             else:
                 existing_field = same_name_fields[0]
-                existing_hash = existing_field.obs_space.ioda_structure.structure_hash
-                new_hash = cycle_field.obs_space.ioda_structure.structure_hash
+                existing_hash = existing_field.obs_space.netcdf_structure.structure_hash
+                new_hash = cycle_field.obs_space.netcdf_structure.structure_hash
 
                 if existing_hash != new_hash:
                     logger.error(
@@ -192,7 +192,7 @@ class Dataset:
         self.to_db_self(session)
 
         # Persist fields without persisting files
-        # persisting the obs spaces and underlying ioda structures
+        # persisting the obs spaces and underlying NETCDF structures
         for field in self.dataset_fields:
             field.to_db(session)
 

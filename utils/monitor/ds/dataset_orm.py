@@ -99,5 +99,5 @@ class DatasetFileORM(Base):
             "dataset_field_id",
             "dataset_cycle_id",
             name="uq_dataset_cycle_field"
-        )
+        ),
     )
