@@ -20,9 +20,9 @@ class FileORM(Base):
     # Last modification time
     mtime = Column(DateTime, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("path", name="uq_files_path"),
-    )
+    # __table_args__ = (
+        # UniqueConstraint("path", name="uq_files_path"),
+    # )
 
     def __repr__(self):
         return (

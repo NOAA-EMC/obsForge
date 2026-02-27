@@ -35,6 +35,15 @@ class DatasetCycleORM(Base):
         back_populates="dataset_cycle"
     )
 
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "cycle_date",
+            "cycle_hour",
+            name="uq_dataset_cycle"
+        ),
+    )
+
 
 class DatasetFieldORM(Base):
     __tablename__ = "dataset_fields"
@@ -89,7 +98,6 @@ class DatasetFileORM(Base):
         UniqueConstraint(
             "dataset_field_id",
             "dataset_cycle_id",
-            "file_id",
-            name="uq_dataset_file"
-        ),
+            name="uq_dataset_cycle_field"
+        )
     )
