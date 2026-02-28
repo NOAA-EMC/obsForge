@@ -9,7 +9,6 @@ from sqlalchemy import select, and_
 from .dataset_orm import DatasetCycleORM
 from .file_scanner import FileScanner
 from .obs_space import ObsSpace
-# from .netcdf_structure import NetcdfStructure
 from .dataset_field import DatasetField
 
 logger = logging.getLogger(__name__)
@@ -138,6 +137,7 @@ class DatasetCycle:
     # cycle fields hold exactly one file each
     def to_db_files(self, session):
         for field in self.fields:
+            # field.files[0].compute_attributes()
             field.files[0].to_db(session)
 
     def to_db_self(self, session) -> DatasetCycleORM:

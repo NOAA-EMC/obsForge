@@ -14,156 +14,215 @@ from .netcdf_structure_orm import (
 logger = logging.getLogger(__name__)
 
 
+class NetcdfStructureNode:
+    """
+    Domain-level representation of a node (variable, dimension, group)
+    in a NetCDF structure.
+    """
+    def __init__(self, path: str, node_type: str, dtype: str = None,
+                 dims: list[str] = None, attr_names: list[str] = None):
+        self.path = path
+        self.node_type = node_type  # 'GROUP', 'VARIABLE', 'DIMENSION'
+        self.dtype = dtype
+        self.dims = dims or []
+        self.attr_names = attr_names or []
+
+    def __repr__(self):
+        return f"<NetcdfStructureNode(path={self.path}, type={self.node_type})>"
+
+
+    def to_db(self, session: Session, structure_id: int):
+        node_orm = NetcdfNodeORM(
+            structure_id=structure_id,
+            full_path=self.path,
+            node_type=self.node_type,
+            dtype=self.dtype
+        )
+
+        session.add(node_orm)
+        session.flush()
+
+        self.id = node_orm.id
+
+        # Persist attribute definitions (names only)
+        for attr_name in self.attr_names:
+            session.add(
+                NetcdfStructureAttributeORM(
+                    node_id=node_orm.id,
+                    attr_name=attr_name
+                )
+            )
+
+        return node_orm
+
+
+
 class NetcdfStructure:
-    def __init__(self, 
-        nodes_info: list, 
+    def __init__(
+        self, nodes: list["NetcdfStructureNode"], 
         structure_hash: str, 
         id: Optional[int] = None
     ):
-        # The internal state
-        self.nodes_info = nodes_info
+        self.nodes = nodes  # list of NetcdfStructureNode
         self.structure_hash = structure_hash
         self.id = id
 
-    def __repr__(self) -> str:
-        return f"NetcdfStructure id = {self.id}, {self.structure_hash}"
+    def __repr__(self):
+        return f"<NetcdfStructure id={self.id}, hash={self.structure_hash[:10]}...>"
 
     @classmethod
     def from_file(cls, file_path: str) -> Optional["NetcdfStructure"]:
-        """
-        Returns an instance of NetcdfStructure with the hash and nodes populated.
-        Returns None if corrupted/unreadable.
-        """
         try:
+            import netCDF4 as nc
             with nc.Dataset(file_path, 'r') as ds:
-                # Use your existing _scan_structure
-                nodes_info = cls._scan_structure(ds)
-                
-                if nodes_info is None:
+                nodes = cls._scan_structure(ds)
+                if not nodes:
                     return None
-                    
-                structure_hash = cls._generate_hash(nodes_info)
-                
-                this_netcdf_structure = cls(nodes_info=nodes_info, structure_hash=structure_hash)
-                # logger.debug(f"constructed {this_netcdf_structure} from {file_path}")
-                return this_netcdf_structure
+                structure_hash = cls._generate_hash(nodes)
+                return cls(nodes=nodes, structure_hash=structure_hash)
         except Exception as e:
             logger.debug(f"Failed to read structure from {file_path}: {e}")
             return None
 
     @staticmethod
     def _scan_structure(ds):
-        """
-        Walks the file to extract the skeleton and attribute NAMES.
-        Returns a list of node dictionaries or None if the scan fails.
-        """
+
         nodes_dict = {}
 
-        try:
-            # 1. Dimensions
-            for name in ds.dimensions:
-                nodes_dict[name] = {
-                    'path': name,
-                    'node_type': 'DIMENSION',
-                    'dtype': None,
-                    'dims': [],
-                    'attr_names': []
-                }
+        # Dimensions
+        for name in ds.dimensions:
+            nodes_dict[name] = NetcdfStructureNode(
+                path=name,
+                node_type="DIMENSION"
+            )
 
-            # 2. Recursive Walk
-            def walk(group, prefix=""):
-                # Global/Group Attributes
-                group_path = prefix if prefix else "/"
-                if group_path not in nodes_dict:
-                    nodes_dict[group_path] = {
-                        'path': group_path,
-                        'node_type': 'GROUP',
-                        'dtype': None,
-                        'dims': [],
-                        'attr_names': group.ncattrs()
-                    }
+        def walk(group, prefix=""):
+            group_path = prefix if prefix else "/"
 
-                # Variables
-                for name, var in group.variables.items():
-                    full_path = f"{prefix}{name}"
-                    nodes_dict[full_path] = {
-                        'path': full_path,
-                        'node_type': 'VARIABLE',
-                        'dtype': str(var.dtype),
-                        'dims': list(var.dimensions),
-                        'attr_names': var.ncattrs()
-                    }
+            if group_path not in nodes_dict:
+                nodes_dict[group_path] = NetcdfStructureNode(
+                    path=group_path,
+                    node_type="GROUP",
+                    attr_names=group.ncattrs()
+                )
 
-                for name, grp in group.groups.items():
-                    walk(grp, f"{prefix}{name}/")
+            for name, var in group.variables.items():
+                full_path = f"{prefix}{name}"
+                nodes_dict[full_path] = NetcdfStructureNode(
+                    path=full_path,
+                    node_type="VARIABLE",
+                    dtype=str(var.dtype),
+                    dims=list(var.dimensions),
+                    attr_names=var.ncattrs()
+                )
 
-            walk(ds)
-            return list(nodes_dict.values())
-            
-        except Exception as e:
-            logger.debug(f"Internal structure scan failed: {e}")
-            return None
+            for name, grp in group.groups.items():
+                walk(grp, f"{prefix}{name}/")
+
+        walk(ds)
+
+        return list(nodes_dict.values())
+
 
     @staticmethod
-    def _generate_hash(nodes_info):
-        """Hash includes paths, types, dtypes, dims, and ATTRIBUTE NAMES."""
-        sorted_nodes = sorted(nodes_info, key=lambda x: x['path'])
+    def bad_scan_structure(ds) -> list["NetcdfStructureNode"]:
+        nodes = []
+
+        # 1. Dimensions
+        for name in ds.dimensions:
+            nodes.append(
+                NetcdfStructureNode(
+                    path=name,
+                    node_type='DIMENSION'
+                )
+            )
+
+        # 2. Recursive walk for groups & variables
+        def walk(group, prefix=""):
+            group_path = prefix if prefix else "/"
+            # Group node
+            nodes.append(
+                NetcdfStructureNode(
+                    path=group_path,
+                    node_type='GROUP',
+                    attr_names=group.ncattrs()
+                )
+            )
+
+            # Variables
+            for name, var in group.variables.items():
+                full_path = f"{prefix}{name}"
+                nodes.append(
+                    NetcdfStructureNode(
+                        path=full_path,
+                        node_type='VARIABLE',
+                        dtype=str(var.dtype),
+                        dims=list(var.dimensions),
+                        attr_names=var.ncattrs()
+                    )
+                )
+
+            # Recurse into sub-groups
+            for name, grp in group.groups.items():
+                walk(grp, f"{prefix}{name}/")
+
+        walk(ds)
+        return nodes
+
+    @staticmethod
+    def _generate_hash(nodes: list["NetcdfStructureNode"]) -> str:
+        # deterministic sorting
+        sorted_nodes = sorted(nodes, key=lambda n: n.path)
         components = []
         for n in sorted_nodes:
-            # Sort attribute names to ensure deterministic hashing
-            attr_str = ",".join(sorted(n['attr_names']))
-            dim_str = ",".join(n['dims'])
-            components.append(f"{n['path']}|{n['node_type']}|{n['dtype']}|{dim_str}|{attr_str}")
-            
+            attr_str = ",".join(sorted(n.attr_names))
+            dim_str = ",".join(n.dims)
+            components.append(f"{n.path}|{n.node_type}|{n.dtype}|{dim_str}|{attr_str}")
+        import hashlib
         return hashlib.sha256("::".join(components).encode()).hexdigest()
 
+    def to_db(self, session: Session) -> NetcdfStructureORM:
+        """
+        Persist this structure blueprint if not already present.
+        Returns the ORM object.
+        Idempotent.
+        """
 
-    def to_db(self, session: Session) -> int:
-        # Check if hash exists
-        existing = session.query(NetcdfStructureORM.id).filter_by(
+        # Already persisted in this session
+        if self.id is not None:
+            existing = session.get(NetcdfStructureORM, self.id)
+            if existing:
+                return existing
+
+        # Check by hash
+        existing = session.query(NetcdfStructureORM).filter_by(
             structure_hash=self.structure_hash
         ).first()
-        
+
         if existing:
-            self.id = existing[0]
-            return self.id
+            self.id = existing.id
+            return existing
 
-        self.id = self._to_db_structure(self.nodes_info, self.structure_hash, session)
-        # logger.debug(f"to_db {self}")
-        return self.id
-
-    @classmethod
-    def _to_db_structure(cls, nodes_info, structure_hash, session):
-        # 1. Create Skeleton
-        struct = NetcdfStructureORM(structure_hash=structure_hash)
+        # Create new structure row
+        struct = NetcdfStructureORM(structure_hash=self.structure_hash)
         session.add(struct)
         session.flush()
 
+        self.id = struct.id
+
+        # Persist nodes
         node_map = {}
-        # 2. Create Nodes and their Attribute Definitions
-        for info in nodes_info:
-            node = NetcdfNodeORM(
-                structure_id=struct.id,
-                full_path=info['path'],
-                node_type=info['node_type'],
-                dtype=info['dtype']
-            )
-            session.add(node)
-            session.flush()
-            node_map[info['path']] = node
 
-            # Register the EXISTENCE of attributes for this node
-            for attr_name in info['attr_names']:
-                session.add(NetcdfStructureAttributeORM(
-                    node_id=node.id, 
-                    attr_name=attr_name
-                ))
+        for node in self.nodes:
+            node_orm = node.to_db(session, structure_id=self.id)
+            node_map[node.path] = node_orm
 
-        # 3. Link Dimensions (Manual insertion as before)
-        for info in nodes_info:
-            if info['node_type'] == 'VARIABLE' and info['dims']:
-                var_node = node_map[info['path']]
-                for idx, dim_name in enumerate(info['dims']):
+        # Link variable → dimensions
+        for node in self.nodes:
+            if node.node_type == "VARIABLE" and node.dims:
+                var_node = node_map[node.path]
+
+                for idx, dim_name in enumerate(node.dims):
                     dim_node = node_map.get(dim_name)
                     if dim_node:
                         stmt = netcdf_variable_dimensions.insert().values(
@@ -172,6 +231,6 @@ class NetcdfStructure:
                             dim_index=idx
                         )
                         session.execute(stmt)
-        
-        session.commit()
-        return struct.id
+
+        session.flush()
+        return struct

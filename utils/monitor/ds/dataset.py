@@ -253,8 +253,6 @@ class Dataset:
         # Always return sorted (important!)
         return sorted(discovered, key=lambda x: (x[0], x[1]))
 
-
-
     def read_cycle(self, cycle_date: date, cycle_hour: str) -> Optional[DatasetCycle]:
         cycle_dir = DatasetCycle.cycle_dir(self, cycle_date, cycle_hour)
         if not os.path.isdir(cycle_dir):

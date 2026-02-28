@@ -145,7 +145,8 @@ class ObsSpace:
         if self.id is not None:
             return self.id
 
-        current_netcdf_structure_id = self.netcdf_structure.to_db(session)
+        current_netcdf_structure_orm = self.netcdf_structure.to_db(session)
+        current_netcdf_structure_id = current_netcdf_structure_orm.id
 
         existing = session.execute(
             select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
@@ -167,8 +168,8 @@ class ObsSpace:
 
         orm_obj = self.to_orm()
         session.add(orm_obj)
-        session.commit()
-        # session.flush() # Changed from commit() to allow Dataset to manage transaction
+        # session.commit()
+        session.flush()
         self.id = orm_obj.id
         # logger.debug(f"to_db {self}")
 

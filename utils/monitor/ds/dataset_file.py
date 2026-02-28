@@ -1,10 +1,14 @@
 import logging
-from typing import Optional
+from typing import Optional, Dict
 
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 from .dataset_orm import DatasetFileORM
+
+from .netcdf_file import NetcdfFile
+# from .netcdf_file_orm import NetcdfFileDerivedAttributeORM
+from .file import File
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,22 @@ class DatasetFile:
         self.file = file
         self.id = id
 
+        self.netcdf_file: Optional[NetcdfFile] = None
+        try:
+            structure = None
+            if self.dataset_field.obs_space:
+                structure = self.dataset_field.obs_space.netcdf_structure
+
+            self.netcdf_file = NetcdfFile(
+                file=self.file,
+                structure=structure,
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to initialize NetcdfFile for {self.file.path}: {e}"
+            )
+            self.netcdf_file = None
+
     def __repr__(self) -> str:
         return (
             f"<DatasetFile(id={self.id}, "
@@ -35,6 +55,23 @@ class DatasetFile:
             "\n"
             f"file={self.file.path})>"
         )
+
+    def compute_attributes(self) -> None:
+        """
+        Read attributes and compute derived attributes in memory.
+        """
+        logger.info(f"compute_attributes for {self.file.path}")
+
+        if not self.netcdf_file:
+            logger.error(f"Cannot open file {self.file.path} (NetcdfFile not initialized)")
+            return
+
+        try:
+            self.netcdf_file.read_attributes()
+            self.netcdf_file.compute_derived_attributes()
+        except Exception as e:
+            logger.error(f"compute_attributes failed for {self.file.path}: {e}")
+
 
     def to_orm(self) -> "DatasetFileORM":
         return DatasetFileORM(
@@ -69,6 +106,14 @@ class DatasetFile:
 
         if self.file.id is None:
             self.file.to_db(session)
+
+        if self.netcdf_file:
+            try:
+                self.netcdf_file.to_db(session)
+            except Exception as e:
+                logger.error(
+                    f"Failed to persist NetCDF data for {self.file.path}: {e}"
+                )
 
         # Flush pending inserts so session sees all IDs
         # session.flush()
