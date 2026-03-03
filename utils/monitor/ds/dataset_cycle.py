@@ -47,7 +47,7 @@ class DatasetCycle:
         return (
             f"<Cycle "
             f"id = {self.id}, "
-            f"{self.cycle_date}  {self.cycle_hour}"
+            f"{self.cycle_date}  {self.cycle_hour}, "
             f"{len(self.fields)} fields"
             ">"
         )
@@ -119,7 +119,7 @@ class DatasetCycle:
 
         return cycle_date, cycle_hour
 
-    def _to_orm(self) -> DatasetCycleORM:
+    def to_orm(self) -> DatasetCycleORM:
         return DatasetCycleORM(
             dataset_id=self.dataset.id,
             cycle_date=self.cycle_date,
@@ -137,7 +137,7 @@ class DatasetCycle:
     # cycle fields hold exactly one file each
     def to_db_files(self, session):
         for field in self.fields:
-            # field.files[0].compute_attributes()
+            field.files[0].compute_attributes()
             field.files[0].to_db(session)
 
     def to_db_self(self, session) -> DatasetCycleORM:
@@ -169,7 +169,7 @@ class DatasetCycle:
             return existing
 
         # Create new ORM object
-        orm = self._to_orm()
+        orm = self.to_orm()
         session.add(orm)
         session.flush()   # generate ID without committing
 

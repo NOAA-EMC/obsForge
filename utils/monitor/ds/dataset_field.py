@@ -27,10 +27,10 @@ class DatasetField:
 
     def __repr__(self) -> str:
         return (
-            f"Field id = {self.id}: "
+            f"<Field id = {self.id}: "
             f"{self.dataset.name} "
             f"{self.obs_space},\n"
-            f"{len(self.files)} files"
+            f"{len(self.files)} files>"
         )
 
     def add_file(self, f: DatasetFile, cycle):
@@ -91,6 +91,8 @@ class DatasetField:
         Safe against duplicates in session or DB.
         """
 
+        logger.info(f"to_db {self}")
+
         # Already persisted? Return ORM object
         if self.id is not None:
             existing = session.get(DatasetFieldORM, self.id)
@@ -123,5 +125,7 @@ class DatasetField:
         session.add(orm)
         session.flush()  # assign database-generated ID
         self.id = orm.id
+
+        logger.info(f"done .... to_db {self}")
 
         return orm

@@ -22,20 +22,19 @@ class ObsSpace:
         name: str,
         netcdf_structure: NetcdfStructure,
         id: Optional[int] = None,
-        netcdf_structure_id: Optional[int] = None,
     ):
         self.name = name
         self.netcdf_structure = netcdf_structure
 
         self.id = id
 
-        # to be deprecated:
-        self.netcdf_structure_id = netcdf_structure_id
-
     def __repr__(self) -> str:
-        return f"ObsSpace name='{self.name}', id={self.id}"
-        # return f"ObsSpace(name='{self.name}', id={self.id}, struct_id={self.netcdf_structure_id})"
-
+        # return f"<ObsSpace name='{self.name}', id={self.id}>"
+        return (
+            f"<ObsSpace {self.name}, "
+            f"id={self.id}, "
+            f"{self.netcdf_structure}>"
+        )
 
     def compare(self, other: "ObsSpace") -> bool:
         """
@@ -111,7 +110,6 @@ class ObsSpace:
         # 4. Extract based on the defined index
         return parts[cls.NAME_INDEX]
 
-
     @classmethod
     def from_file(cls, file_path: str, prefix: Optional[str] = None) -> Optional["ObsSpace"]:
         """
@@ -132,45 +130,44 @@ class ObsSpace:
         return this_obs_space
 
 
-    def to_orm(self):
-        return ObsSpaceORM(
-            name=self.name,
-            netcdf_structure_id=self.netcdf_structure.id,
-            # netcdf_structure_id=self.netcdf_structure_id,
-        )
+    def to_db(self, session: Session) -> ObsSpaceORM:
+        """
+        Persist ObsSpace.
 
-    def to_db(self, session: Session) -> int:
-        """Ensure this ObsSpace exists in the DB. Idempotent."""
+        Rules:
+            - ObsSpace is uniquely identified by name
+            - Structure is fully persisted before ObsSpace
+            - If structure hash differs, log error and continue
+            - Domain object is fully synced with DB
+        """
 
-        if self.id is not None:
-            return self.id
+        self.netcdf_structure.to_db(session)
 
-        current_netcdf_structure_orm = self.netcdf_structure.to_db(session)
-        current_netcdf_structure_id = current_netcdf_structure_orm.id
+        stmt = select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
+        existing = session.execute(stmt).scalar_one_or_none()
 
-        existing = session.execute(
-            select(ObsSpaceORM).where(ObsSpaceORM.name == self.name)
-        ).scalar_one_or_none()
+        if not existing:
+            new_row = ObsSpaceORM(
+                name=self.name,
+                netcdf_structure_id=self.netcdf_structure.id,
+            )
+            session.add(new_row)
+            session.flush()
 
-        if existing:
-            # can reuse the compare method of this class here
-            if current_netcdf_structure_id != existing.netcdf_structure_id:
-                logger.error(
-                    f"STRUCTURAL DISCREPANCY DETECTED\n"
-                    f"ObsSpace: {self.name}\n"
-                    # f"File: {file_path}\n"
-                    f"Expected Netcdf Struct ID: {existing.netcdf_structure_id}\n"
-                    f"Actual Netcdf Struct ID:   {current_netcdf_structure_id}"
-                )
+            self.id = new_row.id
+            return new_row
 
-            self.id = existing.id
-            return self.id
+        db_hash = existing.netcdf_structure.structure_hash
+        incoming_hash = self.netcdf_structure.structure_hash
 
-        orm_obj = self.to_orm()
-        session.add(orm_obj)
-        # session.commit()
-        session.flush()
-        self.id = orm_obj.id
-        # logger.debug(f"to_db {self}")
+        if db_hash != incoming_hash:
+            logger.error(
+                f"STRUCTURAL CONFLICT for ObsSpace '{self.name}'\n"
+                f"DB hash:       {db_hash}\n"
+                f"Incoming hash: {incoming_hash}\n"
+                f"Using DB structure."
+            )
 
-        return self.id
+        self.id = existing.id
+
+        return existing

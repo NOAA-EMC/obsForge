@@ -47,11 +47,11 @@ class DatasetFile:
             f"<DatasetFile(id={self.id}, "
             "\n"
             # f"obs_space={self.dataset_field.obs_space.name}, "
-            f"field = {self.dataset_field}, "
+            f"{self.dataset_field}, "
             "\n"
             # f"obs_space={self.dataset_field.obs_space}, "
             # f"cycle={self.dataset_cycle.cycle_date} {self.dataset_cycle.cycle_hour}, "
-            f"cycle={self.dataset_cycle}, "
+            f"{self.dataset_cycle}, "
             "\n"
             f"file={self.file.path})>"
         )
@@ -87,7 +87,6 @@ class DatasetFile:
         Ensure this DatasetFile exists in the DB. Returns the ORM object.
         Sets self.id.
         """
-
         # Already persisted?
         if self.id is not None:
             existing = session.get(DatasetFileORM, self.id)
@@ -96,17 +95,19 @@ class DatasetFile:
 
         logger.info(f"to_db {self}")
 
-        # Persist underlying DatasetField first
+        # Persist underlying DatasetField
         if self.dataset_field.id is None:
             self.dataset_field.to_db(session)
 
-        # Persist underlying DatasetCycle first
+        # Persist underlying DatasetCycle
         if self.dataset_cycle.id is None:
             self.dataset_cycle.to_db(session)
 
+        # Persist the physical file
         if self.file.id is None:
             self.file.to_db(session)
 
+        # Persist NetCDF file, structure, attributes, derived attributes
         if self.netcdf_file:
             try:
                 self.netcdf_file.to_db(session)
@@ -115,8 +116,8 @@ class DatasetFile:
                     f"Failed to persist NetCDF data for {self.file.path}: {e}"
                 )
 
-        # Flush pending inserts so session sees all IDs
-        # session.flush()
+        # Ensure session sees all IDs
+        session.flush()
 
         # Check if a row already exists
         existing = session.scalar(
@@ -143,4 +144,5 @@ class DatasetFile:
         session.flush()
         self.id = orm.id
 
+        logger.info(f"done .... to_db {self}")
         return orm

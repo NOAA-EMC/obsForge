@@ -14,15 +14,41 @@ from sqlalchemy.orm import relationship
 from .db_base import Base
 
 
-# Association table to handle variable-to-dimension mapping and order
-# This is part of the "invariant" structure.
-netcdf_variable_dimensions = Table(
-    'netcdf_variable_dimensions',
-    Base.metadata,
-    Column('variable_node_id', Integer, ForeignKey('netcdf_structure_nodes.id'), primary_key=True),
-    Column('dimension_node_id', Integer, ForeignKey('netcdf_structure_nodes.id'), primary_key=True),
-    Column('dim_index', Integer, primary_key=True), # 0 for first dim, 1 for second...
-)
+# replacing the association table with orm object:
+class NetcdfVariableDimensionORM(Base):
+    """
+    Association object linking a VARIABLE node to a DIMENSION node,
+    preserving dimension order via dim_index.
+    """
+
+    __tablename__ = "netcdf_variable_dimensions"
+
+    variable_node_id = Column(
+        Integer,
+        ForeignKey("netcdf_structure_nodes.id"),
+        primary_key=True,
+    )
+
+    dimension_node_id = Column(
+        Integer,
+        ForeignKey("netcdf_structure_nodes.id"),
+        primary_key=True,
+    )
+
+    dim_index = Column(
+        Integer,
+        nullable=False,
+        primary_key=True,
+    )
+
+    # Relationship to dimension node
+    dimension = relationship(
+        "NetcdfNodeORM",
+        foreign_keys=[dimension_node_id],
+    )
+
+    # Optional backref to variable (defined from variable side below)
+
 
 class NetcdfStructureORM(Base):
     """
@@ -41,32 +67,44 @@ class NetcdfStructureORM(Base):
     # Link back to your existing obs_spaces
     obs_spaces = relationship("ObsSpaceORM", back_populates="netcdf_structure")
 
+
 class NetcdfNodeORM(Base):
-    """
-    An entry in the NETCDF tree. Can be a Group, Variable, or Dimension.
-    """
-    __tablename__ = 'netcdf_structure_nodes'
+
+    __tablename__ = "netcdf_structure_nodes"
 
     id = Column(Integer, primary_key=True)
-    structure_id = Column(Integer, ForeignKey('netcdf_structures.id'), nullable=False)
-    full_path = Column(String, nullable=False) # e.g., 'ObsValue/seaSurfaceTemperature'
-    node_type = Column(String, nullable=False) # 'GROUP', 'VARIABLE', 'DIMENSION'
-    dtype = Column(String, nullable=True)     # e.g., 'float32', 'int32'
-    
+    structure_id = Column(Integer, ForeignKey("netcdf_structures.id"), nullable=False)
+    full_path = Column(String, nullable=False)
+    node_type = Column(String, nullable=False)
+    dtype = Column(String, nullable=True)
+
     structure = relationship("NetcdfStructureORM", back_populates="nodes")
 
-    # Self-referential-like many-to-many: Variables linked to their Dimensions
-    dimensions = relationship(
-        "NetcdfNodeORM",
-        secondary=netcdf_variable_dimensions,
-        primaryjoin=id == netcdf_variable_dimensions.c.variable_node_id,
-        secondaryjoin=id == netcdf_variable_dimensions.c.dimension_node_id,
-        order_by=netcdf_variable_dimensions.c.dim_index,
-        backref="dimension_for_variables"
+    # --------------------------------------------------
+    # Ordered association objects (VARIABLE → DIMENSION)
+    # --------------------------------------------------
+    variable_dimensions = relationship(
+        "NetcdfVariableDimensionORM",
+        foreign_keys=[NetcdfVariableDimensionORM.variable_node_id],
+        cascade="all, delete-orphan",
+        order_by=NetcdfVariableDimensionORM.dim_index,
+        backref="variable",
     )
 
-    __table_args__ = (UniqueConstraint('structure_id', 'full_path', name='_structure_node_uc'),)
+    attributes = relationship(
+        "NetcdfStructureAttributeORM",
+        cascade="all, delete-orphan",
+        backref="node",
+    )
 
+    __table_args__ = (
+        UniqueConstraint(
+            "structure_id",
+            "full_path",
+            "node_type",
+            name="uq_structure_path_type"
+        ),
+    )
 
 
 class NetcdfStructureAttributeORM(Base):
@@ -80,16 +118,3 @@ class NetcdfStructureAttributeORM(Base):
     attr_name = Column(String, nullable=False)
     
     __table_args__ = (UniqueConstraint('node_id', 'attr_name', name='_node_attr_name_uc'),)
-
-'''
-class NetcdfFileAttributeORM(Base):
-    """
-    Values: Stores the actual data for a specific file's attributes.
-    """
-    __tablename__ = 'netcdf_file_attributes'
-    id = Column(Integer, primary_key=True)
-    file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
-    # Link back to the definition in the structure
-    struct_attr_id = Column(Integer, ForeignKey('netcdf_structure_attributes.id'), nullable=False)
-    attr_value = Column(JSON, nullable=False)
-'''

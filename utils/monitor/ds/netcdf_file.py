@@ -1,24 +1,22 @@
 import logging
-import numpy as np
-
+from typing import Dict, Any, Optional
 import netCDF4
 import numpy as np
-from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 
+from .netcdf_structure_orm import NetcdfStructureAttributeORM
 from .netcdf_file_orm import (
     NetcdfFileAttributeORM,
     NetcdfFileDerivedAttributeORM,
 )
 
+from .netcdf_node import NetcdfNode, read_netcdf_nodes
+
 logger = logging.getLogger(__name__)
 
 
 class DerivedAttributeRegistry:
-    """
-    Registry of derived numeric attributes computed on numeric arrays.
-    Easily extensible.
-    """
+    """Registry of derived numeric attributes for variables."""
 
     def __init__(self):
         self._attributes = {}
@@ -27,41 +25,34 @@ class DerivedAttributeRegistry:
         self._attributes[name] = func
 
     def compute_attributes(self, array):
-        return {
-            name: func(array)
-            for name, func in self._attributes.items()
-        }
+        return {name: func(array) for name, func in self._attributes.items()}
 
     @classmethod
     def default(cls):
         registry = cls()
-
         registry.register("min", lambda x: float(np.min(x)))
         registry.register("max", lambda x: float(np.max(x)))
         registry.register("mean", lambda x: float(np.mean(x)))
         registry.register("std_dev", lambda x: float(np.std(x)))
         registry.register("median", lambda x: float(np.median(x)))
         registry.register("nobs", lambda x: int(x.size))
-
         return registry
 
+class DerivedAttribute:
+    def __init__(self, name: str, value: float):
+        self.name = name
+        self.value = value
 
 class NetcdfFile:
     """
     Domain object representing a physical NetCDF file.
-
-    Responsibilities:
-        - Read static file attributes
-        - Compute derived numeric attributes
-        - Persist both when requested
-
-    Computation does NOT require DB persistence.
+    Reads attributes and computes derived numeric attributes.
     """
 
     def __init__(
         self,
         file,
-        structure=None,
+        structure: Optional["NetcdfStructure"] = None,
         derived_attribute_registry: Optional[DerivedAttributeRegistry] = None,
     ):
         self.file = file
@@ -70,137 +61,79 @@ class NetcdfFile:
             derived_attribute_registry or DerivedAttributeRegistry.default()
         )
 
-        # In-memory state
-        self.attributes: Dict[Any, Any] = {}
-        self.derived_attributes: Dict[Any, Dict[str, float]] = {}
-
-    def to_db(self, session: Session) -> None:
-        self.to_db_attributes(session)
-        self.to_db_derived_attributes(session)
-
-    # ==========================================================
-    # 1️⃣ READ ATTRIBUTES (metadata)
-    # ==========================================================
+        self.nodes: List[NetcdfNode] = []
+        # for each node store a list of derived attributes
+        self.derived_attributes: List[List[DerivedAttribute]]
 
     def read_attributes(self) -> None:
-        """
-        Read global + variable attributes into self.attributes.
-
-        Keys:
-            - If structure exists → struct_attr_id
-            - Else → (scope, attr_name) tuples
-        """
-
-        self.attributes = {}
-
-        with netCDF4.Dataset(self.file.path, "r") as ds:
-
-            # ---- Global attributes ----
-            for attr_name in ds.ncattrs():
-                value = ds.getncattr(attr_name)
-
-                if self.structure:
-                    struct_attr = next(
-                        (
-                            a for a in self.structure.structure_attributes
-                            if a.node_id is None and a.attr_name == attr_name
-                        ),
-                        None,
-                    )
-                    if struct_attr:
-                        self.attributes[struct_attr.id] = value
-                else:
-                    self.attributes[("GLOBAL", attr_name)] = value
-
-            # ---- Variable attributes ----
-            for var_name, var in ds.variables.items():
-
-                node_id = None
-                if self.structure:
-                    node = next(
-                        (
-                            n for n in self.structure.nodes
-                            if n.full_path == var_name
-                        ),
-                        None,
-                    )
-                    if node:
-                        node_id = node.id
-
-                for attr_name in var.ncattrs():
-                    value = var.getncattr(attr_name)
-
-                    if self.structure and node_id:
-                        struct_attr = next(
-                            (
-                                a for a in self.structure.structure_attributes
-                                if a.node_id == node_id
-                                and a.attr_name == attr_name
-                            ),
-                            None,
-                        )
-                        if struct_attr:
-                            self.attributes[struct_attr.id] = value
-                    else:
-                        self.attributes[(var_name, attr_name)] = value
-
-    # ==========================================================
-    # 2️⃣ PERSIST ATTRIBUTES
-    # ==========================================================
+        self.nodes = read_netcdf_nodes(self.file.path, read_values=True)
+        for node in self.nodes:
+            node.structure = self.structure
 
     def to_db_attributes(self, session: Session) -> None:
         """
-        Persist file attributes into netcdf_file_attributes table.
+        Persist file attribute values into netcdf_file_attributes.
+
+        Assumes:
+        - self.file.id is already set
+        - self.nodes were created with read_values=True
+        - structure and nodes are already persisted or will be created here
         """
 
-        # if not self.structure:
-            # raise ValueError("Structure required for DB persistence.")
-
-        # if self.file.id is None:
-            # raise ValueError("File must be persisted before saving attributes.")
-
-        if not self.attributes:
-            logger.debug(f"to_db_attributes: empty for {self.file.path}")
+        if not self.nodes:
             return
 
+        # Remove existing file attributes (idempotent behavior)
         session.query(NetcdfFileAttributeORM).filter(
             NetcdfFileAttributeORM.file_id == self.file.id
         ).delete()
 
-        for struct_attr_id, value in self.attributes.items():
-            session.add(
-                NetcdfFileAttributeORM(
-                    file_id=self.file.id,
-                    struct_attr_id=struct_attr_id,
-                    attr_value=value,
+        for node in self.nodes:
+            # Ensure node + structure attributes exist
+            node.to_db(session)
+
+            if not node.attr_values:
+                continue
+
+            for attr_name, value in node.attr_values.items():
+
+                # Resolve structure attribute id (node_id + attr_name)
+                struct_attr = session.query(NetcdfStructureAttributeORM).filter_by(
+                    node_id=node.id,
+                    attr_name=attr_name
+                ).first()
+
+                session.add(
+                    NetcdfFileAttributeORM(
+                        file_id=self.file.id,
+                        struct_attr_id=struct_attr.id,
+                        attr_value=value,
+                    )
                 )
-            )
 
         session.flush()
 
-    # ==========================================================
-    # 3️⃣ COMPUTE DERIVED ATTRIBUTES
-    # ==========================================================
-
     def compute_derived_attributes(self) -> None:
         """
-        Compute numeric derived attributes for all numeric variables.
-        Results stored in self.derived_attributes.
-
-        Keys:
-            - If structure exists → node_id
-            - Else → variable name
+        Compute numeric derived attributes for all VARIABLE nodes.
         """
-
-        self.derived_attributes = {}
+        self.derived_attributes = []
 
         with netCDF4.Dataset(self.file.path, "r") as ds:
 
-            for var_name, var in ds.variables.items():
+            for node in self.nodes:
+
+                # Only VARIABLE nodes can have numeric data
+                if node.node_type != "VARIABLE":
+                    self.derived_attributes.append([])
+                    continue
+
+                var = ds.variables.get(node.path)
 
                 data = var[:]
 
                 if not np.issubdtype(data.dtype, np.number):
+                    self.derived_attributes.append([])
                     continue
 
                 if isinstance(data, np.ma.MaskedArray):
@@ -211,59 +144,52 @@ class NetcdfFile:
                     n_missing = 0
 
                 if clean.size == 0:
+                    self.derived_attributes.append([])
                     continue
 
-                attributes = self.derived_attribute_registry.compute_attributes(clean)
-                attributes["n_missing"] = n_missing
+                computed = self.derived_attribute_registry.compute_attributes(clean)
+                computed["n_missing"] = n_missing
 
-                if self.structure:
-                    node = next(
-                        (
-                            n for n in self.structure.nodes
-                            if n.full_path == var_name
-                        ),
-                        None,
-                    )
-                    if not node:
-                        continue
-                    self.derived_attributes[node.id] = attributes
-                else:
-                    self.derived_attributes[var_name] = attributes
+                node_attrs = [
+                    DerivedAttribute(name, float(value))
+                    for name, value in computed.items()
+                ]
 
-    # ==========================================================
-    # 4️⃣ PERSIST DERIVED ATTRIBUTES
-    # ==========================================================
+                self.derived_attributes.append(node_attrs)
 
     def to_db_derived_attributes(self, session: Session) -> None:
         """
-        Persist derived attributes into netcdf_file_derived_attributes.
+        Persist computed derived attributes for each node in self.nodes.
+        Assumes the file and nodes are already persisted (have IDs).
         """
-
-        # if not self.structure:
-            # raise ValueError("Structure required for DB persistence.")
-
-        # if self.file.id is None:
-            # raise ValueError(
-                # "File must be persisted before saving derived attributes."
-            # )
-
         if not self.derived_attributes:
-            logger.debug(f"to_db_derived_attributes: empty for {self.file.path}")
+            logger.debug(f"No derived attributes to persist for {self.file.path}")
             return
 
+        # Remove any existing derived attributes for this file
         session.query(NetcdfFileDerivedAttributeORM).filter(
             NetcdfFileDerivedAttributeORM.file_id == self.file.id
         ).delete()
 
-        for node_id, attributes in self.derived_attributes.items():
-            for name, value in attributes.items():
+        # Persist derived attributes node by node
+        for node, derived_list in zip(self.nodes, self.derived_attributes):
+            if node.id is None:
+                logger.warning(f"Skipping derived attributes for unpersisted node {node.path}")
+                continue
+
+            for derived_attr in derived_list:
                 session.add(
                     NetcdfFileDerivedAttributeORM(
                         file_id=self.file.id,
-                        netcdf_node_id=node_id,
-                        name=name,
-                        value=float(value),
+                        netcdf_node_id=node.id,
+                        name=derived_attr.name,
+                        value=float(derived_attr.value),
                     )
                 )
 
         session.flush()
+
+
+    def to_db(self, session: Session) -> None:
+        self.to_db_attributes(session)
+        self.to_db_derived_attributes(session)
