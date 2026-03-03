@@ -71,6 +71,40 @@ class NetcdfStructure:
             components.append(f"{n.path}|{n.node_type}|{n.dtype}|{dim_str}|{attr_str}")
         return hashlib.sha256("::".join(components).encode()).hexdigest()
 
+
+    def to_db_dimensions(self, session):
+        """
+        Persist variable → dimension links for all VARIABLE nodes.
+        Call **after nodes are persisted**.
+        """
+        for node in self.nodes:
+            if node.node_type != "VARIABLE":
+                continue
+            var_node_orm = session.query(NetcdfNodeORM).filter_by(id=node.id).first()
+            for i, dim_name in enumerate(node.dims):
+                dim_node_orm = session.query(NetcdfNodeORM).filter_by(
+                    structure_id=self.id,
+                    full_path=dim_name,
+                    node_type="DIMENSION"
+                ).first()
+                if dim_node_orm:
+                    # Avoid duplicates
+                    exists = session.query(NetcdfVariableDimensionORM).filter_by(
+                        variable_node_id=var_node_orm.id,
+                        dimension_node_id=dim_node_orm.id,
+                        dim_index=i
+                    ).first()
+                    if not exists:
+                        session.add(
+                            NetcdfVariableDimensionORM(
+                                variable_node_id=var_node_orm.id,
+                                dimension_node_id=dim_node_orm.id,
+                                dim_index=i
+                            )
+                        )
+        session.flush()
+
+
     def to_db(self, session: Session) -> NetcdfStructureORM:
         """
         Persist this structure to the DB. Idempotent.
@@ -98,5 +132,7 @@ class NetcdfStructure:
         # Persist nodes using their own to_db
         for node in self.nodes:
             node.to_db(session)
+
+        self.to_db_dimensions(session)
 
         return struct_orm

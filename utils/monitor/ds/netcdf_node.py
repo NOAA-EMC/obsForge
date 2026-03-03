@@ -176,17 +176,3 @@ def read_netcdf_nodes(file_path: str, read_values: bool = False) -> List[NetcdfN
             )
 
     return nodes
-
-
-def get_dim_node_for_var(
-    var_node: NetcdfNode, 
-    dim_name: str, 
-    all_nodes: List[NetcdfNode]
-) -> Optional[NetcdfNode]:
-    """
-    Return the NetcdfNode that corresponds to a dimension of a variable node by name.
-    """
-    for node in all_nodes:
-        if node.node_type == "DIMENSION" and node.path == dim_name:
-            return node
-    return None
