@@ -13,9 +13,8 @@ logger = logging.getLogger(__name__)
 class DatasetField:
     """
     Represents a variable of type ObsSpace within a Dataset.
-    It has a list of DatasetFile objects, each is linked
-    to a field and an ObsSpace
-    The list of files probably needs to be synced to db.....
+    It has a list of DatasetFile objects (0 or 1 per cycle)
+    A DatasetFile object is a link between field, cycle and file
     """
     def __init__(self, dataset: "Dataset", obs_space: "ObsSpace"):
         self.dataset = dataset
@@ -45,45 +44,6 @@ class DatasetField:
             obs_space_id=self.obs_space.id
         )
 
-    '''
-    def to_db(self, session) -> DatasetFieldORM:
-        """
-        Ensure this DatasetField exists in the DB. Returns the ORM object.
-        Sets self.id.
-        """
-
-        # Already persisted? Return ORM object
-        if self.id is not None:
-            existing = session.get(DatasetFieldORM, self.id)
-            if existing:
-                return existing
-
-        # Check DB for existing field
-        existing = session.scalar(
-            select(DatasetFieldORM).where(
-                and_(
-                    DatasetFieldORM.dataset_id == self.dataset.id,
-                    DatasetFieldORM.obs_space_id == self.obs_space.id
-                )
-            )
-        )
-
-        if existing:
-            self.id = existing.id
-            return existing
-
-        # Persist underlying ObsSpace first
-        self.obs_space.to_db(session)  # ensures self.obs_space.id is set
-
-        orm = self.to_orm()
-        session.add(orm)
-        session.flush()  # assign database-generated ID
-
-        self.id = orm.id
-
-        return orm
-    '''
-
     def to_db(self, session: Session) -> "DatasetFieldORM":
         """
         Ensure this DatasetField exists in the DB. Returns the ORM object.
@@ -91,7 +51,7 @@ class DatasetField:
         Safe against duplicates in session or DB.
         """
 
-        logger.info(f"to_db {self}")
+        # logger.info(f"to_db {self}")
 
         # Already persisted? Return ORM object
         if self.id is not None:
@@ -126,6 +86,6 @@ class DatasetField:
         session.flush()  # assign database-generated ID
         self.id = orm.id
 
-        logger.info(f"done .... to_db {self}")
+        # logger.info(f"done .... to_db {self}")
 
         return orm

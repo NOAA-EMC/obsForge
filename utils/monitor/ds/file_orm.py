@@ -1,7 +1,6 @@
-# orm/file.py
-
-from sqlalchemy import Column, Integer, String, BigInteger, DateTime, UniqueConstraint
-# from sqlalchemy.orm import declarative_base
+from sqlalchemy import (
+    Column, Integer, String, BigInteger, DateTime, UniqueConstraint
+)
 
 from .db_base import Base
 

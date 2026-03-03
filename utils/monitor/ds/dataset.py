@@ -8,10 +8,8 @@ from typing import List, Optional, Tuple, Set
 from sqlalchemy import (
     select,
 )
-# from sqlalchemy.orm import declarative_base, relationship, Session
 from sqlalchemy.orm import Session
 
-# from .db_base import Base  # SQLAlchemy declarative base
 from .dataset_orm import (
     DatasetORM, 
     DatasetCycleORM, 
@@ -34,8 +32,13 @@ class Dataset:
     """
     Domain object representing a dataset.
 
-    In-memory representation first.
+    In-memory representation independent of db persistence.
     Persist explicitly using to_db(session).
+
+    Data arrives in cycles,
+    but the Dataset is a collection of fields.
+    A field is a collection of files of the same ObsSpace type,
+    with at most 1 file per cycle.
     """
 
     def __init__(
@@ -44,7 +47,6 @@ class Dataset:
         root_dir: str,
         id: Optional[int] = None
     ):
-        # db quantities
         self.id = id
         self.name = name
         self.root_dir = root_dir
@@ -75,14 +77,8 @@ class Dataset:
             selected = cycles[n:]
         return selected
 
-
-    # --------------------------------------------------------
-    # In-memory operations
-    # --------------------------------------------------------
-
-    def add_field(self, field):
-        self.dataset_fields.append(field)
-
+    # def add_field(self, field):
+        # self.dataset_fields.append(field)
 
     def add_cycle(self, cycle: "DatasetCycle"):
         """
@@ -96,7 +92,8 @@ class Dataset:
 
         # design problem --> consistency issue
         if cycle.dataset is not self:
-            raise ValueError("Cycle does not belong to this dataset")
+            logger.error("Cycle does not belong to this dataset")
+            return
 
         self.dataset_cycles.append(cycle)
 
@@ -108,7 +105,6 @@ class Dataset:
             ]
 
             if not same_name_fields:
-                # existing_field = None
                 cycle_field.dataset = self
                 self.dataset_fields.append(cycle_field)
                 # logger.info(f"Added new {cycle_field} to dataset {self}")
@@ -117,20 +113,6 @@ class Dataset:
 
                 if cycle_field.obs_space.compare(existing_field.obs_space):
                     continue  # skip this cycle_field
-
-                '''
-                existing_hash = existing_field.obs_space.netcdf_structure.structure_hash
-                new_hash = cycle_field.obs_space.netcdf_structure.structure_hash
-
-                if existing_hash != new_hash:
-                    logger.error(
-                        "ObsSpace name conflict with different structure hash: "
-                        f"name={cycle_field.obs_space.name}, "
-                        f"existing_hash={existing_hash}, "
-                        f"new_hash={new_hash}"
-                    )
-                    continue  # skip this cycle_field
-                '''
 
                 # add the file from this field to the existing field
                 # there is exactly one file
@@ -159,9 +141,6 @@ class Dataset:
         )
 
     def to_db_self(self, session):
-        """
-        Persist the Dataset itself in the database.
-        """
         from .dataset_orm import DatasetORM  # Import ORM class here only
 
         # logger.info("Dataset.to_db_self")
@@ -182,6 +161,12 @@ class Dataset:
         self.id = orm_obj.id
         return orm_obj
 
+    def to_db_cycles(self, session, n):
+        cycles = Dataset._select_cycles(self.dataset_cycles, n)
+        # Persist cycles, including files
+        for cycle in cycles:
+            cycle.to_db(session)
+
     def to_db(self, session: "Session", n: Optional[int] = None) -> None:
         self.to_db_self(session)
 
@@ -189,17 +174,10 @@ class Dataset:
         # persisting the obs spaces and underlying NETCDF structures
         for field in self.dataset_fields:
             field.to_db(session)
-            logger.info(f"persisted {field}")
+            # logger.info(f"persisted {field}")
 
         self.to_db_cycles(session, n)
         logger.info(f"to_db {self}")
-
-    def to_db_cycles(self, session, n):
-        cycles = Dataset._select_cycles(self.dataset_cycles, n)
-        # Persist cycles, including files
-        for cycle in cycles:
-            cycle.to_db(session)
-
 
     def discover_cycles(self) -> list[tuple[date, str]]:
         """
@@ -280,12 +258,3 @@ class Dataset:
         for cycle_date, cycle_hour in selected:
             cycle = self.read_cycle(cycle_date, cycle_hour)
             self.add_cycle(cycle)
-
-    # def compute_derived_attributes(self):
-        # for cycle in self.cycles:
-            # cycle.compute_derived_attributes()
-# 
-    # def to_db_derived_attributes(session, self):
-        # for cycle in self.cycles:
-            # cycle.to_db_derived_attributes(session)
-

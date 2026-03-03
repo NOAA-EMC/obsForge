@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from .dataset_orm import DatasetFileORM
 
 from .netcdf_file import NetcdfFile
-# from .netcdf_file_orm import NetcdfFileDerivedAttributeORM
 from .file import File
 
 logger = logging.getLogger(__name__)
@@ -93,7 +92,7 @@ class DatasetFile:
             if existing:
                 return existing
 
-        logger.info(f"to_db {self}")
+        # logger.info(f"to_db {self}")
 
         # Persist underlying DatasetField
         if self.dataset_field.id is None:
@@ -144,5 +143,5 @@ class DatasetFile:
         session.flush()
         self.id = orm.id
 
-        logger.info(f"done .... to_db {self}")
+        # logger.info(f"done .... to_db {self}")
         return orm

@@ -176,18 +176,3 @@ class DatasetCycle:
         self.id = orm.id
 
         return orm
-
-
-
-###       # def compute_derived_attributes(self):
-###           # """Orchestrate computation for all files in this cycle."""
-###           # # We store the results in memory on the file objects
-###           # for dos_file in self.obs_space_files:
-###               # dos_file.compute_derived_attributes()
-###   # 
-###       # def to_db_derived_attributes(self, session):
-###           # """Commit all computed results for this cycle to the database."""
-###           # for dos_file in self.obs_space_files:
-###               # dos_file.to_db_derived_attributes(session)
-###           # # Committing at the cycle level is usually the 'Sweet Spot' for performance
-###           # session.commit()

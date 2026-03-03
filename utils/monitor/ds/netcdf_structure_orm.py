@@ -9,12 +9,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 # from sqlalchemy.dialects.postgresql import JSONB
-# from sqlalchemy.types import JSON
 
 from .db_base import Base
 
 
-# replacing the association table with orm object:
 class NetcdfVariableDimensionORM(Base):
     """
     Association object linking a VARIABLE node to a DIMENSION node,

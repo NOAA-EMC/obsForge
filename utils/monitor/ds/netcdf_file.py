@@ -189,7 +189,6 @@ class NetcdfFile:
 
         session.flush()
 
-
     def to_db(self, session: Session) -> None:
         self.to_db_attributes(session)
         self.to_db_derived_attributes(session)
