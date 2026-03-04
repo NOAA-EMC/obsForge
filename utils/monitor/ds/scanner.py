@@ -71,3 +71,19 @@ class Scanner:
         self.discover()
         self.read(n_cycles=n_cycles)
         self.persist(n_cycles=n_cycles)
+
+        ds = self.datasets[1]
+        last_cycle = ds.dataset_cycles[-1]
+        file = last_cycle.fields[0].files[0]
+
+        logger.info(f"{ds}")
+        logger.info(f"selecting {last_cycle}")
+        logger.info(f">>>>>>> {file}")
+        logger.info(f">>>>>>> {file.netcdf_file}")
+        logger.info(f">>>>>>> {file.netcdf_file.structure}")
+        logger.info(f"SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+        logger.info(f"{file.netcdf_file.structure.to_json()}")
+        logger.info(f"SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+
+        plot_path = "/lfs/h2/emc/obsproc/noscrub/edward.givelberg/monitoring/wowplot.png"
+        file.plot_variable(plot_path)

@@ -64,8 +64,18 @@ class NetcdfFileAttributeORM(Base):
     Values: Stores the actual data for a specific file's attributes.
     """
     __tablename__ = 'netcdf_file_attributes'
+
     id = Column(Integer, primary_key=True)
+
     file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
+
     # Link back to the definition in the structure
     struct_attr_id = Column(Integer, ForeignKey('netcdf_structure_attributes.id'), nullable=False)
+
     attr_value = Column(JSON, nullable=False)
+
+    UniqueConstraint(
+        "file_id",
+        "struct_attr_id",
+        name="_file_struct_attr_uc"
+    )

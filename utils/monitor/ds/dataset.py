@@ -77,9 +77,6 @@ class Dataset:
             selected = cycles[n:]
         return selected
 
-    # def add_field(self, field):
-        # self.dataset_fields.append(field)
-
     def add_cycle(self, cycle: "DatasetCycle"):
         """
         Add a cycle to the dataset.
@@ -121,7 +118,7 @@ class Dataset:
                 existing_field.files.append(ds_file)
                 # logger.info(f"Added to existing field {cycle_field} to dataset {self}")
 
-        logger.info(f"Added {cycle} to dataset {self}")
+        # logger.info(f"Added {cycle} to dataset {self}")
 
 
     # --------------------------------------------------------

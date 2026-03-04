@@ -59,7 +59,7 @@ class DatasetFile:
         """
         Read attributes and compute derived attributes in memory.
         """
-        logger.info(f"compute_attributes for {self.file.path}")
+        # logger.info(f"compute_attributes for {self.file.path}")
 
         if not self.netcdf_file:
             logger.error(f"Cannot open file {self.file.path} (NetcdfFile not initialized)")
@@ -145,3 +145,42 @@ class DatasetFile:
 
         # logger.info(f"done .... to_db {self}")
         return orm
+
+    def plot_variable(self, plot_path):
+        from processing.plotting.plot_generator import PlotGenerator
+
+        nc_file = self.netcdf_file
+        variables = nc_file.structure.list_variables("/ObsValue")
+        logger.info(f"Plotting {variables} in {self}")
+
+        variable_name = variables[0]
+        if not variable_name:
+            return
+
+        variable_units = "units"
+
+        # values = nc_file.get_variable(f"/ObsValue/{variable_name}")
+        values = nc_file.get_variable(f"{variable_name}")
+        lons   = nc_file.get_variable("/MetaData/longitude")
+        lats   = nc_file.get_variable("/MetaData/latitude")
+
+        if values is None or lons is None or lats is None:
+            logger.warning(f"Missing data: plot not generated for {df.file.path}")
+            return
+
+        # plot_output_dir needs to go
+        plot_output_dir = ""
+        plotter = PlotGenerator(plot_output_dir)
+        plotter.generate_surface_map(
+            plot_path,
+            "dataset name",
+            "obs_space name",
+            lats,
+            lons,
+            values,
+            variable_name,      # data["var_name"],
+            variable_units      # data["units"]
+        )   
+
+        # if not os.path.exists(plot_path):
+            # logger.error(f"Expected plot not created: data = {data_file_path}, plot ={plot_path}")

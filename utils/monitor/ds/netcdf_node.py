@@ -1,178 +1,131 @@
 import logging
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Optional, Any, TYPE_CHECKING
 import netCDF4
 import numpy as np
 
 from sqlalchemy.orm import Session
-from .netcdf_structure_orm import NetcdfNodeORM, NetcdfStructureAttributeORM
+# from .netcdf_structure_orm import NetcdfNodeORM, NetcdfStructureAttributeORM
+from .netcdf_structure_orm import NetcdfNodeORM
+
+# Prevents circular imports for type hinting
+if TYPE_CHECKING:
+    from .netcdf_structure import NetcdfStructure
 
 logger = logging.getLogger(__name__)
 
 
+
 class NetcdfNode:
     """
-    Represents a node in a NetCDF file or structure.
-    Can be used for:
-      - Structure skeleton: no attribute values
-      - File instance: with attribute values
+    Domain object representing a Group, Variable, or Dimension in a NetCDF.
     """
 
     def __init__(
-        self,
-        path: str,
-        node_type: str,
-        dtype: Optional[str] = None,
-        dims: Optional[List[str]] = None,
-        attr_names: Optional[List[str]] = None,
-        attr_values: Optional[Dict[str, Any]] = None,
-        structure: Optional["NetcdfStructure"] = None,
-        id: Optional[int] = None,
+        self, 
+        full_path: str, 
+        node_type: str, 
+        dtype: Optional[str] = None
     ):
-        self.path = path
-        self.node_type = node_type
+        # Identity
+        self.full_path = full_path
+        self.node_type = node_type.upper()  # 'GROUP', 'VARIABLE', 'DIMENSION'
         self.dtype = dtype
-        self.dims = dims or []
-        self.attr_names = attr_names or []
-        self.attr_values = attr_values or {}  # only for file instances
-        self.structure = structure
-        self.id = id
+        self.id: Optional[int] = None  # Populated after to_db()
 
-    def __repr__(self):
-        return (
-            f"<NetcdfNode(path='{self.path}', type={self.node_type}, "
-            f"dtype={self.dtype}, attrs={len(self.attr_names)})>"
-        )
+        # Hierarchy & Pointers
+        self.structure: Optional["NetcdfStructure"] = None
+        self.parent_node: Optional["NetcdfNode"] = None
+        self.children: List["NetcdfNode"] = []
+
+        # Data
+        self.attributes: Dict[str, Any] = {}
+        self.dim_names: List[str] = []  # Names of dimensions (for VARIABLE nodes)
+        # logger.info(f"--> created {self}")
+
+    def add_child(self, child: "NetcdfNode") -> None:
+        """Establishes tree hierarchy."""
+        child.parent_node = self
+        self.children.append(child)
+
+    def get_structural_identity(self) -> Dict[str, Any]:
+        """
+        Returns the core characteristics that define this node's structure.
+        Used for hashing the NetcdfStructure.
+        """
+        return {
+            "path": self.full_path,
+            "type": self.node_type,
+            "dtype": self.dtype,
+            "dims": self.dim_names,
+            "attr_names": sorted(self.attributes.keys())
+        }
 
     def to_db(self, session: Session) -> NetcdfNodeORM:
         """
-        Persist this node to the DB.
-        Idempotent: inserts if missing, otherwise updates type/dtype.
-        Also persists attribute names (no values).
-        Returns the Node ORM object.
+        Syncs the in-memory node with the database. 
+        If it exists, populates self.id. If not, inserts it.
         """
-        if self.structure is None or self.structure.id is None:
-            raise ValueError("Node must belong to a persisted structure to persist itself.")
-
-        # Check if node already exists in DB
-        node_orm = session.query(NetcdfNodeORM).filter_by(
-            structure_id=self.structure.id,
-            full_path=self.path,
-            node_type=self.node_type
-        ).first()
-
-        if not node_orm:
-            logger.debug(f"[NODE] Inserting new node: {self.path}")
-            node_orm = NetcdfNodeORM(
-                structure_id=self.structure.id,
-                full_path=self.path,
-                node_type=self.node_type,
-                dtype=self.dtype
+        if not self.structure or self.structure.id is None:
+            # raise ValueError(
+            logger.error(
+                f"Cannot persist node '{self.full_path}' without a persisted NetcdfStructure."
             )
-            session.add(node_orm)
-            session.flush()
-        else:
-            logger.debug(f"[NODE] Node already exists in DB: {self.path} (id={node_orm.id})")
+            return None
 
-        self.id = node_orm.id
-
-        # Persist attribute definitions (names only)
-        for attr_name in self.attr_names:
-            attr_orm = session.query(NetcdfStructureAttributeORM).filter_by(
-                node_id=node_orm.id,
-                attr_name=attr_name
-            ).first()
-            if not attr_orm:
-                session.add(
-                    NetcdfStructureAttributeORM(
-                        node_id=node_orm.id,
-                        attr_name=attr_name
-                    )
-                )
-
-        session.flush()
-        return node_orm
-
-
-def json_safe(value):
-    """Convert value to JSON-safe Python type."""
-    if isinstance(value, (np.integer,)):
-        return int(value)
-    elif isinstance(value, (np.floating,)):
-        return float(value)
-    elif isinstance(value, (np.bool_, bool)):
-        return bool(value)
-    elif isinstance(value, np.ndarray):
-        return value.tolist()
-    elif value is None:
-        return None
-    else:
-        return value
-
-
-def read_netcdf_nodes(file_path: str, read_values: bool = False) -> List[NetcdfNode]:
-    """
-    Scan a NetCDF file and produce a list of NetcdfNode objects.
-    
-    Args:
-        file_path: Path to the NetCDF file.
-        read_values: If True, also read attribute values (for file).
-                     If False, only read metadata (for structure).
-    
-    Returns:
-        List of NetcdfNode objects.
-    """
-    nodes: List[NetcdfNode] = []
-
-    with netCDF4.Dataset(file_path, "r") as ds:
-
-        # ---- Global / root node ----
-        global_attrs = ds.ncattrs()
-        attr_values = {}
-        if read_values:
-            for attr_name in global_attrs:
-                attr_values[attr_name] = json_safe(ds.getncattr(attr_name))
-
-        nodes.append(
-            NetcdfNode(
-                path="/",
-                node_type="GROUP",
-                dtype=None,
-                dims=[],
-                attr_names=list(global_attrs),
-                attr_values=attr_values,
+        # 1. Look for existing node within this specific structure
+        node_orm = (
+            session.query(NetcdfNodeORM)
+            .filter_by(
+                structure_id=self.structure.id, 
+                full_path=self.full_path
             )
+            .first()
         )
 
-        # ---- Variables ----
-        for var_name, var in ds.variables.items():
-            attr_names = var.ncattrs()
-            attr_values = {}
-            if read_values:
-                for attr_name in attr_names:
-                    attr_values[attr_name] = json_safe(var.getncattr(attr_name))
-
-            nodes.append(
-                NetcdfNode(
-                    path=var_name,
-                    node_type="VARIABLE",
-                    dtype=str(var.dtype),
-                    dims=list(var.dimensions),
-                    attr_names=list(attr_names),
-                    attr_values=attr_values,
-                )
+        # 2. Insert if it doesn't exist
+        if not node_orm:
+            node_orm = NetcdfNodeORM(
+                structure_id=self.structure.id,
+                full_path=self.full_path,
+                node_type=self.node_type,
+                dtype=self.dtype,
             )
+            session.add(node_orm)
+            # Flush so the DB generates an ID for us immediately
+            session.flush()
 
-        # ---- Dimensions ----
-        for dim_name, dim in ds.dimensions.items():
-            nodes.append(
-                NetcdfNode(
-                    path=dim_name,
-                    node_type="DIMENSION",
-                    dtype=None,
-                    dims=[],
-                    attr_names=[],
-                    attr_values={} if read_values else {},
-                )
-            )
+        # 3. Sync the ID back to the domain object
+        self.id = node_orm.id
+        
+        return node_orm
 
-    return nodes
+    @property
+    def name(self) -> str:
+        """Leaf name of the node (e.g., /Group/Temp -> Temp)."""
+        if self.full_path == "/":
+            return "root"
+        return self.full_path.rstrip("/").split("/")[-1]
+
+    def __repr__(self) -> str:
+        return f"<NetcdfNode({self.node_type}): {self.full_path} (id={self.id})>"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Recursive serialization of the node and its subtree."""
+        data = {
+            "path": self.full_path,
+            "type": self.node_type,
+            "dtype": self.dtype,
+            "attributes": sorted(self.attributes.keys()),
+        }
+        
+        if self.node_type == "VARIABLE":
+            data["dimensions"] = self.dim_names
+            
+        if self.children:
+            # Sort children by path to keep the JSON output deterministic
+            data["children"] = [
+                child.to_dict() 
+                for child in sorted(self.children, key=lambda x: x.full_path)
+            ]
+            
+        return data
