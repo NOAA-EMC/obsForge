@@ -35,4 +35,3 @@ def configure_logging(level=logging.INFO, log_file=None, use_utc=True):
         handlers=handlers,
         force=True  # important if re-running in interactive sessions
     )
-

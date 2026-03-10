@@ -1,13 +1,12 @@
 import os
 import logging
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, List, Tuple
 from pathlib import Path
-from typing import Tuple
 
 from sqlalchemy import select, and_
 from .dataset_orm import DatasetCycleORM
-from .file_scanner import FileScanner
+from .file_scanner import FileScanner, SubdirFileScanner
 from .obs_space import ObsSpace
 from .dataset_field import DatasetField
 
@@ -52,6 +51,18 @@ class DatasetCycle:
             ">"
         )
 
+    def __lt__(self, other):
+        """
+        comparison to allow sorting by cycle_date and cycle_hour.
+        """
+        if not isinstance(other, DatasetCycle):
+            raise TypeError(f"Cannot compare DatasetCycle with {type(other)}")
+
+        # First compare by cycle_date, then by cycle_hour
+        if self.cycle_date != other.cycle_date:
+            return self.cycle_date < other.cycle_date
+        return self.cycle_hour < other.cycle_hour
+
     def add_field(self, field):
         self.fields.append(field)
 
@@ -61,16 +72,24 @@ class DatasetCycle:
 
         this_cycle = cls(dataset=dataset, cycle_date=cycle_date, cycle_hour=cycle_hour)
 
-        all_leaf_files = FileScanner.get_all_leaf_files(cycle_dir)
+        # all_leaf_files = FileScanner.get_all_leaf_files(cycle_dir)
+        all_files = dataset.file_scanner.scan(cycle_dir)
+        logger.debug(f"from_dir: {len(all_files)} files")
+        logger.debug(f"from_dir: {all_files}")
 
         prefix = dataset.name 
-        pattern = ObsSpace.get_search_pattern(prefix, cycle_hour)
-        selected, rejected = FileScanner.filter_files(all_leaf_files, pattern)
+        # pattern = ObsSpace.get_search_pattern(prefix, cycle_hour)
+        pattern = dataset.obs_space_name_parser.get_search_pattern(prefix, cycle_hour)
+        # pattern = "*.nc"
+        selected, rejected = FileScanner.filter_files(all_files, pattern)
+        logger.debug(f"from_dir: pattern = |{pattern}|")
+        logger.debug(f"from_dir: selected {len(selected)} files")
 
         for file_obj in selected:
             # logger.info(f"cycle file: {file_obj.path}")
-            obs_space = ObsSpace.from_file(file_obj.path, prefix=prefix)
-            
+            # obs_space = ObsSpace.from_file(file_obj.path, prefix=prefix)
+            obs_space = ObsSpace.from_file(file_obj.path, dataset.obs_space_name_parser)
+
             if obs_space:
                 field = DatasetField(dataset, obs_space)
                 dsf = field.add_file(file_obj, this_cycle)

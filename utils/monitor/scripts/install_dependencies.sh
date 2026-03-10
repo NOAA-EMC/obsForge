@@ -38,7 +38,10 @@ python -m pip install --upgrade pip
 
 # 4. Install required packages
 REQUIRED_PACKAGES=(
+    "numpy"
     "sqlalchemy"
+    "matplotlib"
+    "cartopy"
     # Add other packages here as needed
 )
 

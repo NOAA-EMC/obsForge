@@ -1,0 +1,35 @@
+i need to generate a minimal website that will display data products;
+website generator will take input:
+1. website dir name
+2. datasets: list of dataset objects
+3. server: DataProductsServer
+
+class DataProductsServer:
+    """
+    Manages the directory layout of dataset products and provides methods
+    for website integration, including fetching an entire cycle.
+    Layout:
+    root/
+      dataset_name/
+        YYYYMMDD_HH/
+          product_name/
+            files...
+    """
+
+website dir will have 2 subdirs: html and data
+the web generator will fetch the last N=4 cycles from the server
+into the data dir
+(unless they are already in data)
+it will hold no more than N=4 cycles in data
+
+display:
+the top of the page should have a dataset selector; 
+all dataset names should be displayed and clickable,
+leading to the page for the specified dataset.
+each dataset has the same kind of web page independent of other datasets.
+for each dataset we have a cycle selector
+(00,06,12 or 18; maybe not all cycles exist)
+there should also be a list of obs spaces
+clicking on obs space brings up the obs space page
+On the obs space page we display all products
+typically these are plots

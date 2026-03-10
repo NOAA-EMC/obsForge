@@ -150,7 +150,8 @@ class DatasetFile:
         from processing.plotting.plot_generator import PlotGenerator
 
         nc_file = self.netcdf_file
-        variables = nc_file.structure.list_variables("/ObsValue")
+        # variables = nc_file.structure.list_variables("/ObsValue")
+        variables = nc_file.structure.list_variables("/ombg")
         logger.info(f"Plotting {variables} in {self}")
 
         variable_name = variables[0]

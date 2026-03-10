@@ -56,10 +56,8 @@ def main():
     # print(f"Registered datasets: {[ds.name for ds in datasets]}")
 
 
-    args = parser.parse_args()
-    
-    configure_logging(args.debug) 
-    logger = logging.getLogger("UpdateInventory")
+    # configure_logging(args.debug) 
+    # logger = logging.getLogger("UpdateInventory")
     
     logger.info(f"DB: {args.db}")
     logger.info(f"Scanning root: {args.data_root}")

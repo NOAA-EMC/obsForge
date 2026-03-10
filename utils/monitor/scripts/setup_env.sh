@@ -28,23 +28,48 @@ else
     MACHINE_ID="wcoss2"
 fi
 
-# --- 4. Machine-specific modules ---
-case "${MACHINE_ID:-}" in
-    "wcoss2")
-        module purge >/dev/null 2>&1
-        module reset >/dev/null 2>&1
-        module load intel/19.1.3.304 >/dev/null 2>&1
-        module load ve/evs/2.0 >/dev/null 2>&1
 
-        if ! command -v python3 &> /dev/null; then
-            echo "[CRITICAL] Python3 not found after module load"
-            return 1 2>/dev/null || exit 1
-        fi
+echo "Running setup on MACHINE_ID=${MACHINE_ID:-unknown}"
+
+# Load machine-specific modules ---
+case "${MACHINE_ID:-}" in
+
+    "wcoss2")
+        module purge
+        module reset
+        module load intel/19.1.3.304
+        module load ve/evs/2.0
         ;;
+
+    "ursa")
+		# hack....
+		source "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/obsForge/ush/of_setup.sh"
+		# if ( ! eval module help > /dev/null 2>&1 ) ; then
+			# source /apps/lmod/lmod/init/bash
+		# fi
+		# module purge
+        # # module reset
+		# # # module purge >/dev/null 2>&1
+		# # # module reset >/dev/null 2>&1
+        # module load python
+        ;;
+
     *)
         echo "[INFO] Generic/unknown machine. Assuming local Python."
         ;;
 esac
+
+# Detect available Python ---
+PYTHON_BIN=$(command -v python || command -v python3 || true)
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo "[CRITICAL] No Python found after module load!"
+    exit 1
+else
+    echo "[INFO] Found Python: $PYTHON_BIN"
+    $PYTHON_BIN --version
+fi
+
 
 VENV_DIR="${HOME}/venvs/db_env"
 
@@ -78,7 +103,7 @@ else
 fi
 
 # --- Check Python ---
-# which python
-# python --version
-# python -m pip list | grep SQLAlchemy
+which python
+python --version
+python -m pip list | grep SQLAlchemy
 

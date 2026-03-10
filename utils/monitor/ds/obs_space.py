@@ -78,7 +78,7 @@ class ObsSpace:
     EXPECTED_PARTS = 4
 
     @classmethod
-    def get_search_pattern(cls, prefix: str, hour: str) -> str:
+    def old_get_search_pattern(cls, prefix: str, hour: str) -> str:
         """Generates the glob: {prefix}.t{hour}z.*.nc"""
         if isinstance(hour, int):
             hour = f"{hour:02d}"
@@ -87,7 +87,7 @@ class ObsSpace:
 
     # prefix = name of the data set
     @classmethod
-    def parse_name_from_filename(cls, path: str, prefix: Optional[str] = None) -> Optional[str]:
+    def old_parse_name_from_filename(cls, path: str, prefix: Optional[str] = None) -> Optional[str]:
         """
         Parses the name using FILENAME_PARTS. 
         If prefix is provided, it enforces a strict match against the first part.
@@ -111,7 +111,7 @@ class ObsSpace:
         return parts[cls.NAME_INDEX]
 
     @classmethod
-    def from_file(cls, file_path: str, prefix: Optional[str] = None) -> Optional["ObsSpace"]:
+    def old_from_file(cls, file_path: str, prefix: Optional[str] = None) -> Optional["ObsSpace"]:
         """
         Static in-memory constructor.
         Passes the optional prefix (=name of dataset) 
@@ -128,6 +128,19 @@ class ObsSpace:
         this_obs_space = cls(name=name, netcdf_structure=structure)
         # logger.debug(f"constructed {this_obs_space} from {file_path}")
         return this_obs_space
+
+
+    @classmethod
+    def from_file(cls, file_path: str, parser: "ObsSpaceNameParser"):
+        name = parser.parse(file_path)
+        if name is None:
+            return None
+
+        structure = NetcdfStructure.from_file(file_path)
+        if structure is None:
+            return None
+
+        return cls(name=name, netcdf_structure=structure)
 
 
     def to_db(self, session: Session) -> ObsSpaceORM:

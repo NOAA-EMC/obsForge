@@ -24,6 +24,8 @@ from .dataset_cycle import DatasetCycle
 from .dataset_field import DatasetField
 from .dataset_file import DatasetFile
 
+from .file_scanner import FileScanner, SubdirFileScanner, NcObsSpaceNameParser
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,9 @@ class Dataset:
 
         self.dataset_fields: List[DatasetField] = []
         self.dataset_cycles: List[DatasetCycle] = []
+
+        self.file_scanner = SubdirFileScanner("analysis/ocean/diags")
+        self.obs_space_name_parser = NcObsSpaceNameParser()
 
     def __repr__(self) -> str:
         return (
@@ -235,6 +240,7 @@ class Dataset:
             return None
 
         cycle = DatasetCycle.from_directory(self, cycle_dir)
+        logger.info(f"Read {cycle}")
         return cycle
 
     def read_cycles(self, n: Optional[int] = None) -> list["DatasetCycle"]:
