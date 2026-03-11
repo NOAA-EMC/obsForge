@@ -50,11 +50,11 @@
 	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gcdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
-
+<!--
 	<dependency>
 		<datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_post_run</cyclestr></datadep>
 	</dependency>
-	
+-->	
 
 </task>
 
@@ -89,10 +89,11 @@
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
         <envar><name>OBSPROC_COMROOT</name><value>/lfs/h1/ops/prod/com/obsproc/v1.2</value></envar>
-
+<!--
 	<dependency>
                 <datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_post_run</cyclestr></datadep>
-        </dependency>
+	</dependency>
+-->	
 </task>
 
 <!--
