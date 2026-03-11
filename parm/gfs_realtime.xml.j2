@@ -17,7 +17,7 @@
 	<log verbosity="10"><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H.log</cyclestr></log>
 
 	<!-- Define the cycles -->
-        <cycledef activation_offset="02:55:00" group="gfs">0 */6 * * 2025 *</cycledef>
+        <cycledef activation_offset="02:55:00" group="gfs">0 */6 * * 2026 *</cycledef>
 <!--
 	============================================
 	Task: gfs_atmos_bufr_dump
@@ -44,12 +44,16 @@
 	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
-	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>KEEPDATA</name><value>{{'YES' if KEEPDATA else 'NO'}}</value></envar>
 	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
         <envar><name>OBSPROC_COMROOT</name><value>/lfs/h1/ops/prod/com/obsproc/v1.2</value></envar>
-
+<!--
+        <dependency>
+                <datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gfs.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gfs_prep_post_run</cyclestr></datadep>
+	</dependency>	
+-->	
 </task>
 
 <!--
@@ -78,7 +82,7 @@
         <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
         <envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
         <envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
-        <envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+        <envar><name>KEEPDATA</name><value>{{'YES' if KEEPDATA else 'NO'}}</value></envar>
         <envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
         <envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
         <envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
@@ -116,7 +120,7 @@
 	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
 	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
 	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
-	<envar><name>KEEPDATA</name><value>{{ KEEPDATA }}</value></envar>
+	<envar><name>KEEPDATA</name><value>{{'YES' if KEEPDATA else 'NO'}}</value></envar>
 	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gfs.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
