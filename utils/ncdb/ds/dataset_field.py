@@ -7,6 +7,12 @@ from sqlalchemy.orm import Session
 from .dataset_orm import DatasetFieldORM
 from .dataset_file import DatasetFile
 
+import pandas as pd
+# from sqlalchemy import select
+from .dataset_orm import DatasetFileORM, DatasetCycleORM
+from .netcdf_structure_orm import  NetcdfNodeORM
+from .netcdf_file_orm import NetcdfFileDerivedAttributeORM
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,55 +94,130 @@ class DatasetField:
 
         return orm
 
+    def get_variable_derived_data(self, session: Session, variable_path: str, metrics: list | None = None):
+        """
+        Fetch historical derived attributes for this variable 
+        and return a Pandas DataFrame
+        indexed by timestamp, ready for plotting.
 
-'''
-def get_history_dataframe(self, session: Session, variable_path: str, metrics: list = None):
-    """
-    Fetches the historical stats for this specific field and 
-    returns a Pandas DataFrame ready for plotting.
-    """
-    import pandas as pd
-    from .dataset_orm import DatasetFileORM, DatasetCycleORM
-    from .netcdf_file_orm import NetcdfFileDerivedAttributeORM, NetcdfNodeORM
+        Parameters
+        ----------
+        session : Session
+            SQLAlchemy session.
+        variable_path : str
+            Full NetCDF variable path (e.g. "/group/variable").
+        metrics : list[str] | None
+            Metrics to fetch (e.g. ["mean","std_dev"]).
+            If None, all available metrics are returned.
 
-    if metrics is None:
-        metrics = ["mean", "std_dev"]
+        Returns
+        -------
+        pandas.DataFrame
+            Indexed by timestamp with metric columns.
+        """
 
-    # One targeted query for this field's specific variable
-    stmt = (
-        select(
-            DatasetCycleORM.cycle_date,
-            DatasetCycleORM.cycle_hour,
-            NetcdfFileDerivedAttributeORM.name,
-            NetcdfFileDerivedAttributeORM.value
-        )
-        .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == DatasetCycleORM.id)
-        .join(NetcdfFileDerivedAttributeORM, NetcdfFileDerivedAttributeORM.file_id == DatasetFileORM.file_id)
-        .join(NetcdfNodeORM, NetcdfNodeORM.id == NetcdfFileDerivedAttributeORM.netcdf_node_id)
-        .where(
+        # Build WHERE conditions
+        conditions = [
             DatasetFileORM.dataset_field_id == self.id,
             NetcdfNodeORM.full_path == variable_path,
-            NetcdfFileDerivedAttributeORM.name.in_(metrics)
+        ]
+
+        # Only filter metrics if a list is provided
+        if metrics is not None:
+            conditions.append(NetcdfFileDerivedAttributeORM.name.in_(metrics))
+
+        stmt = (
+            select(
+                DatasetCycleORM.cycle_date,
+                DatasetCycleORM.cycle_hour,
+                NetcdfFileDerivedAttributeORM.name,
+                NetcdfFileDerivedAttributeORM.value
+            )
+            .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == DatasetCycleORM.id)
+            .join(NetcdfFileDerivedAttributeORM, NetcdfFileDerivedAttributeORM.file_id == DatasetFileORM.file_id)
+            .join(NetcdfNodeORM, NetcdfNodeORM.id == NetcdfFileDerivedAttributeORM.netcdf_node_id)
+            .where(*conditions)
+            .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
         )
-        .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
-    )
+        print(stmt.compile(compile_kwargs={"literal_binds": True}))
 
-    results = session.execute(stmt).all()
-    
-    if not results:
-        return pd.DataFrame()
+        results = session.execute(stmt).all()
 
-    # Convert to DataFrame
-    df = pd.DataFrame(results, columns=['date', 'hour', 'metric', 'value'])
-    
-    # Create a proper datetime index for gap-aware plotting
-    df['ts'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['hour'], format='%Y-%m-%d %H')
-    
-    # Pivot so columns are 'mean', 'std_dev', etc.
-    return df.pivot(index='ts', columns='metric', values='value')
+        if not results:
+            logger.error("RRRRRRRRRRRRRRRRRRRRRR")
+            return pd.DataFrame()
+
+        # Convert to DataFrame
+        df = pd.DataFrame(results, columns=["date", "hour", "metric", "value"])
+
+        # Create timestamp column
+        df["ts"] = pd.to_datetime(
+            df["date"].astype(str) + " " + df["hour"].astype(str),
+            format="%Y-%m-%d %H"
+        )
+
+        # Pivot to wide format for plotting
+        return df.pivot(index="ts", columns="metric", values="value")
+
+
+    '''
+    def get_variable_derived_data(self, session: Session, variable_path: str, metrics: list = None):
+        """
+        Fetches the historical stats for this specific field and 
+        returns a Pandas DataFrame ready for plotting.
+        """
+        import pandas as pd
+        from .dataset_orm import DatasetFileORM, DatasetCycleORM
+        from .netcdf_file_orm import NetcdfFileDerivedAttributeORM, NetcdfNodeORM
+
+        # if metrics is None:
+            # metrics = ["mean", "std_dev"]
+
+        conditions = [
+            DatasetFileORM.dataset_field_id == self.id,
+            NetcdfNodeORM.full_path == variable_path,
+        ]
+
+        if metrics is not None:
+            conditions.append(NetcdfFileDerivedAttributeORM.name.in_(metrics))
+
+        # One targeted query for this field's specific variable
+        stmt = (
+            select(
+                DatasetCycleORM.cycle_date,
+                DatasetCycleORM.cycle_hour,
+                NetcdfFileDerivedAttributeORM.name,
+                NetcdfFileDerivedAttributeORM.value
+            )
+            .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == DatasetCycleORM.id)
+            .join(NetcdfFileDerivedAttributeORM, NetcdfFileDerivedAttributeORM.file_id == DatasetFileORM.file_id)
+            .join(NetcdfNodeORM, NetcdfNodeORM.id == NetcdfFileDerivedAttributeORM.netcdf_node_id)
+            .where(
+                DatasetFileORM.dataset_field_id == self.id,
+                NetcdfNodeORM.full_path == variable_path,
+                NetcdfFileDerivedAttributeORM.name.in_(metrics)
+            )
+            .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
+        )
+
+        results = session.execute(stmt).all()
+        
+        if not results:
+            return pd.DataFrame()
+
+        # Convert to DataFrame
+        df = pd.DataFrame(results, columns=['date', 'hour', 'metric', 'value'])
+        
+        # Create a proper datetime index for gap-aware plotting
+        df['ts'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['hour'], format='%Y-%m-%d %H')
+        
+        # Pivot so columns are 'mean', 'std_dev', etc.
+        return df.pivot(index='ts', columns='metric', values='value')
+    '''
 
 
 
+'''
 for field in dataset.fields:
     # 1. Get the data for the specific variable (e.g., Temperature)
     hist_df = field.get_history_dataframe(session, "/ObsValue/temperature")

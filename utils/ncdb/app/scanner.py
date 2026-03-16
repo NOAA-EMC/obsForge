@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from ds.db_base import Base
-
 from ds.dataset import Dataset
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,6 @@ class Scanner:
         Base.metadata.create_all(self.engine)
 
         self.datasets: List[Dataset] = []
-
 
     def discover(self) -> None:
         if not os.path.exists(self.data_root):

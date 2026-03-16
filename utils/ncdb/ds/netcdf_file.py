@@ -32,10 +32,13 @@ class NetcdfFile:
         self.structure = structure
         self.registry = registry or DerivedAttributeRegistry.default()
         
-        # Instance-specific data storage: path -> {attr_name: value}
+        # path -> {attr_name: value}
         self.attribute_values: Dict[str, Dict[str, Any]] = {} 
+        self.read_attributes()
+
         # path -> {metric_name: value}
         self.derived_values: Dict[str, Dict[str, float]] = {} 
+        self.compute_derived_attributes()
 
     def read_attributes(self) -> None:
         """
@@ -57,6 +60,65 @@ class NetcdfFile:
             logger.error(f"Error reading attributes from {self.file.path}: {e}")
 
     def compute_derived_attributes(self) -> None:
+        if not self.structure:
+            logger.error(
+                f"Cannot compute derived attributes for {self.file.path}: No structure assigned."
+            )
+            return
+
+        computed = 0
+        try:
+            with netCDF4.Dataset(self.file.path, "r") as ds:
+                for path, node in self.structure.nodes_by_path.items():
+                    if node.node_type != "VARIABLE":
+                        continue
+
+                    try:
+                        # Remove leading slash
+                        clean = path.lstrip("/")
+                        parts = clean.split("/")
+                        var_name = parts[-1]
+                        group = ds
+
+                        # Navigate groups if necessary
+                        for g in parts[:-1]:
+                            group = group.groups.get(g)
+                            if group is None:
+                                raise KeyError(f"group '{g}' not found")
+                                # logger.error(f"group '{g}' not found")
+                                # continue
+
+                        var_obj = group.variables.get(var_name)
+                        if var_obj is None:
+                            logger.debug(f"Variable missing in file: {path}")
+                            continue
+
+                        data = var_obj[:]
+                        if data is None:
+                            logger.debug(f"Skipping {path} (not found in file)")
+
+                        stats = self.registry.compute_for_array(data)
+                        if stats:
+                            self.derived_values[path] = stats
+                            computed += 1
+                            logger.info(f"DERIVED for {path} in {self.file.path}")
+
+                    except Exception as e:
+                        logger.debug(f"Skipping {path}: {e}")
+
+            logger.info(
+                f"Computed derived stats for {computed} variables in {self.file.path}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error computing derived stats for {self.file.path}: {e}"
+            )
+
+
+
+
+    def old_compute_derived_attributes(self) -> None:
         """
         Calculates numeric metrics for all variables using the Registry.
         """
@@ -75,6 +137,7 @@ class NetcdfFile:
                             # Load data and compute via registry
                             data = var_obj[:] 
                             self.derived_values[path] = self.registry.compute_for_array(data)
+                            logger.info(f"DERIVED for {node.name} in  {self.file.path}")
             logger.info(f"Computed derived stats for {len(self.derived_values)} variables in {self.file.path}")
         except Exception as e:
             logger.error(f"Error computing derived stats for {self.file.path}: {e}")

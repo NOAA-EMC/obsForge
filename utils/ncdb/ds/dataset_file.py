@@ -47,7 +47,7 @@ class DatasetFile:
             )
             self.netcdf_file = None
 
-        self.compute_attributes()
+        # self.compute_attributes()
 
     def __repr__(self) -> str:
         return (
@@ -63,6 +63,7 @@ class DatasetFile:
             f"file={self.file.path})>"
         )
 
+    '''
     def compute_attributes(self) -> None:
         """
         Read attributes and compute derived attributes in memory.
@@ -78,6 +79,7 @@ class DatasetFile:
             self.netcdf_file.compute_derived_attributes()
         except Exception as e:
             logger.error(f"compute_attributes failed for {self.file.path}: {e}")
+    '''
 
 
     def to_orm(self) -> "DatasetFileORM":

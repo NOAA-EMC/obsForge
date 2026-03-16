@@ -62,7 +62,7 @@ def main():
 
     # data_products_root = "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/data_products"
     server = DataProductsServer(data_products_root)
-    generate_data_products(datasets, server)
+    generate_data_products(db_path, datasets, server)
 
     site = WebsiteGenerator(website_dir, server)
     site.fetch_data()
