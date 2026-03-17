@@ -47,6 +47,7 @@ class WebsiteGenerator:
         for ds_name, cycles in inventory.items():
             obs_spaces = self._discover_obs_spaces(cycles)
             self._build_dataset_pages(ds_name, cycles, obs_spaces)
+            self._build_interactive_pages(ds_name, cycles, obs_spaces)
             
         self._build_index(inventory)
 
@@ -106,7 +107,132 @@ class WebsiteGenerator:
             for img in sorted(imgs)
         ]) + '</div>'
 
+
     def _layout(self, current_ds, current_cycle, current_obs, all_cycles, all_obs, content):
+        # 1. Standard Dataset Nav
+        ds_nav = "".join([f'<a href="{n}_latest.html" class="{"active" if n == current_ds else ""}">{n}</a>' 
+                         for n in self.dataset_names])
+        
+        # 2. Cycle Nav (YYYYMMDD HH)
+        cy_nav = "".join([
+            f'<a href="{current_ds}_{c["date_str"]}_{c["hour"]}_{current_obs}.html" class="btn {"act" if c == current_cycle else ""}">'
+            f'{c["date_str"]} {c["hour"]}z</a>' for c in all_cycles
+        ])
+
+        # 3. Data Product Nav
+        ob_nav = "".join([
+            f'<a href="{current_ds}_{current_cycle["date_str"]}_{current_cycle["hour"]}_{o}.html" class="ob {"act" if o == current_obs else ""}">{o}</a>'
+            for o in all_obs
+        ])
+
+        # 4. Define the Interactive Toggle Button
+        # This link points to the "view_" version of the current page
+        c_date = current_cycle["date_str"]
+        c_hour = current_cycle["hour"]
+        interactive_btn = f"""
+        <div style="margin-top:15px; padding:10px; border-top:1px solid #ddd;">
+            <a href="view_{current_ds}_{c_date}_{c_hour}_{current_obs}.html" 
+               style="display:block; padding:8px; background:#444; color:yellow; text-decoration:none; text-align:center; border-radius:4px; font-size:11px; font-weight:bold;">
+               OPEN INTERACTIVE VIEWER
+            </a>
+        </div>
+        """
+
+        # Define the top-bar link for redundancy
+        interactive_link = f'<a href="view_{current_ds}_{c_date}_{c_hour}_{current_obs}.html" style="color:yellow; margin-left:20px;">[INTERACTIVE]</a>'
+
+        return f"""
+        <html><head><style>{self._css()}</style></head><body>
+            <nav class="top"><strong>Dataset:</strong> {ds_nav} {interactive_link}</nav>
+            <div class="side">
+                <h4>Cycles</h4>
+                <div class="cy-box">{cy_nav}</div>
+                <hr>
+                <h4>Data Products</h4>
+                <div class="product-list">
+                    {ob_nav}
+                    {interactive_btn}
+                </div>
+            </div>
+            <div class="main">
+                {content}
+            </div>
+        </body></html>
+        """
+
+    def _css(self):
+        return """
+        body { font-family: sans-serif; margin: 0; background: #f4f4f4; }
+        
+        .top { 
+            position: fixed; top: 0; width: 100%; height: 45px; 
+            background: #111; color: #fff; display: flex; 
+            align-items: center; padding: 0 20px; z-index: 1000; 
+        }
+        .top a { color: #888; text-decoration: none; margin-left: 15px; font-size: 13px; }
+        
+        /* Fixed Sidebar with internal scroll */
+        .side { 
+            width: 240px; position: fixed; top: 45px; left: 0; bottom: 0;
+            background: #fff; border-right: 1px solid #ddd; 
+            padding: 20px 15px; overflow-y: auto; z-index: 900;
+        }
+
+        /* The Main content needs a margin to sit next to the fixed sidebar */
+        .main { margin-left: 240px; padding: 65px 25px 25px 25px; }
+        
+        .cy-box { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+        .btn { font-size: 10px; padding: 3px 6px; border: 1px solid #ccc; text-decoration: none; color: #333; }
+        .btn.act { background: #007bff; color: #fff; }
+        
+        .ob { display: block; padding: 8px; color: #444; text-decoration: none; font-size: 12px; border-bottom: 1px solid #f9f9f9; }
+        .ob.act { background: #eef; color: #007bff; font-weight: bold; }
+        
+        /* Standard CSS Grid for your cards */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); 
+            gap: 15px; 
+            width: 100%;
+        }
+        .card { background: #fff; border: 1px solid #eee; padding: 8px; box-shadow: 1px 1px 3px rgba(0,0,0,0.05); }
+        .card img { width: 100%; height: auto; display: block; }
+        h5 { margin: 0 0 5px 0; font-size: 11px; color: #999; }
+        """
+
+
+    def oldold_css(self):
+        return """
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: #f8f9fa; color: #333; }
+        .top { position: fixed; top: 0; width: 100%; height: 50px; background: #222; color: #fff; display: flex; align-items: center; padding: 0 20px; z-index: 10; }
+        .top a { color: #aaa; text-decoration: none; margin-left: 20px; font-size: 14px; transition: color 0.2s; }
+        .top a:hover, .top a.active { color: #fff; font-weight: 600; }
+        
+        .side { width: 240px; background: #fff; border-right: 1px solid #dee2e6; padding: 70px 20px; height: 100vh; position: fixed; overflow-y: auto; }
+        .side h4 { font-size: 12px; text-transform: uppercase; color: #6c757d; letter-spacing: 1px; margin-bottom: 15px; }
+        
+        /* Vertical Cycle List */
+        .cy-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px; }
+        .cy-item { padding: 10px; border: 1px solid #eee; text-decoration: none; color: #495057; font-family: monospace; font-size: 14px; border-radius: 4px; text-align: center; }
+        .cy-item:hover { background: #f1f3f5; }
+        .cy-item.act { background: #007bff; color: #fff; border-color: #007bff; font-weight: bold; }
+        
+        .main { flex: 1; margin-left: 240px; padding: 80px 40px; }
+        
+        .ob { display: block; padding: 10px; color: #444; text-decoration: none; font-size: 14px; border-radius: 4px; margin-bottom: 4px; }
+        .ob:hover { background: #f8f9fa; }
+        .ob.act { background: #e7f1ff; color: #007bff; font-weight: bold; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
+        .card { background: #fff; border: 1px solid #dee2e6; padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card img { width: 100%; height: auto; border-radius: 2px; }
+        h5 { margin: 0 0 8px 0; font-size: 12px; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        """
+
+
+
+    def old_layout(self, current_ds, current_cycle, current_obs, all_cycles, all_obs, content):
         # Build Navigation Strings
         ds_nav = "".join([f'<a href="{n}_latest.html" class="{"active" if n == current_ds else ""}">{n}</a>' 
                          for n in self.dataset_names])
@@ -135,7 +261,7 @@ class WebsiteGenerator:
         </body></html>
         """
 
-    def _css(self):
+    def old_css(self):
         return """
         body { font-family: sans-serif; margin: 0; display: flex; background: #f4f4f4; }
         .top { position: fixed; top: 0; width: 100%; height: 45px; background: #111; color: #fff; display: flex; align-items: center; padding: 0 20px; z-index: 5; }
@@ -169,3 +295,33 @@ class WebsiteGenerator:
             
             # Dataset latest link
             (self.html_dir / f"{ds_name}_latest.html").write_text(f'<html><meta http-equiv="refresh" content="0;url={ds_name}_{latest["date_str"]}_{latest["hour"]}_{first_ob}.html"></html>')
+
+
+    def _build_interactive_pages(self, ds_name, cycles, obs_spaces):
+        """Duplicated logic to create HTML pages that embed the Plotly viewers."""
+        for cycle in cycles:
+            c_label = f"{cycle['date_str']}_{cycle['hour']}"
+            for obs in obs_spaces:
+                # Same path as before
+                local_path = cycle['path'] / obs
+                # Find the .html files produced by PlotGenerator
+                html_files = [f.name for f in local_path.iterdir() if f.name.endswith('.html')] if local_path.exists() else []
+                
+                # New filename for the page itself (prefixed with 'view_')
+                filename = f"view_{ds_name}_{c_label}_{obs}.html"
+                rel_data_path = f"../data/{cycle['path'].name}/{obs}"
+                
+                # Brute force HTML grid using iframes
+                grid_html = '<div class="grid">'
+                for h in sorted(html_files):
+                    grid_html += f"""
+                    <div class="card" style="height: 500px; width: 500px; display: inline-block; margin: 10px; background: #fff;">
+                        <h5>{h}</h5>
+                        <iframe src="{rel_data_path}/{h}" style="width:100%; height:90%; border:none;"></iframe>
+                    </div>"""
+                grid_html += '</div>'
+                
+                # Minimal layout wrapper (duplicated CSS)
+                page_html = f"<html><head><style>{self._css()}</style></head><body>{grid_html}</body></html>"
+                
+                (self.html_dir / filename).write_text(page_html)

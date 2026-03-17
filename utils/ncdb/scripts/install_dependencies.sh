@@ -42,6 +42,7 @@ REQUIRED_PACKAGES=(
     "sqlalchemy"
     "matplotlib"
     "cartopy"
+    "plotly"
     # Add other packages here as needed
 )
 

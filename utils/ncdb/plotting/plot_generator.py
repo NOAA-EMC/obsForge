@@ -577,3 +577,73 @@ class PlotGenerator:
         # 8. Save figure
         plt.savefig(output_path, bbox_inches='tight', dpi=150)
         plt.close(fig)
+
+    def generate_interactive_surface_map(self, output_path, plot_data):
+        """
+        Generates an interactive HTML globe using Plotly.
+        Mimics the subsampling and color scaling logic of the static map.
+        """
+        import plotly.graph_objects as go
+
+        # 1. Extract data from plot_data dict
+        lats = plot_data["lats"]
+        lons = plot_data["lons"]
+        values = plot_data["values"]
+        var_name = plot_data["variable_name"]
+        run_type = plot_data["dataset_name"]
+        space = plot_data["obs_space_name"]
+        units = plot_data.get("units", "Units")
+
+        # 2. Replicate Subsampling logic (keeps performance fast)
+        lats, lons, values, _ = subsample_surface_points(
+            lats, lons, values, max_points=300_000
+        )
+
+        # 3. Replicate Color Scaling logic
+        vmin, vmax, cmap_name = self.color_manager.resolve(values, var_name)
+        
+        # Note: Plotly uses different names for cmaps, but most standard 
+        # Matplotlib names (Viridis, RdBu) work directly.
+        
+        # 4. Build the Plotly Figure
+        fig = go.Figure(data=go.Scattergeo(
+            lat=lats,
+            lon=lons,
+            mode='markers',
+            marker=dict(
+                size=3, # Fixed size usually works best for interactive
+                color=values,
+                colorscale=cmap_name,
+                cmin=vmin,
+                cmax=vmax,
+                showscale=True,
+                colorbar=dict(title=units, thickness=15),
+                line=dict(width=0.1, color='black') # Mimics edgecolor='k'
+            ),
+            # Add hover information
+            text=[f"{v:.2f} {units}" for v in values],
+            hovertemplate="<b>Lat:</b> %{lat}<br><b>Lon:</b> %{lon}<br><b>Val:</b> %{text}<extra></extra>"
+        ))
+
+        # 5. Set Layout (Mimics Robinson projection with a Globe)
+        fig.update_layout(
+            title=f"Interactive Viewer: {run_type} - {space}",
+            geo=dict(
+                projection_type='orthographic', # Creates the interactive globe
+                showland=True,
+                landcolor="lightgray",
+                showocean=True,
+                oceancolor="white",
+                showcoastlines=True,
+                coastlinecolor="gray",
+                coastlinewidth=0.5,
+                center=dict(lat=0, lon=0),
+                projection_scale=1,
+            ),
+            margin=dict(l=0, r=0, t=40, b=0),
+            height=600
+        )
+
+        # 6. Save as standalone HTML
+        fig.write_html(output_path)
+        logger.info(f"Interactive HTML generated: {output_path}")

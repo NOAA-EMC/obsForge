@@ -131,48 +131,6 @@ class NetcdfNode:
 
         return node_orm
 
-
-
-
-    def old_to_db(self, session: Session) -> NetcdfNodeORM:
-        """
-        Syncs the in-memory node with the database. 
-        If it exists, populates self.id. If not, inserts it.
-        """
-        if not self.structure or self.structure.id is None:
-            # raise ValueError(
-            logger.error(
-                f"Cannot persist node '{self.full_path}' without a persisted NetcdfStructure."
-            )
-            return None
-
-        # 1. Look for existing node within this specific structure
-        node_orm = (
-            session.query(NetcdfNodeORM)
-            .filter_by(
-                structure_id=self.structure.id, 
-                full_path=self.full_path
-            )
-            .first()
-        )
-
-        # 2. Insert if it doesn't exist
-        if not node_orm:
-            node_orm = NetcdfNodeORM(
-                structure_id=self.structure.id,
-                full_path=self.full_path,
-                node_type=self.node_type,
-                dtype=self.dtype,
-            )
-            session.add(node_orm)
-            # Flush so the DB generates an ID for us immediately
-            session.flush()
-
-        # 3. Sync the ID back to the domain object
-        self.id = node_orm.id
-        
-        return node_orm
-
     @property
     def name(self) -> str:
         """Leaf name of the node (e.g., /Group/Temp -> Temp)."""

@@ -47,8 +47,6 @@ class DatasetFile:
             )
             self.netcdf_file = None
 
-        # self.compute_attributes()
-
     def __repr__(self) -> str:
         return (
             f"<DatasetFile(id={self.id}, "
@@ -63,25 +61,6 @@ class DatasetFile:
             f"file={self.file.path})>"
         )
 
-    '''
-    def compute_attributes(self) -> None:
-        """
-        Read attributes and compute derived attributes in memory.
-        """
-        # logger.info(f"compute_attributes for {self.file.path}")
-
-        if not self.netcdf_file:
-            logger.error(f"Cannot open file {self.file.path} (NetcdfFile not initialized)")
-            return
-
-        try:
-            self.netcdf_file.read_attributes()
-            self.netcdf_file.compute_derived_attributes()
-        except Exception as e:
-            logger.error(f"compute_attributes failed for {self.file.path}: {e}")
-    '''
-
-
     def to_orm(self) -> "DatasetFileORM":
         return DatasetFileORM(
             id=self.id,
@@ -89,7 +68,6 @@ class DatasetFile:
             dataset_cycle_id=self.dataset_cycle.id,
             file_id=self.file.id
         )
-
 
     def to_db(self, session: Session) -> "DatasetFileORM":
         """

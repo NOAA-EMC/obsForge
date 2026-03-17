@@ -139,12 +139,11 @@ class DatasetField:
             .where(*conditions)
             .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
         )
-        print(stmt.compile(compile_kwargs={"literal_binds": True}))
+        # print(stmt.compile(compile_kwargs={"literal_binds": True}))
 
         results = session.execute(stmt).all()
 
         if not results:
-            logger.error("RRRRRRRRRRRRRRRRRRRRRR")
             return pd.DataFrame()
 
         # Convert to DataFrame
@@ -158,92 +157,3 @@ class DatasetField:
 
         # Pivot to wide format for plotting
         return df.pivot(index="ts", columns="metric", values="value")
-
-
-    '''
-    def get_variable_derived_data(self, session: Session, variable_path: str, metrics: list = None):
-        """
-        Fetches the historical stats for this specific field and 
-        returns a Pandas DataFrame ready for plotting.
-        """
-        import pandas as pd
-        from .dataset_orm import DatasetFileORM, DatasetCycleORM
-        from .netcdf_file_orm import NetcdfFileDerivedAttributeORM, NetcdfNodeORM
-
-        # if metrics is None:
-            # metrics = ["mean", "std_dev"]
-
-        conditions = [
-            DatasetFileORM.dataset_field_id == self.id,
-            NetcdfNodeORM.full_path == variable_path,
-        ]
-
-        if metrics is not None:
-            conditions.append(NetcdfFileDerivedAttributeORM.name.in_(metrics))
-
-        # One targeted query for this field's specific variable
-        stmt = (
-            select(
-                DatasetCycleORM.cycle_date,
-                DatasetCycleORM.cycle_hour,
-                NetcdfFileDerivedAttributeORM.name,
-                NetcdfFileDerivedAttributeORM.value
-            )
-            .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == DatasetCycleORM.id)
-            .join(NetcdfFileDerivedAttributeORM, NetcdfFileDerivedAttributeORM.file_id == DatasetFileORM.file_id)
-            .join(NetcdfNodeORM, NetcdfNodeORM.id == NetcdfFileDerivedAttributeORM.netcdf_node_id)
-            .where(
-                DatasetFileORM.dataset_field_id == self.id,
-                NetcdfNodeORM.full_path == variable_path,
-                NetcdfFileDerivedAttributeORM.name.in_(metrics)
-            )
-            .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
-        )
-
-        results = session.execute(stmt).all()
-        
-        if not results:
-            return pd.DataFrame()
-
-        # Convert to DataFrame
-        df = pd.DataFrame(results, columns=['date', 'hour', 'metric', 'value'])
-        
-        # Create a proper datetime index for gap-aware plotting
-        df['ts'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['hour'], format='%Y-%m-%d %H')
-        
-        # Pivot so columns are 'mean', 'std_dev', etc.
-        return df.pivot(index='ts', columns='metric', values='value')
-    '''
-
-
-
-'''
-for field in dataset.fields:
-    # 1. Get the data for the specific variable (e.g., Temperature)
-    hist_df = field.get_history_dataframe(session, "/ObsValue/temperature")
-    
-    if hist_df.empty:
-        continue
-
-    # 2. Plotting (The "Mean + Band" look)
-    import matplotlib.pyplot as plt
-    
-    plt.figure(figsize=(10, 5))
-    
-    # The 'asfreq' call handles the gaps by inserting NaNs where cycles are missing
-    plot_df = hist_df.asfreq('6H') 
-    
-    plt.plot(plot_df.index, plot_df['mean'], label='Mean', color='blue')
-    
-    # The Standard Deviation Band
-    plt.fill_between(
-        plot_df.index, 
-        plot_df['mean'] - plot_df['std_dev'], 
-        plot_df['mean'] + plot_df['std_dev'], 
-        color='blue', alpha=0.2, label='1$\sigma$ Band'
-    )
-
-    plt.title(f"History for {field.obs_space.name}")
-    plt.savefig(f"plots/{field.obs_space.name}_history.png")
-    plt.close()
-'''

@@ -101,7 +101,7 @@ class NetcdfFile:
                         if stats:
                             self.derived_values[path] = stats
                             computed += 1
-                            logger.info(f"DERIVED for {path} in {self.file.path}")
+                            # logger.info(f"DERIVED for {path} in {self.file.path}")
 
                     except Exception as e:
                         logger.debug(f"Skipping {path}: {e}")
@@ -115,42 +115,17 @@ class NetcdfFile:
                 f"Error computing derived stats for {self.file.path}: {e}"
             )
 
-
-
-
-    def old_compute_derived_attributes(self) -> None:
-        """
-        Calculates numeric metrics for all variables using the Registry.
-        """
-        if not self.structure:
-            logger.error(f"Cannot compute derived attributes for {self.file.path}: No structure assigned.")
-            return
-
-        try:
-            with netCDF4.Dataset(self.file.path, 'r') as ds:
-                # We only iterate over variables defined in our structure
-                for path, node in self.structure.nodes_by_path.items():
-                    if node.node_type == "VARIABLE":
-                        # NetCDF4 variables are accessed by their leaf name
-                        var_obj = ds.variables.get(node.name)
-                        if var_obj is not None:
-                            # Load data and compute via registry
-                            data = var_obj[:] 
-                            self.derived_values[path] = self.registry.compute_for_array(data)
-                            logger.info(f"DERIVED for {node.name} in  {self.file.path}")
-            logger.info(f"Computed derived stats for {len(self.derived_values)} variables in {self.file.path}")
-        except Exception as e:
-            logger.error(f"Error computing derived stats for {self.file.path}: {e}")
-
     def to_db(self, session: Session) -> None:
-        """
-        Recursive entry point to persist file-specific metadata and stats.
-        Assumes self.file.id and self.structure nodes are already persisted.
-        """
+        # the file and the structure mustah ve been already
+        # persisted before persisting the file
+        self.structure.to_db(session) 
+        self.file.to_db(session)
+        
         if not self.file.id:
-            logger.error(f"to_db failed for {self.file.path}: File ID is missing. Persist the File object first.")
+            logger.error(f"to_db failed: File ID missing for {self.file.path}")
             return
 
+        session.flush() # Ensure IDs are populated from the DB for the next steps
         self.to_db_attributes(session)
         self.to_db_derived_attributes(session)
 
@@ -211,41 +186,6 @@ class NetcdfFile:
                         ))
                 except Exception as e:
                     logger.error(f"Failed to persist derived stat '{name}' for node '{path}': {e}")
-
-
-    def old_get_variable(self, path: str) -> Optional[np.ndarray]:
-        """
-        Retrieves the numeric data for a variable at the given path.
-        """
-        node = self.structure.find_node(path)
-        if not node or node.node_type != "VARIABLE":
-            logger.error(f"Cannot get variable: Path '{path}' is not a variable node.")
-            return None
-
-        try:
-            with netCDF4.Dataset(self.file.path, 'r') as ds:
-                # netCDF4-python allows direct dictionary-like access using the full path
-                # as long as the path is relative to the root or explicitly defined.
-                # We ensure the path doesn't have a leading slash if ds is the root.
-                clean_path = path.lstrip('/')
-                
-                if clean_path in ds.variables:
-                    # Top-level variable access
-                    return ds.variables[clean_path][:]
-                
-                # For nested variables, we can access them directly via the dataset object
-                # if the library version supports it, or navigate cleanly:
-                try:
-                    var_obj = ds[path] # Most versions support direct path indexing
-                    return var_obj[:]
-                except KeyError:
-                    logger.error(f"Variable or Group hierarchy not found in file: {path}")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Failed to read data for {path}: {e}")
-            return None
-
 
     def get_variable(self, path: str, filter_out_masked: bool = True) -> Optional[np.ndarray]:
         """
