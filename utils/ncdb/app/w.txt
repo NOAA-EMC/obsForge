@@ -1,20 +1,8 @@
 i need to generate a minimal website that will display data products;
 website generator will take input:
 1. website dir name
-2. datasets: list of dataset objects
-3. server: DataProductsServer
+2. server: DataProductsServer
 
-class DataProductsServer:
-    """
-    Manages the directory layout of dataset products and provides methods
-    for website integration, including fetching an entire cycle.
-    Layout:
-    root/
-      dataset_name/
-        YYYYMMDD_HH/
-          product_name/
-            files...
-    """
 
 website dir will have 2 subdirs: html and data
 the web generator will fetch the last N=4 cycles from the server
@@ -33,3 +21,52 @@ there should also be a list of obs spaces
 clicking on obs space brings up the obs space page
 On the obs space page we display all products
 typically these are plots
+
+
+------------------------------------------------------
+I want to generate a website to display the data
+input: server, website_dir, n_cycles=4
+
+the website will have top folders data/ html/ and index.html
+the data will hold n_cycles=4 cycles of data;
+these cycles will be fetched from the server (periodically),
+old cycles will be purged
+this cycle policy is needed for a static site
+the data subdir of the website should have the exact same structure as the structure managed by the product server
+
+all dataset names are displayed at the top;
+clicking the name selects the page for the dataset;
+left panel should have selectors for data; right panel -- display the selected data product;
+
+selection is :
+list n=4 cycles (1 in a row); if it's more than 4 then maybe we need a selector with a scrollbar;
+each cycle is displayed by YYYY MM DD: HH
+
+next we select the obs space;
+we should have an obs space selector, likely with a scroll bar
+the obs space is taken from the name of the file
+e.g. {obs space}.png
+
+next we select the product
+the product name is generated using
+
+def safe_name(s: str) -> str:
+    return re.sub(r'_+', '_',
+                  re.sub(r'[^A-Za-z0-9._-]', '_', s.replace('/', '_'))
+                 ).strip('_')
+
+product_name = f"{prefix}_{safe_name(variable_path)}"
+
+where prefix is "hist" or "plt" or "int"
+there can be more prefixes coming, depending on the type of product
+the type of product determines how to display it;
+for every obs space the products are different
+the product selector should potentially have a scroll bar;
+
+the cycle,obs space and product determine what to display in the right panel;
+currently plt and hist --> png file
+int --> html code generated with plotly
+
+I am not sure how the website would know how to display a product;
+
+

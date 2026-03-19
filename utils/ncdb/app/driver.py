@@ -60,10 +60,12 @@ def main():
     scanner.run(n_cycles=cycles_to_process)
     datasets = scanner.datasets
 
+    logger.info(f"Generating data product in: {data_products_root}")
     # data_products_root = "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/data_products"
     server = DataProductsServer(data_products_root)
     generate_data_products(db_path, datasets, server)
 
+    logger.info(f"Generating website in: {website_dir}")
     site = WebsiteGenerator(website_dir, server)
     site.fetch_data()
     site.generate()

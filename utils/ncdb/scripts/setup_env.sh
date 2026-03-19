@@ -43,7 +43,8 @@ case "${MACHINE_ID:-}" in
 
     "ursa")
 		# hack....
-		source "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/obsForge/ush/of_setup.sh"
+		# source "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/obsForge/ush/of_setup.sh"
+		module load python/3.11
 		# if ( ! eval module help > /dev/null 2>&1 ) ; then
 			# source /apps/lmod/lmod/init/bash
 		# fi

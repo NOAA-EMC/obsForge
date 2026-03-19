@@ -93,7 +93,8 @@ def generate_surface_plot(
 ):
     if not variable_path:
         return
-    product_name = safe_name(variable_path)
+    # product_name = safe_name(variable_path)
+    product_name = f"plt_{safe_name(variable_path)}"
 
     obs_space_name = file.dataset_field.obs_space.name
     plot_path = server.product_file(

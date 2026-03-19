@@ -19,8 +19,10 @@ class ObsSpaceORM(Base):
     # We add ForeignKey here so SQLAlchemy knows how to JOIN
     netcdf_structure_id = Column(Integer, ForeignKey('netcdf_structures.id'), nullable=True)
 
-    # This allows you to do obs_space.netcdf_structure to get the skeleton
-    netcdf_structure = relationship("NetcdfStructureORM", back_populates="obs_spaces")
 
     def __repr__(self) -> str:
         return f"<ObsSpaceORM(id={self.id}, name='{self.name}')>"
+
+
+from .netcdf_structure_orm import NetcdfStructureORM
+ObsSpaceORM.netcdf_structure = relationship("NetcdfStructureORM", back_populates="obs_spaces")

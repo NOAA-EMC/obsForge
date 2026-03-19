@@ -55,7 +55,7 @@ class NetcdfFile:
             for path, node in registry.items():
                 if node.attributes:
                     self.attribute_values[path] = node.attributes
-            logger.info(f"Read attributes for {len(self.attribute_values)} nodes in {self.file.path}")
+            # logger.info(f"Read attributes for {len(self.attribute_values)} nodes in {self.file.path}")
         except Exception as e:
             logger.error(f"Error reading attributes from {self.file.path}: {e}")
 
@@ -106,9 +106,9 @@ class NetcdfFile:
                     except Exception as e:
                         logger.debug(f"Skipping {path}: {e}")
 
-            logger.info(
-                f"Computed derived stats for {computed} variables in {self.file.path}"
-            )
+            # logger.info(
+                # f"Computed derived stats for {computed} variables in {self.file.path}"
+            # )
 
         except Exception as e:
             logger.error(

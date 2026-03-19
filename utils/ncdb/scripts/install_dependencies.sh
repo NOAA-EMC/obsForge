@@ -38,11 +38,18 @@ python -m pip install --upgrade pip
 
 # 4. Install required packages
 REQUIRED_PACKAGES=(
-    "numpy"
+    # "numpy"
+    "numpy<2.3"
+	"netCDF4"
+	"pandas"
     "sqlalchemy"
     "matplotlib"
     "cartopy"
     "plotly"
+	"fastapi"
+	"uvicorn"
+	"jinja2"
+	"python-multipart"
     # Add other packages here as needed
 )
 

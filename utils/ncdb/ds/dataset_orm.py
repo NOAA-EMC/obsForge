@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 # Base class for all ORM models
 from .db_base import Base  # SQLAlchemy declarative base
+from .file_orm import FileORM
 
 
 class DatasetORM(Base):
@@ -53,6 +54,7 @@ class DatasetFieldORM(Base):
     obs_space_id = Column(Integer, ForeignKey("obs_spaces.id"), nullable=False)
 
     dataset = relationship("DatasetORM", back_populates="fields")
+
     dataset_files = relationship(
         "DatasetFileORM",
         back_populates="dataset_field"
@@ -65,6 +67,12 @@ class DatasetFieldORM(Base):
             name="uq_dataset_obs_space"
         ),
     )
+
+# Import at the bottom to avoid circular reference
+from .obs_space_orm import ObsSpaceORM
+DatasetFieldORM.obs_space = relationship(
+    "ObsSpaceORM"
+)
 
 
 class DatasetFileORM(Base):
@@ -92,7 +100,7 @@ class DatasetFileORM(Base):
         "DatasetCycleORM",
         back_populates="dataset_files"
     )
-    file = relationship("FileORM")
+    file = relationship(FileORM)
 
     __table_args__ = (
         UniqueConstraint(

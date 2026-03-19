@@ -48,6 +48,7 @@ class WebsiteGenerator:
             obs_spaces = self._discover_obs_spaces(cycles)
             self._build_dataset_pages(ds_name, cycles, obs_spaces)
             self._build_interactive_pages(ds_name, cycles, obs_spaces)
+            self._build_single_viewer_pages(ds_name, cycles)
             
         self._build_index(inventory)
 
@@ -281,6 +282,45 @@ class WebsiteGenerator:
         """
 
     def _build_index(self, inventory):
+        """Builds redirecting entry points to the Single Viewer."""
+        for ds_name, cycles in inventory.items():
+            if not cycles: continue
+            
+            # 1. Get the absolute latest cycle
+            latest = cycles[-1]
+            c_path = Path(latest['path'])
+            c_label = f"{latest['date_str']}_{latest['hour']}"
+            
+            # 2. Re-run the inversion logic once to find the first valid landing spot
+            obs_to_products = {}
+            for prod_dir in [d for d in c_path.iterdir() if d.is_dir()]:
+                for f in prod_dir.iterdir():
+                    if f.is_file():
+                        obs_name = f.stem
+                        if obs_name not in obs_to_products:
+                            obs_to_products[obs_name] = []
+                        obs_to_products[obs_name].append(prod_dir.name)
+            
+            if not obs_to_products:
+                continue
+
+            # 3. Identify the first Obs Space and its first Product
+            first_obs = sorted(obs_to_products.keys())[0]
+            first_prod = sorted(obs_to_products[first_obs])[0]
+            
+            # Target filename matches the 'single_' format
+            target_filename = f"single_{ds_name}_{c_label}_{first_obs}_{first_prod}.html"
+            
+            # Global Site Index (Redirects to the first dataset's latest page)
+            if ds_name == self.dataset_names[0]:
+                index_path = self.root / "index.html"
+                index_path.write_text(f'<html><meta http-equiv="refresh" content="0;url=html/{target_filename}"></html>')
+            
+            # Dataset-specific "Latest" link (e.g., gdas_latest.html)
+            latest_path = self.html_dir / f"{ds_name}_latest.html"
+            latest_path.write_text(f'<html><meta http-equiv="refresh" content="0;url={target_filename}"></html>')
+
+    def old_build_index(self, inventory):
         """Builds redirecting entry points for the root and each dataset."""
         for ds_name, cycles in inventory.items():
             if not cycles: continue
@@ -325,3 +365,209 @@ class WebsiteGenerator:
                 page_html = f"<html><head><style>{self._css()}</style></head><body>{grid_html}</body></html>"
                 
                 (self.html_dir / filename).write_text(page_html)
+
+    def _build_single_viewer_pages(self, ds_name, cycles):
+        # 1. First, build a map of "First Valid Page" for every cycle
+        # This prevents broken links when switching cycles
+        cycle_landing_pages = {}
+        
+        all_cycle_data = {}
+        for cycle in cycles:
+            c_path = Path(cycle['path'])
+            c_label = f"{cycle['date_str']}_{cycle['hour']}"
+            
+            # Invert storage for this cycle
+            obs_map = {}
+            for prod_dir in [d for d in c_path.iterdir() if d.is_dir()]:
+                for f in prod_dir.iterdir():
+                    if f.is_file():
+                        obs_name = f.stem
+                        if obs_name not in obs_map: obs_map[obs_name] = []
+                        obs_map[obs_name].append(prod_dir.name)
+            
+            all_cycle_data[c_label] = obs_map
+            
+            # Store the first valid page for this cycle as a fallback
+            if obs_map:
+                first_o = sorted(obs_map.keys())[0]
+                first_p = sorted(obs_map[first_o])[0]
+                cycle_landing_pages[c_label] = f"single_{ds_name}_{c_label}_{first_o}_{first_p}.html"
+
+        # 2. Generate the pages
+        for c_label, obs_map in all_cycle_data.items():
+            current_cycle_obj = next(c for c in cycles if f"{c['date_str']}_{c['hour']}" == c_label)
+            all_obs_sorted = sorted(obs_map.keys())
+            
+            for obs in all_obs_sorted:
+                available_prods = sorted(obs_map[obs])
+                for prod in available_prods:
+                    prod_path = Path(current_cycle_obj['path']) / prod
+                    actual_file = next(f.name for f in prod_path.iterdir() if f.stem == obs)
+                    
+                    page_name = f"single_{ds_name}_{c_label}_{obs}_{prod}.html"
+                    rel_data_path = f"../data/{current_cycle_obj['path'].name}/{prod}"
+                    
+                    page_html = self._single_viewer_layout(
+                        ds_name, current_cycle_obj, obs, prod,
+                        cycles, all_obs_sorted, available_prods,
+                        actual_file, rel_data_path, cycle_landing_pages
+                    )
+                    (self.html_dir / page_name).write_text(page_html)
+
+
+    def _single_viewer_layout(self, ds, cur_cy, cur_obs, cur_prod, all_cycles, all_obs, all_prods, filename, rel_path, landing_pages):
+        ds_nav = "".join([f'<a href="{n}_latest.html">{n}</a>' for n in self.dataset_names])
+        
+        # FIXED CYCLE LINKS: Use pre-calculated valid landing pages
+        cy_links = []
+        for c in all_cycles[::-1]:
+            label = f"{c['date_str']}_{c['hour']}"
+            fmt_date = f"{c['date_str'][:4]} {c['date_str'][4:6]} {c['date_str'][6:8]}: {c['hour']}"
+            act = "act" if c == cur_cy else ""
+            
+            # If the landing page exists for this cycle, use it.
+            target = landing_pages.get(label, "#")
+            cy_links.append(f'<a href="{target}" class="cy-item {act}">{fmt_date}</a>')
+        cy_nav = "".join(cy_links)
+
+        ob_nav = "".join([f'<a href="single_{ds}_{cur_cy["date_str"]}_{cur_cy["hour"]}_{o}_{cur_prod if cur_prod in all_prods else all_prods[0]}.html" class="ob {"act" if o == cur_obs else ""}">{o}</a>' for o in all_obs])
+        pr_nav = "".join([f'<a href="single_{ds}_{cur_cy["date_str"]}_{cur_cy["hour"]}_{cur_obs}_{p}.html" class="ob {"act" if p == cur_prod else ""}">{p}</a>' for p in all_prods])
+
+        file_url = f"{rel_path}/{filename}"
+        display = f'<iframe src="{file_url}" style="width:100%; height:100%; border:none;"></iframe>' if filename.endswith(".html") else f'<img src="{file_url}" style="max-width:100%;">'
+
+        return f"""
+        <html><head><style>
+            {self._css()}
+            body {{ height: 100vh; display: flex; flex-direction: column; overflow: hidden; }}
+            .top {{ flex: 0 0 45px; position: relative; }}
+            .container {{ display: flex; flex: 1; overflow: hidden; }}
+            
+            .side {{ 
+                width: 260px; display: flex; flex-direction: column; 
+                background: #fff; border-right: 1px solid #ddd; height: 100%;
+            }}
+            .cy-list {{ flex: 0 0 160px; overflow-y: auto; border: 1px solid #eee; margin: 5px; }}
+            .ob-list {{ flex: 1 1 200px; overflow-y: auto; border: 1px solid #eee; margin: 5px; }}
+            .pr-list {{ flex: 1 1 150px; overflow-y: auto; border: 1px solid #eee; margin: 5px; }}
+            
+            .cy-item {{ display: block; padding: 8px; font-family: monospace; font-size: 13px; text-decoration: none; color: #333; background: #f9f9f9; text-align: center; border-bottom: 1px solid #eee; }}
+            .cy-item.act {{ background: #007bff; color: #fff; font-weight: bold; }}
+            .main {{ flex: 1; overflow: auto; padding: 15px; background: #eee; display: flex; flex-direction: column; }}
+            .viewer {{ flex: 1; background: #fff; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; overflow: hidden; }}
+        </style></head><body>
+            <nav class="top"><strong>Dataset:</strong> {ds_nav}</nav>
+            <div class="container">
+                <div class="side">
+                    <h4>1. Cycles</h4><div class="cy-list">{cy_nav}</div>
+                    <h4>2. Obs Spaces</h4><div class="ob-list">{ob_nav}</div>
+                    <h4>3. Products</h4><div class="pr-list">{pr_nav}</div>
+                </div>
+                <div class="main">
+                    <div style="padding-bottom:10px; font-size:12px; font-weight:bold;">{cur_obs} / {cur_prod}</div>
+                    <div class="viewer">{display}</div>
+                </div>
+            </div>
+        </body></html>
+        """
+
+
+    def old_build_single_viewer_pages(self, ds_name, cycles):
+        """Builds pages with Logical Hierarchy: Cycle -> Obs Space -> Product."""
+        for cycle in cycles:
+            c_path = Path(cycle['path'])
+            c_label = f"{cycle['date_str']}_{cycle['hour']}"
+            
+            # 1. Invert the storage: Map Obs Spaces to their available Products
+            # Structure: { 'radiance': ['plt_map', 'int_globe'], 'ocean': ['plt_map'] }
+            obs_to_products = {}
+            product_dirs = sorted([d.name for d in c_path.iterdir() if d.is_dir()])
+            
+            for prod in product_dirs:
+                prod_path = c_path / prod
+                # Files are 'Obs Spaces'
+                for f in prod_path.iterdir():
+                    if f.is_file():
+                        obs_name = f.stem  # e.g., 'radiance'
+                        if obs_name not in obs_to_products:
+                            obs_to_products[obs_name] = []
+                        obs_to_products[obs_name].append(prod)
+
+            all_obs_sorted = sorted(obs_to_products.keys())
+
+            # 2. Iterate through the Logical Hierarchy to generate pages
+            for obs in all_obs_sorted:
+                available_prods = sorted(obs_to_products[obs])
+                
+                for prod in available_prods:
+                    # Find the actual filename (we need the extension for the viewer)
+                    # Search in cycle/prod/obs.*
+                    prod_path = c_path / prod
+                    actual_file = next(f.name for f in prod_path.iterdir() if f.stem == obs)
+
+                    page_name = f"single_{ds_name}_{c_label}_{obs}_{prod}.html"
+                    rel_data_path = f"../data/{c_path.name}/{prod}"
+                    
+                    page_html = self._single_viewer_layout(
+                        ds_name, cycle, obs, prod,
+                        cycles, all_obs_sorted, available_prods,
+                        actual_file, rel_data_path
+                    )
+                    
+                    (self.html_dir / page_name).write_text(page_html)
+
+    def old_single_viewer_layout(self, ds, cur_cy, cur_obs, cur_prod, all_cycles, all_obs, all_prods, filename, rel_path):
+        # 1. Dataset Top Nav
+        ds_nav = "".join([f'<a href="{n}_latest.html">{n}</a>' for n in self.dataset_names])
+        
+        # 2. Vertical Cycle Selector (YYYY MM DD: HH) - 4 entries max
+        cy_links = []
+        for c in all_cycles[::-1]:
+            d = c["date_str"]
+            fmt_date = f"{d[:4]} {d[4:6]} {d[6:8]}: {c['hour']}"
+            act = "act" if c == cur_cy else ""
+            # Link must maintain current Obs and Prod if possible
+            cy_links.append(f'<a href="single_{ds}_{d}_{c["hour"]}_{cur_obs}_{cur_prod}.html" class="cy-item {act}">{fmt_date}</a>')
+        cy_nav = "".join(cy_links)
+
+        # 3. Logical Selectors: Obs Space FIRST, then Products
+        # Note: ob_nav remains stable, prod_nav updates based on available products for that Obs Space
+        ob_nav = "".join([f'<a href="single_{ds}_{cur_cy["date_str"]}_{cur_cy["hour"]}_{o}_{cur_prod}.html" class="ob {"act" if o == cur_obs else ""}">{o}</a>' for o in all_obs])
+        pr_nav = "".join([f'<a href="single_{ds}_{cur_cy["date_str"]}_{cur_cy["hour"]}_{cur_obs}_{p}.html" class="ob {"act" if p == cur_prod else ""}">{p}</a>' for p in all_prods])
+
+        # 4. Content Viewer
+        file_url = f"{rel_path}/{filename}"
+        if filename.endswith(".html"):
+            display = f'<iframe src="{file_url}" style="width:100%; height:80vh; border:none; background:#fff;"></iframe>'
+        else:
+            display = f'<div class="img-viewer"><img src="{file_url}"></div>'
+
+        return f"""
+        <html><head><style>
+            {self._css()}
+            .cy-list {{ display: flex; flex-direction: column; gap: 5px; max-height: 170px; overflow-y: auto; padding: 5px; background: #eee; border-radius: 4px; }}
+            .cy-item {{ display: block; padding: 8px; font-family: monospace; font-size: 13px; text-decoration: none; color: #333; background: #fff; text-align: center; border: 1px solid #ddd; }}
+            .cy-item.act {{ background: #007bff; color: #fff; font-weight: bold; }}
+            .scroll-box {{ overflow-y: auto; flex-grow: 1; margin-top: 5px; border-top: 1px solid #eee; }}
+            .img-viewer {{ background: #fff; padding: 10px; text-align: center; border: 1px solid #ddd; }}
+            .img-viewer img {{ max-width: 100%; height: auto; }}
+        </style></head><body>
+            <nav class="top"><strong>Dataset:</strong> {ds_nav}</nav>
+            <div class="side" style="display:flex; flex-direction:column; height: 100vh;">
+                <h4>1. Cycles</h4>
+                <div class="cy-list">{cy_nav}</div>
+                <hr>
+                <h4>2. Obs Spaces</h4>
+                <div class="scroll-box" style="max-height: 200px;">{ob_nav}</div>
+                <hr>
+                <h4>3. Products (for {cur_obs})</h4>
+                <div class="scroll-box">{pr_nav}</div>
+            </div>
+            <div class="main">
+                <div style="font-size: 11px; margin-bottom: 8px; color: #888; text-transform: uppercase;">
+                    {cur_obs} &raquo; {cur_prod}
+                </div>
+                {display}
+            </div>
+        </body></html>
+        """
