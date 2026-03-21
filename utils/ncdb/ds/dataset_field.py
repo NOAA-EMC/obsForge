@@ -41,6 +41,55 @@ class DatasetField:
     def add_file(self, f: DatasetFile):
         self.files.append(f)
 
+    @classmethod
+    def from_orm(
+        cls, 
+        session: Session, 
+        orm: DatasetFieldORM, 
+        dataset: "Dataset", 
+        n_files: Optional[int] = None
+    ) -> "DatasetField":
+        instance = cls.from_orm_self(orm, dataset)
+        instance.from_orm_files(session, n=n_files)
+        return instance
+
+    @classmethod
+    def from_orm_self(cls, orm: DatasetFieldORM, dataset: "Dataset") -> "DatasetField":
+        if not orm: return None
+        
+        from .obs_space import ObsSpace
+        obs_space_domain = ObsSpace.from_orm(orm.obs_space)
+
+        instance = cls(dataset=dataset, obs_space=obs_space_domain)
+        instance.id = orm.id
+        return instance
+
+    def from_orm_files(self, session: Session, n: Optional[int] = None) -> None:
+        stmt = (
+            select(DatasetFileORM)
+            .join(DatasetCycleORM)
+            .where(DatasetFileORM.dataset_field_id == self.id)
+            .order_by(DatasetCycleORM.cycle_date.desc(), DatasetCycleORM.cycle_hour.desc())
+        )
+
+        if n:
+            stmt = stmt.limit(abs(n))
+
+        file_orms = session.scalars(stmt).all()
+
+        for f_orm in file_orms:
+            # Reconstruct the Cycle identity (The 'When')
+            cycle_domain = DatasetCycle.from_orm_self(f_orm.dataset_cycle, self.dataset)
+            
+            # Reconstruct the DatasetFile (The 'Data Cell')
+            ds_file = DatasetFile.from_orm(
+                session=session,
+                orm=f_orm,
+                dataset_field=self,
+                dataset_cycle=cycle_domain
+            )
+            self.add_file(ds_file)
+
     def to_orm(self) -> DatasetFieldORM:
         return DatasetFieldORM(
             id=self.id,

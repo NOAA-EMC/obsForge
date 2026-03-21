@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 # from .netcdf_node import NetcdfNode, read_netcdf_nodes
 from .netcdf_structure_orm import NetcdfStructureORM, NetcdfVariableDimensionORM
 from .netcdf_scanner import NetcdfScanner
+from .netcdf_node import NetcdfNode
 
 # import netCDF4
 
@@ -65,6 +66,36 @@ class NetcdfStructure:
         
         struct_json = json.dumps(identities, sort_keys=True)
         return hashlib.sha256(struct_json.encode()).hexdigest()
+
+    @classmethod
+    def from_orm(cls, orm: NetcdfStructureORM) -> "NetcdfStructure":
+        """Reconstructs the full tree and registry."""
+        if not orm: return None
+
+        nodes_by_path = {}
+        # 1. Map flat ORM nodes to domain nodes
+        for n_orm in orm.nodes:
+            d_node = NetcdfNode.from_orm_self(n_orm)
+            nodes_by_path[d_node.full_path] = d_node
+
+        # 2. Build Hierarchy & Resolve Dimensions
+        root = nodes_by_path.get("/")
+        for n_orm in orm.nodes:
+            d_node = nodes_by_path[n_orm.full_path]
+            
+            # Parenting
+            if d_node.full_path != "/":
+                parent_path = d_node.full_path.rsplit("/", 1)[0] or "/"
+                parent = nodes_by_path.get(parent_path)
+                if parent: parent.add_child(d_node)
+
+            # Ordered Dimensions
+            if n_orm.node_type == "VARIABLE":
+                d_node.dim_names = [
+                    assoc.dimension.full_path for assoc in n_orm.variable_dimensions
+                ]
+
+        return cls(nodes_by_path=nodes_by_path, root=root, id=orm.id)
 
     def to_db(self, session: Session) -> Optional[NetcdfStructureORM]:
         """

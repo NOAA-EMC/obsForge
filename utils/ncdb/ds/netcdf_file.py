@@ -4,41 +4,105 @@ import numpy as np
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 
-from .netcdf_scanner import NetcdfScanner
-from .netcdf_structure import NetcdfStructure
-from .derived_attributes import DerivedAttributeRegistry
-
-from .netcdf_structure_orm import NetcdfStructureAttributeORM
+from .file_orm import FileORM
+from .netcdf_structure_orm import (
+    NetcdfStructureAttributeORM,
+    NetcdfNodeORM
+)
 from .netcdf_file_orm import (
     NetcdfFileAttributeORM,
     NetcdfFileDerivedAttributeORM,
 )
 
+from .netcdf_scanner import NetcdfScanner
+from .netcdf_structure import NetcdfStructure
+from .derived_attributes import DerivedAttributeRegistry
+from .file import File
+
 logger = logging.getLogger(__name__)
 
-class NetcdfFile:
-    """
-    Domain object representing a physical NetCDF file instance.
-    Handles reading actual data values and computing statistics.
-    """
 
+class NetcdfFile:
     def __init__(
         self,
-        file: "File", # Your generic domain File object
-        structure: Optional[NetcdfStructure] = None,
+        file: "File",
+        structure: NetcdfStructure,
+        attribute_values: Optional[Dict[str, Dict[str, Any]]] = None,
+        derived_values: Optional[Dict[str, Dict[str, float]]] = None,
         registry: Optional[DerivedAttributeRegistry] = None,
     ):
-        self.file = file 
+        self.file = file
         self.structure = structure
         self.registry = registry or DerivedAttributeRegistry.default()
         
+        # State is passed in or initialized as empty
         # path -> {attr_name: value}
-        self.attribute_values: Dict[str, Dict[str, Any]] = {} 
-        self.read_attributes()
-
+        self.attribute_values = attribute_values or {}
         # path -> {metric_name: value}
-        self.derived_values: Dict[str, Dict[str, float]] = {} 
-        self.compute_derived_attributes()
+        self.derived_values = derived_values or {}
+
+    @classmethod
+    def from_file(
+        cls, 
+        file_obj: "File", 
+        structure: NetcdfStructure
+    ) -> "NetcdfFile":
+        instance = cls(file=file_obj, structure=structure)
+        
+        instance.read_attributes()
+        instance.compute_derived_attributes()
+        
+        return instance
+
+    @classmethod
+    def from_orm(
+        cls, 
+        session: Session, 
+        file_orm: FileORM, 
+        structure: NetcdfStructure
+    ) -> "NetcdfFile":
+        # 1. Base identity
+        file_domain = File.from_orm(file_orm)
+        instance = cls(file=file_domain, structure=structure)
+
+        # 2. Modular hydration
+        instance.from_orm_attributes(session)
+        instance.from_orm_derived_attributes(session)
+
+        return instance
+
+    def from_orm_attributes(self, session: Session) -> None:
+        """Hydrates attribute_values from netcdf_file_attributes."""
+        attr_data = (
+            session.query(
+                NetcdfNodeORM.full_path, 
+                NetcdfStructureAttributeORM.attr_name, 
+                NetcdfFileAttributeORM.attr_value
+            )
+            .join(NetcdfStructureAttributeORM, NetcdfFileAttributeORM.struct_attr_id == NetcdfStructureAttributeORM.id)
+            .join(NetcdfNodeORM, NetcdfStructureAttributeORM.node_id == NetcdfNodeORM.id)
+            .filter(NetcdfFileAttributeORM.file_id == self.file.id)
+            .all()
+        )
+        
+        for path, name, val in attr_data:
+            self.attribute_values.setdefault(path, {})[name] = val
+
+    def from_orm_derived_attributes(self, session: Session) -> None:
+        """Hydrates derived_values from netcdf_file_derived_attributes."""
+        derived_data = (
+            session.query(
+                NetcdfNodeORM.full_path, 
+                NetcdfFileDerivedAttributeORM.name, 
+                NetcdfFileDerivedAttributeORM.value
+            )
+            .join(NetcdfNodeORM, NetcdfFileDerivedAttributeORM.netcdf_node_id == NetcdfNodeORM.id)
+            .filter(NetcdfFileDerivedAttributeORM.file_id == self.file.id)
+            .all()
+        )
+
+        for path, name, val in derived_data:
+            self.derived_values.setdefault(path, {})[name] = val
 
     def read_attributes(self) -> None:
         """

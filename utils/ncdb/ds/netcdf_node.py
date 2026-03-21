@@ -60,6 +60,19 @@ class NetcdfNode:
             "attr_names": sorted(self.attributes.keys())
         }
 
+    @classmethod
+    def from_orm_self(cls, orm: NetcdfNodeORM) -> "NetcdfNode":
+        """Extracts core node data. Hierarchy/Dims filled by Structure."""
+        node = cls(
+            full_path=orm.full_path,
+            node_type=orm.node_type,
+            dtype=orm.dtype
+        )
+        node.id = orm.id
+        # Initialize attribute keys; values are handled at the File level
+        node.attributes = {attr.attr_name: None for attr in orm.attributes}
+        return node
+
     def to_db(self, session: Session) -> NetcdfNodeORM:
         """
         Syncs the in-memory node with the database.

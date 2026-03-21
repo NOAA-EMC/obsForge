@@ -1,30 +1,46 @@
+import os
+from datetime import datetime
+
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter
 
-from db import session  # your SQLAlchemy session
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session
+
+from db import session
+
 from ds.dataset_orm import DatasetORM, DatasetCycleORM, DatasetFieldORM, DatasetFileORM
-from plotting.plot_generator import PlotGenerator
-from products_server import DataProductsServer
+from ds.netcdf_structure_orm import NetcdfNodeORM
 
-# from ds.dataset import DatasetField
+from ds.dataset import Dataset
+from ds.dataset_field import DatasetField
 from ds.obs_space import ObsSpace
 from ds.netcdf_structure import NetcdfStructure
 
-from sqlalchemy.orm import joinedload
+from plotting.plot_generator import PlotGenerator
+# from products_server import DataProductsServer
 
-from fastapi import APIRouter
-from sqlalchemy.orm import Session
-from ds.netcdf_structure_orm import NetcdfNodeORM
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
-data_products_dir = "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/data_products"
-server = DataProductsServer(data_products_dir)
+# data_products_dir = "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/data_products"
+# server = DataProductsServer(data_products_dir)
+
+# Absolute path on the filesystem
+# Update this to your preferred scratch location
+BASE_DATA_PRODUCTS_DIR = "/scratch3/NCEPDEV/da/Edward.Givelberg/monitoring/data_products/viewer"
+
+# Ensure the directory exists
+os.makedirs(BASE_DATA_PRODUCTS_DIR, exist_ok=True)
+
+# Map the URL prefix "/products" to the physical scratch folder
+app.mount("/products", StaticFiles(directory=BASE_DATA_PRODUCTS_DIR), name="products")
 
 
 # ----------------------------------
@@ -41,65 +57,64 @@ def index(request: Request):
 # ----------------------------------
 @app.get("/datasets/{dataset_id}/fields")
 def get_fields(dataset_id: int):
-    fields = session.query(DatasetFieldORM).filter(DatasetFieldORM.dataset_id == dataset_id).all()
-    return [{"id": f.id, "name": f.obs_space.name} for f in fields]
+    dataset_orm = session.get(DatasetORM, dataset_id)
+    if not dataset_orm:
+        return JSONResponse({"error": "Dataset not found"}, status_code=404)
+
+    # the non-recursive from_orm
+    ds = Dataset.from_orm_self(dataset_orm) 
+    ds.from_orm_fields(session)
+
+    # Return the data from the domain objects
+    return [
+        {"id": field.id, "name": field.obs_space.name} 
+        for field in ds.dataset_fields
+    ]
 
 
 @app.get("/fields/{field_id}/cycles")
 def get_cycles(field_id: int):
-    files = session.query(DatasetCycleORM).join(DatasetFileORM).filter(DatasetFileORM.dataset_field_id == field_id).all()
-    cycles = sorted({(c.cycle_date.isoformat(), c.cycle_hour) for c in files})
-    return [{"date": d, "hour": h} for d, h in cycles]
+    # print(f"\n[DEBUG] Fetching cycles for field_id: {field_id}")
 
+    # 1. Fetch the Field ORM to get the Dataset link
+    f_orm = session.get(DatasetFieldORM, field_id)
+    if not f_orm:
+        print(f"[DEBUG] ERROR: Field {field_id} not found in DB")
+        return []
+    
+    # print(f"[DEBUG] Found Field: {f_orm.obs_space.name} (Dataset ID: {f_orm.dataset_id})")
 
-'''
-@app.get("/fields/{field_id}/variables")
-def old_get_variables(field_id: int):
-    field = session.get(DatasetFieldORM, field_id)
+    # 2. Initialize the Dataset Domain Object
+    # We use f_orm.dataset which is the relationship link to DatasetORM
+    ds = Dataset.from_orm_self(f_orm.dataset)
+    # print(f"[DEBUG] Dataset Domain Object initialized: {ds.name} (ID: {ds.id})")
 
-    structure = field.obs_space.netcdf_structure
+    # 3. Load the Cycle Axis
+    # This is where we see if the DB has cycles for this dataset
+    ds.from_orm_cycles(session)
+    # print(f"[DEBUG] Cycles loaded from DB: {len(ds.dataset_cycles)} found")
 
-    variables = [
-        node.full_path
-        for node in structure.nodes
-        if node.node_type == "variable"
+    # 4. Optional: Print the first few cycles to verify date/hour formats
+    # if ds.dataset_cycles:
+        # first = ds.dataset_cycles[0]
+        # print(f"[DEBUG] Sample Cycle: {first.cycle_date} {first.cycle_hour}")
+
+    results = [
+        {"date": c.cycle_date.isoformat(), "hour": c.cycle_hour} 
+        for c in ds.dataset_cycles
     ]
+    
+    # print(f"[DEBUG] Returning {len(results)} cycles to the frontend\n")
+    return results
 
-    print(f"field: {field}")
-    print(f"obs_space: {field.obs_space}")
-    print(f"structure: {field.obs_space.netcdf_structure}")
-    print(f"variables: {field.obs_space.netcdf_structure.list_variables('/ombg')}")
-
-    return variables
-'''
 
 @app.get("/fields/{field_id}/variables")
 def get_variables(field_id: int):
-    # fetch the field ORM
-    field: DatasetFieldORM = session.get(DatasetFieldORM, field_id)
-    if not field:
+    field_orm = session.get(DatasetFieldORM, field_id)
+    if not field_orm:
         return []
-
-    # get the structure ORM from obs_space
-    structure = field.obs_space.netcdf_structure
-    if not structure:
-        return []
-
-    # query all VARIABLE nodes under '/ombg'
-    variables = (
-        session.query(NetcdfNodeORM.full_path)
-        .filter(
-            NetcdfNodeORM.structure_id == structure.id,
-            NetcdfNodeORM.node_type == "VARIABLE" #,
-            # NetcdfNodeORM.full_path.like("/ombg/%")  # limit to your desired group
-        )
-        .order_by(NetcdfNodeORM.full_path)
-        .all()
-    )
-
-    # flatten from list of tuples
-    return [v[0] for v in variables]
-
+    field = DatasetField.from_orm_self(field_orm, dataset=None) 
+    return field.obs_space.netcdf_structure.list_variables()
 
 
 @app.post("/generate-plot")
@@ -111,147 +126,88 @@ def generate_plot(
     variable: str = Form(...),
     plot_type: str = Form(...),
 ):
-
-    dataset = session.get(DatasetORM, dataset_id)
-    field = session.get(DatasetFieldORM, field_id)
+    # --- 1. Basic Identity Setup ---
+    ds_orm = session.get(DatasetORM, dataset_id)
+    f_orm = session.get(DatasetFieldORM, field_id)
     
-    # Load DatasetField and its relationships (including ObsSpaceORM and NetcdfStructureORM)
-    field_with_relationships = session.query(DatasetFieldORM).filter(DatasetFieldORM.id == field_id).options(
-        joinedload(DatasetFieldORM.obs_space).joinedload(ObsSpaceORM.netcdf_structure).joinedload(NetcdfStructureORM.nodes)
-    ).first()
-    
-    # Access the related ObsSpaceORM and NetcdfStructureORM
-    obs_space = field_with_relationships.obs_space
-    netcdf_structure = obs_space.netcdf_structure
-    
-
-
-    # --- 1. Fetch ORM objects ---
-    '''
-    dataset = session.get(DatasetORM, dataset_id)
-    # field = session.get(DatasetFieldORM, field_id)
-
-	# Modify this query to eagerly load 'obs_space', 'netcdf_structure', and 'netcdf_structure.nodes'
-    field = session.query(DatasetFieldORM).options(
-        joinedload(DatasetFieldORM.obs_space).joinedload(ObsSpace.netcdf_structure).joinedload(NetcdfStructure.nodes)
-	).get(field_id)
-    '''
-
-
-    if not dataset or not field:
+    if not ds_orm or not f_orm:
         return JSONResponse({"error": "Dataset or Field not found"}, status_code=404)
 
-    cycle = session.query(DatasetCycleORM).filter(
-        DatasetCycleORM.dataset_id == dataset_id,
-        DatasetCycleORM.cycle_date == cycle_date,
-        DatasetCycleORM.cycle_hour == cycle_hour
-    ).first()
-    if not cycle:
-        return JSONResponse({"error": "Cycle not found"}, status_code=404)
+    # Reconstruct the Dataset skeleton
+    ds = Dataset.from_orm_self(ds_orm)
 
-    file = field.dataset_files[0]  # Pick the first file for simplicity
 
-    # --- 2. Initialize the DatasetFile object ---
-    try:
-        # Initialize DatasetFile to ensure that the associated NetcdfFile is set up correctly
-        dataset_file = DatasetFile(file=file.file, dataset_field=field, dataset_cycle=cycle)
-    except Exception as e:
-        return JSONResponse({"error": f"Failed to initialize DatasetFile: {str(e)}"}, status_code=500)
-
-    # --- 3. Prepare plot output directory ---
-    output_dir = os.path.join("products", dataset.name, f"{cycle_date}_{cycle_hour}")
+    # Use the ABSOLUTE path for writing to disk
+    # This creates: /scratch3/.../data_products/viewer/gdas/2026-03-04_00/
+    output_dir = os.path.join(BASE_DATA_PRODUCTS_DIR, ds.name, f"{cycle_date}_{cycle_hour}")
     os.makedirs(output_dir, exist_ok=True)
-
     plotter = PlotGenerator(output_dir)
 
-    # --- 4. Handle plot types ---
-    url = None
 
+    
+    # Prepare output directory
+    # output_dir = os.path.join("products", ds.name, f"{cycle_date}_{cycle_hour}")
+    # os.makedirs(output_dir, exist_ok=True)
+    # plotter = PlotGenerator(output_dir)
+
+    # --- 2. Branching by Plot Type (The Data Slices) ---
+    
+    # CASE A: VERTICAL SLICE (Historical Time Series)
     if plot_type == "historical":
-        # --- Build "dirty" historical data list ---
-        data = []
-        for c in field.obs_space.list_cycles():  # Your existing ORM method or dummy
-            val = field.obs_space.get_variable_value(variable, c)
-            if val is None:
-                continue
-            data.append({
-                "date": c.cycle_date,     # YYYYMMDD
-                "cycle": int(c.cycle_hour),  # hour as int
-                variable: val
-            })
+        # Hydrate the Field with its history (e.g., last 50 files)
+        # This uses DatasetField.from_orm logic we wrote earlier
+        field = DatasetField.from_orm(session, f_orm, ds, n_files=50)
+        
+        # Build the DataFrame using the logic we moved into the Field class
+        df = field.get_variable_derived_data(session, variable)
+        
+        if df.empty:
+            return JSONResponse({"error": "No historical stats found in DB"}, status_code=404)
 
-        if not data:
-            return JSONResponse({"error": "No data for variable"}, status_code=404)
+        # Plot using the DataFrame
+        fname = f"{field.obs_space.name}_history.png"
+        plotter.generate_history_plot_from_df(df, variable, fname)
+        url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
 
-        fname = f"{field.obs_space.name}.png"
-        plotter.generate_history_plot(
-            title=f"{variable} History",
-            data=data,
-            val_key=variable,
-            std_key=None,   # Or pass your std key if available
-            fname=fname,
-            y_label="Value",
-        )
-        url = f"/products/{dataset.name}/{cycle_date}_{cycle_hour}/{fname}"
+    # CASE B: HORIZONTAL SLICE (Surface/Interactive Maps)
+    elif plot_type in ["surface", "interactive"]:
+        target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()
+        cycle_domain = ds.read_cycle_from_db(session, target_date, cycle_hour)
 
-    elif plot_type == "surface":
-        # --- Fetch lat/lon/values directly from the DatasetFile ---
+        if not cycle_domain:
+            return JSONResponse({"error": "Cycle data not found"}, status_code=404)
+
+        ds_file = next((f for f in cycle_domain.files if f.dataset_field.id == field_id), None)
+        
+        if not ds_file:
+            return JSONResponse({"error": "Field data missing for this cycle"}, status_code=404)
+
+        # Extract spatial data (lats, lons, values)
         try:
-            variable_path = variable
-            surface_data = dataset_file.get_surface_variable_data(variable_path)
-            lats = surface_data["lats"]
-            lons = surface_data["lons"]
-            values = surface_data["values"]
-            units = surface_data["units"]
+            data = ds_file.get_surface_variable_data(variable)
+            plot_payload = {
+                "dataset_name": ds.name,
+                "obs_space_name": ds_file.dataset_field.obs_space.name,
+                "variable_name": variable,
+                **data # Spreads lats, lons, values, units
+            }
         except Exception as e:
-            return JSONResponse({"error": f"Error fetching surface data: {str(e)}"}, status_code=500)
+            return JSONResponse({"error": f"NetCDF Read Error: {str(e)}"}, status_code=500)
 
-        # Prepare plot data for surface plot
-        plot_data = {
-            "dataset_name": dataset.name,
-            "obs_space_name": field.obs_space.name,
-            "lats": lats,
-            "lons": lons,
-            "values": values,
-            "variable_name": variable,
-            "units": units  # Units extracted from the NetCDF file
-        }
+        # Dispatch to correct plotter method
+        if plot_type == "surface":
 
-        # Generate the surface plot
-        fname = f"{field.obs_space.name}_surface.png"
-        plotter.generate_surface_map(os.path.join(output_dir, fname), plot_data)
+            # Generate the file
+            fname = f"{ds_file.dataset_field.obs_space.name}_surface.png"
+            plotter.generate_surface_map(os.path.join(output_dir, fname), plot_payload)
 
-        # Prepare the URL
-        url = f"/products/{dataset.name}/{cycle_date}_{cycle_hour}/{fname}"
-
-    elif plot_type == "interactive":
-        try:
-            # Same for interactive plot as for surface plot
-            variable_path = f"/{variable}"  # Adjust this if needed
-            surface_data = dataset_file.get_surface_variable_data(variable_path)
-            lats = surface_data["lats"]
-            lons = surface_data["lons"]
-            values = surface_data["values"]
-            units = surface_data["units"]
-        except Exception as e:
-            return JSONResponse({"error": f"Error fetching surface data: {str(e)}"}, status_code=500)
-
-        plot_data = {
-            "dataset_name": dataset.name,
-            "obs_space_name": field.obs_space.name,
-            "lats": lats,
-            "lons": lons,
-            "values": values,
-            "variable_name": variable,
-            "units": units
-        }
-
-        fname = f"int_{variable}.html"
-        plotter.generate_interactive_surface_map(os.path.join(output_dir, fname), plot_data)
-
-        url = f"/products/{dataset.name}/{cycle_date}_{cycle_hour}/{fname}"
+        else: # interactive
+            fname = f"int_{variable.replace('/', '_')}.html"
+            plotter.generate_interactive_surface_map(os.path.join(output_dir, fname), plot_payload)
+            
+        url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
 
     else:
-        return JSONResponse({"error": f"Unknown plot_type: {plot_type}"}, status_code=400)
+        return JSONResponse({"error": f"Unsupported plot type: {plot_type}"}, status_code=400)
 
     return JSONResponse({"url": url})

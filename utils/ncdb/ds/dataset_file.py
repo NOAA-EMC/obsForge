@@ -15,37 +15,64 @@ logger = logging.getLogger(__name__)
 
 '''
 A DatasetFile object is constructed by Dataset
-it holds a netcdf file which is belongs to a cycle
+it holds a netcdf file which belongs to a cycle
 and a field and has its attributes computed
 '''
+
 class DatasetFile:
     def __init__(
         self,
         file: "File",
         dataset_field: "DatasetField",
         dataset_cycle: "DatasetCycle",
-        id: Optional[int] = None
+        id: Optional[int] = None,
+        netcdf_file: Optional[NetcdfFile] = None
     ):
+        self.file = file
         self.dataset_field = dataset_field
         self.dataset_cycle = dataset_cycle
-        self.file = file
         self.id = id
+        self.netcdf_file = netcdf_file
 
-        self.netcdf_file: Optional[NetcdfFile] = None
-        try:
-            structure = None
-            if self.dataset_field.obs_space:
-                structure = self.dataset_field.obs_space.netcdf_structure
+    @classmethod
+    def from_file(
+        cls, 
+        file_obj: "File", 
+        dataset_field: "DatasetField", 
+        dataset_cycle: "DatasetCycle"
+    ) -> "DatasetFile":
+        structure = None
+        if dataset_field.obs_space:
+            structure = dataset_field.obs_space.netcdf_structure
 
-            self.netcdf_file = NetcdfFile(
-                file=self.file,
-                structure=structure,
-            )
-        except Exception as e:
-            logger.error(
-                f"Failed to initialize NetcdfFile for {self.file.path}: {e}"
-            )
-            self.netcdf_file = None
+        nc_file = NetcdfFile.from_file(file_obj, structure)
+
+        return cls(
+            file=file_obj,
+            dataset_field=dataset_field,
+            dataset_cycle=dataset_cycle,
+            netcdf_file=nc_file
+        )
+
+    @classmethod
+    def from_orm(
+        cls, 
+        session: Session, 
+        orm: DatasetFileORM, 
+        dataset_field: "DatasetField", 
+        dataset_cycle: "DatasetCycle"
+    ) -> "DatasetFile":
+        file_domain = File.from_orm(orm.file)
+        structure = dataset_field.obs_space.netcdf_structure
+        nc_file = NetcdfFile.from_orm(session, orm.file, structure)
+
+        return cls(
+            file=file_domain,
+            dataset_field=dataset_field,
+            dataset_cycle=dataset_cycle,
+            id=orm.id,
+            netcdf_file=nc_file
+        )
 
     def __repr__(self) -> str:
         return (

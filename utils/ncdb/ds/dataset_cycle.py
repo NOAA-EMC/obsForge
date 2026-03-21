@@ -5,10 +5,14 @@ from typing import Optional, List, Tuple
 from pathlib import Path
 
 from sqlalchemy import select, and_
-from .dataset_orm import DatasetCycleORM
+from sqlalchemy.orm import Session
+
+from .dataset_orm import DatasetCycleORM, DatasetFileORM
+
 from .file_scanner import FileScanner, SubdirFileScanner
 from .obs_space import ObsSpace
 from .dataset_field import DatasetField
+from .dataset_file import DatasetFile
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +133,50 @@ class DatasetCycle:
 
         return cycle_date, cycle_hour
     '''
+
+    @classmethod
+    def from_orm(
+        cls, 
+        session: Session, 
+        orm: DatasetCycleORM, 
+        dataset: "Dataset"
+    ) -> "DatasetCycle":
+        instance = cls.from_orm_self(orm, dataset)
+        instance.from_orm_files(session)
+        return instance
+
+    @classmethod
+    def from_orm_self(cls, orm: DatasetCycleORM, dataset: "Dataset") -> "DatasetCycle":
+        if not orm:
+            return None
+            
+        return cls(
+            dataset=dataset,
+            cycle_date=orm.cycle_date,
+            cycle_hour=orm.cycle_hour,
+            id=orm.id
+        )
+
+    def from_orm_files(self, session: Session) -> None:
+        # Fetch DatasetFileORM objects for this specific cycle
+        stmt = (
+            select(DatasetFileORM)
+            .where(DatasetFileORM.dataset_cycle_id == self.id)
+        )
+        file_orms = session.scalars(stmt).all()
+
+        for f_orm in file_orms:
+            field_domain = self.dataset.find_field_by_id(f_orm.dataset_field_id)
+            
+            if field_domain:
+                ds_file = DatasetFile.from_orm(
+                    session=session,
+                    orm=f_orm,
+                    dataset_field=field_domain,
+                    dataset_cycle=self
+                )
+                field_domain.add_file(ds_file)
+                self.add_file(ds_file)
 
     def to_orm(self) -> DatasetCycleORM:
         return DatasetCycleORM(

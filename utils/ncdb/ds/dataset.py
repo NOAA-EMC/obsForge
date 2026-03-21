@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Set
 
 from sqlalchemy import (
     select,
+    and_
 )
 from sqlalchemy.orm import Session
 
@@ -81,6 +82,84 @@ class Dataset:
         else:  # n < 0
             selected = cycles[n:]
         return selected
+
+    @classmethod
+    def from_orm_self(cls, orm: "DatasetORM") -> "Dataset":
+        if not orm:
+            return None
+        instance = cls(
+            name=orm.name,
+            root_dir=orm.root_dir,
+            id=orm.id
+        )
+        return instance
+
+    def from_orm_fields(self, session: Session) -> None:
+        """
+        get all the obs spaces from the db
+        """
+        if self.id is None:
+            logger.error(f"Cannot load fields for dataset '{self.name}': ID is missing.")
+            return
+
+        # 1. Query all fields for this dataset
+        # We join ObsSpace to get the name and structure_id in one go
+        stmt = (
+            select(DatasetFieldORM)
+            .where(DatasetFieldORM.dataset_id == self.id)
+        )
+        field_orms = session.scalars(stmt).all()
+
+        # 2. Reset or update the local registry
+        self.dataset_fields = []
+
+        for f_orm in field_orms:
+            # We use from_orm_self because we do NOT want recursion into files here
+            field_domain = DatasetField.from_orm_self(f_orm, self)
+            self.dataset_fields.append(field_domain)
+
+        logger.info(f"Loaded {len(self.dataset_fields)} fields for dataset '{self.name}'")
+
+
+    def from_orm_cycles(self, session: Session) -> None:
+        """
+        Loads all DatasetCycle identities (Date/Hour) without loading files.
+        """
+        if self.id is None:
+            logger.error(f"Cannot load cycles for dataset '{self.name}': ID is missing.")
+            return
+
+        # Query all cycles for this dataset
+        stmt = (
+            select(DatasetCycleORM)
+            .where(DatasetCycleORM.dataset_id == self.id)
+            .order_by(DatasetCycleORM.cycle_date.desc(), DatasetCycleORM.cycle_hour.desc())
+        )
+        cycle_orms = session.scalars(stmt).all()
+
+        self.dataset_cycles = []
+        for c_orm in cycle_orms:
+            cycle_domain = DatasetCycle.from_orm_self(c_orm, self)
+            self.dataset_cycles.append(cycle_domain)
+
+        logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
+
+
+    def find_field_by_id(self, field_id: int) -> Optional[DatasetField]:
+        """Finds a loaded Field domain object by its database ID."""
+        for field in self.dataset_fields:
+            if field.id == field_id:
+                return field
+        return None
+
+    '''
+    def get_field_by_obs_space(self, obs_space_name: str) -> Optional[DatasetField]:
+        """Finds a loaded Field by the name of its observation space."""
+        for field in self.dataset_fields:
+            if field.obs_space.name == obs_space_name:
+                return field
+        return None
+    '''
 
     # --------------------------------------------------------
     # Persistence
@@ -160,7 +239,7 @@ class Dataset:
             else:
                 field = DatasetField(self, obs_space)
 
-            dsf = DatasetFile(f, field, cycle)
+            dsf = DatasetFile.from_file(f, field, cycle)
             field.add_file(dsf)
             cycle.add_file(dsf)
 
@@ -239,3 +318,46 @@ class Dataset:
         for cycle_date, cycle_hour in selected:
             cycle_files = DatasetCycle.read_cycle_files(self, cycle_date, cycle_hour)
             self.add_cycle(cycle_date, cycle_hour, cycle_files)
+
+    def read_cycle_from_db(
+        self, 
+        session: Session, 
+        cycle_date: date, 
+        cycle_hour: str
+    ) -> Optional[DatasetCycle]:
+        """
+        get a cycle and its files from the DB.
+        """
+        if not self.dataset_fields:
+            self.from_orm_fields(session)
+
+        # Check if already in dataset
+        existing_memory = next(
+            (c for c in self.dataset_cycles 
+             if c.cycle_date == cycle_date and c.cycle_hour == cycle_hour), 
+            None
+        )
+        if existing_memory:
+            return existing_memory
+
+        # Find the Cycle ORM record
+        stmt = select(DatasetCycleORM).where(
+            and_(
+                DatasetCycleORM.dataset_id == self.id,
+                DatasetCycleORM.cycle_date == cycle_date,
+                DatasetCycleORM.cycle_hour == cycle_hour
+            )
+        )
+        c_orm = session.scalar(stmt)
+
+        if not c_orm:
+            logger.warning(f"Cycle {cycle_date} {cycle_hour} not found in DB for {self.name}")
+            return None
+
+        # This will link files to the fields found in self.dataset_fields
+        cycle_domain = DatasetCycle.from_orm(session, c_orm, self)
+
+        self.dataset_cycles.append(cycle_domain)
+        self.dataset_cycles.sort()
+
+        return cycle_domain

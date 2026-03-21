@@ -36,6 +36,22 @@ class ObsSpace:
             f"{self.netcdf_structure}>"
         )
 
+    @classmethod
+    def from_orm(cls, orm: ObsSpaceORM) -> "ObsSpace":
+        if not orm:
+            return None
+
+        # 1. Reconstruct the NetcdfStructure domain object
+        # Note: orm.netcdf_structure is the NetcdfStructureORM instance
+        structure_domain = NetcdfStructure.from_orm(orm.netcdf_structure)
+
+        # 2. Return the assembled ObsSpace domain object
+        return cls(
+            name=orm.name,
+            netcdf_structure=structure_domain,
+            id=orm.id
+        )
+
     def compare(self, other: "ObsSpace") -> bool:
         """
         Compare two ObsSpace objects.

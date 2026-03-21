@@ -44,6 +44,16 @@ class File:
             mtime=datetime.fromtimestamp(stat.st_mtime),
         )
 
+    @classmethod
+    def from_orm(cls, orm: FileORM) -> "File":
+        """Reconstructs the basic File domain object from the database."""
+        return cls(
+            path=orm.path,
+            size=orm.size,
+            mtime=orm.mtime,
+            id=orm.id
+        )
+
     def to_orm(self) -> FileORM:
         return FileORM(
             id=self.id,
