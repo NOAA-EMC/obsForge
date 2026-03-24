@@ -68,7 +68,8 @@ class DatasetCycle:
         # First compare by cycle_date, then by cycle_hour
         if self.cycle_date != other.cycle_date:
             return self.cycle_date < other.cycle_date
-        return self.cycle_hour < other.cycle_hour
+        # return self.cycle_hour < other.cycle_hour
+        return int(self.cycle_hour) < int(other.cycle_hour)
 
     def add_file(self, file):
         self.files.append(file)
@@ -78,7 +79,7 @@ class DatasetCycle:
         cycle_dir = DatasetCycle.cycle_dir(dataset, cycle_date, cycle_hour)
         if not os.path.isdir(cycle_dir):
             logger.warning(f"Cycle directory does not exist: {cycle_dir}")
-            return None
+            return []
 
         all_files = dataset.file_scanner.scan(cycle_dir)
         # logger.debug(f"from_dir: {len(all_files)} files")
@@ -134,6 +135,7 @@ class DatasetCycle:
         return cycle_date, cycle_hour
     '''
 
+    '''
     @classmethod
     def from_orm(
         cls, 
@@ -141,15 +143,16 @@ class DatasetCycle:
         orm: DatasetCycleORM, 
         dataset: "Dataset"
     ) -> "DatasetCycle":
-        instance = cls.from_orm_self(orm, dataset)
-        instance.from_orm_files(session)
+        instance = cls.from_db_self(orm, dataset)
+        instance._load_files_from_db(session)
         return instance
+    '''
 
     @classmethod
-    def from_orm_self(cls, orm: DatasetCycleORM, dataset: "Dataset") -> "DatasetCycle":
+    def _from_db_self(cls, orm: DatasetCycleORM, dataset: "Dataset") -> "DatasetCycle":
         if not orm:
             return None
-            
+
         return cls(
             dataset=dataset,
             cycle_date=orm.cycle_date,
@@ -157,8 +160,7 @@ class DatasetCycle:
             id=orm.id
         )
 
-    def from_orm_files(self, session: Session) -> None:
-        # Fetch DatasetFileORM objects for this specific cycle
+    def _load_files_from_db(self, session: Session) -> None:
         stmt = (
             select(DatasetFileORM)
             .where(DatasetFileORM.dataset_cycle_id == self.id)
@@ -233,3 +235,58 @@ class DatasetCycle:
         self.id = orm.id
 
         return orm
+
+
+    @classmethod
+    def from_db(
+        cls,
+        session: Session,
+        dataset: "Dataset",
+        cycle_date: date,
+        cycle_hour: str
+    ) -> Optional["DatasetCycle"]:
+        """
+        Factory: load a cycle and its files from DB.
+        Preserves current behavior (including dataset mutation).
+        """
+
+        # ⚠️ Preserve current implicit dependency
+        if not dataset.dataset_fields:
+            dataset.from_orm_fields(session)
+
+        # 1. Check if already loaded in memory
+        existing = next(
+            (c for c in dataset.dataset_cycles
+             if c.cycle_date == cycle_date and c.cycle_hour == cycle_hour),
+            None
+        )
+        if existing:
+            return existing
+
+        # 2. Query ORM
+        stmt = select(DatasetCycleORM).where(
+            and_(
+                DatasetCycleORM.dataset_id == dataset.id,
+                DatasetCycleORM.cycle_date == cycle_date,
+                DatasetCycleORM.cycle_hour == cycle_hour
+            )
+        )
+        c_orm = session.scalar(stmt)
+
+        if not c_orm:
+            logger.warning(
+                f"Cycle {cycle_date} {cycle_hour} not found in DB "
+                f"for {dataset.name}"
+            )
+            return None
+
+        # 3. Build domain object (existing logic)
+        # cycle = cls.from_orm(session, c_orm, dataset)
+        cycle = cls._from_db_self(c_orm, dataset)
+        cycle._load_files_from_db(session)
+
+        # 4. Register in dataset (preserve behavior)
+        dataset.dataset_cycles.append(cycle)
+        dataset.dataset_cycles.sort()
+
+        return cycle

@@ -2,6 +2,8 @@ import logging
 import os
 import shutil
 from datetime import datetime
+import pandas as pd
+from typing import Optional, List, Union
 
 # --- FAIL-SOFT IMPORTS ---
 # Allows the pipeline to run even if Matplotlib is missing.
@@ -647,3 +649,104 @@ class PlotGenerator:
         # 6. Save as standalone HTML
         fig.write_html(output_path)
         logger.info(f"Interactive HTML generated: {output_path}")
+
+
+    def generate_history_plot_pd(
+        self,
+        df: pd.DataFrame,
+        val_col: str,
+        std_col: Optional[str],
+        title: str,
+        y_label: str,
+        out_path: str,
+        days: Optional[int] = None,
+        clamp_bottom: bool = True,
+        use_moving_avg: bool = True,
+        window_size: int = 120  # 30 days if 4 cycles/day
+    ):
+        if not HAS_MATPLOTLIB or df.empty:
+            return None
+
+        # 1. Windowing (Last N days)
+        if days is not None:
+            cutoff = df.index.max() - pd.Timedelta(days=days)
+            df = df[df.index >= cutoff]
+
+        # 2. Extract Series
+        v_arr = df[val_col]
+        d_arr = df.index
+        
+        # 3. Initialize Plot
+        fig, ax = plt.subplots(figsize=(10, 4))
+        
+        # MODE 1: Spatial Variance (from DB stddev column)
+        if std_col and std_col in df.columns:
+            s_arr = df[std_col]
+            lower = v_arr - s_arr
+            upper = v_arr + s_arr
+            if clamp_bottom:
+                lower = lower.clip(lower=0)
+            
+            ax.fill_between(d_arr, lower, upper, color='#3498db', alpha=0.3, label='±1σ (Spatial)')
+            ax.plot(d_arr, v_arr, color='#2980b9', lw=2, label='Mean', marker='.', ms=4)
+            
+            y_min, y_max = lower.min(), upper.max()
+
+        # MODE 2: Moving Average (Temporal Variance)
+        elif use_moving_avg:
+            # Vectorized Pandas Rolling Mean/Std
+            roll = v_arr.rolling(window=window_size, min_periods=1)
+            m_val = roll.mean()
+            m_std = roll.std()
+            
+            lower = m_val - m_std
+            if clamp_bottom:
+                lower = lower.clip(lower=0)
+            
+            # Plot raw values in light blue, Trend in Orange
+            ax.plot(d_arr, v_arr, color='#2980b9', alpha=0.3, lw=1, label='Actual')
+            ax.plot(d_arr, m_val, color='#e67e22', lw=2, label='Moving Avg')
+            ax.fill_between(d_arr, lower, m_val + m_std, color='#e67e22', alpha=0.15, label='MA ±1σ')
+            
+            y_min = min(v_arr.min(), lower.min())
+            y_max = max(v_arr.max(), (m_val + m_std).max())
+
+        # 4. Common Formatting (Reusing your logic)
+        self._apply_styling(ax, title, y_label, d_arr, y_min, y_max, clamp_bottom)
+
+        plt.tight_layout()
+        plt.savefig(out_path, dpi=100)
+        plt.close(fig)
+        return os.path.basename(out_path)
+
+    def _apply_styling(self, ax, title, y_label, d_arr, y_min, y_max, clamp_bottom):
+        """Internal helper to standardize plot appearance."""
+        ax.set_title(title, fontsize=10, fontweight='bold', color='#333')
+        ax.set_ylabel(y_label, fontsize=9)
+        ax.grid(True, which='major', linestyle='--', alpha=0.6)
+        ax.grid(True, which='minor', linestyle=':', alpha=0.3)
+
+        # Set Y-Limits with 10% padding
+        span = y_max - y_min
+        if span == 0:
+            span = 1.0 if y_max == 0 else abs(y_max) * 0.1
+
+        limit_min = y_min - (span * 0.1)
+        if clamp_bottom and limit_min < 0:
+            limit_min = 0
+
+        ax.set_ylim(limit_min, y_max + (span * 0.1))
+
+        # Date Axis Formatting - Native Pandas handling
+        if len(d_arr) > 0:
+            # If the span of dates is large, show days; if small, show hours
+            date_range = d_arr.max() - d_arr.min()
+            if date_range.days > 2:
+                ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+            else:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+        # Standard Matplotlib rotation/cleanup
+        plt.gcf().autofmt_xdate()
+        ax.legend(loc='upper left', fontsize='small', frameon=True)

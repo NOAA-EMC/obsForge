@@ -17,6 +17,7 @@ from ds.netcdf_structure_orm import NetcdfNodeORM
 
 from ds.dataset import Dataset
 from ds.dataset_field import DatasetField
+from ds.dataset_cycle import DatasetCycle
 from ds.obs_space import ObsSpace
 from ds.netcdf_structure import NetcdfStructure
 
@@ -62,7 +63,7 @@ def get_fields(dataset_id: int):
         return JSONResponse({"error": "Dataset not found"}, status_code=404)
 
     # the non-recursive from_orm
-    ds = Dataset.from_orm_self(dataset_orm) 
+    ds = Dataset.from_db_self(dataset_orm) 
     ds.from_orm_fields(session)
 
     # Return the data from the domain objects
@@ -86,12 +87,12 @@ def get_cycles(field_id: int):
 
     # 2. Initialize the Dataset Domain Object
     # We use f_orm.dataset which is the relationship link to DatasetORM
-    ds = Dataset.from_orm_self(f_orm.dataset)
+    ds = Dataset.from_db_self(f_orm.dataset)
     # print(f"[DEBUG] Dataset Domain Object initialized: {ds.name} (ID: {ds.id})")
 
     # 3. Load the Cycle Axis
     # This is where we see if the DB has cycles for this dataset
-    ds.from_orm_cycles(session)
+    ds.load_cycles_from_db(session)
     # print(f"[DEBUG] Cycles loaded from DB: {len(ds.dataset_cycles)} found")
 
     # 4. Optional: Print the first few cycles to verify date/hour formats
@@ -116,6 +117,80 @@ def get_variables(field_id: int):
     field = DatasetField.from_orm_self(field_orm, dataset=None) 
     return field.obs_space.netcdf_structure.list_variables()
 
+def generate_history_plot(session, field, variable, plotter):
+    df = field.get_variable_derived_data(session, variable)
+    if df.empty:
+        logger.debug(f"No history found for {variable}")
+        return None
+
+    # 2. Pathing
+    fname = f"{field.obs_space.name}_history.png"
+    plot_path = os.path.join(plotter.output_dir, fname)
+
+    plotter.generate_history_plot_pd(
+        df=df,
+        val_col="mean",      # Matches the metric name in your DB/DataFrame
+        std_col="stddev",    # Matches the metric name in your DB/DataFrame
+        title=f"History: {variable}",
+        y_label="Value",
+        out_path=plot_path
+    )
+
+    return fname
+
+def old_generate_history_plot(session, field, variable, plotter):
+    """
+    Standalone Function: Orchestrates the vertical slice (Time Series).
+    """
+    # 1. Get the Pivoted DataFrame
+    # Columns are: 'mean', 'stddev' (or whatever metrics are in DB)
+    # Index is: 'ts' (the timestamp)
+    df = field.get_variable_derived_data(session, variable)
+
+    if df.empty:
+        print(f"[DEBUG] No history found for {variable}")
+        return None
+
+    # 2. Convert to plotter format
+    # Since 'ts' is the INDEX, we use row.Index
+    plot_ready_data = []
+    for row in df.itertuples(index=True):
+        try:
+            # Check if required metrics exist in this row
+            val = getattr(row, 'mean', None)
+            std = getattr(row, 'stddev', None)
+            
+            if val is None:
+                continue
+
+            plot_ready_data.append({
+                "date": row.Index.strftime("%Y%m%d"),
+                "cycle": row.Index.hour,
+                "mean": val,
+                "stddev": std
+            })
+        except Exception as e:
+            print(f"[DEBUG] Row error: {e}")
+            continue
+
+    if not plot_ready_data:
+        return None
+
+    # 3. Pathing and Plotting
+    fname = f"{field.obs_space.name}_history.png"
+    plot_path = os.path.join(plotter.output_dir, fname)
+
+    plotter.generate_history_plot_with_moving_avg(
+        plot_path=plot_path,
+        data=plot_ready_data,
+        title=f"History: {variable}",
+        val_key="mean",
+        std_key="stddev",
+        y_label="Value"
+    )
+
+    return fname
+
 
 @app.post("/generate-plot")
 def generate_plot(
@@ -134,7 +209,7 @@ def generate_plot(
         return JSONResponse({"error": "Dataset or Field not found"}, status_code=404)
 
     # Reconstruct the Dataset skeleton
-    ds = Dataset.from_orm_self(ds_orm)
+    ds = Dataset.from_db_self(ds_orm)
 
 
     # Use the ABSOLUTE path for writing to disk
@@ -152,11 +227,21 @@ def generate_plot(
 
     # --- 2. Branching by Plot Type (The Data Slices) ---
     
-    # CASE A: VERTICAL SLICE (Historical Time Series)
     if plot_type == "historical":
-        # Hydrate the Field with its history (e.g., last 50 files)
+        field = DatasetField.from_orm(session, f_orm, ds)
+        fname = generate_history_plot(session, field, variable, plotter)
+        
+        if not fname:
+            return JSONResponse({"error": "No data found for plot"}, status_code=404)
+
+        url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
+        return JSONResponse({"url": url})
+
+        '''
+        # Hydrate the Field with its history 
         # This uses DatasetField.from_orm logic we wrote earlier
-        field = DatasetField.from_orm(session, f_orm, ds, n_files=50)
+        # field = DatasetField.from_orm(session, f_orm, ds, n_files=50)
+        field = DatasetField.from_orm(session, f_orm, ds)
         
         # Build the DataFrame using the logic we moved into the Field class
         df = field.get_variable_derived_data(session, variable)
@@ -168,11 +253,12 @@ def generate_plot(
         fname = f"{field.obs_space.name}_history.png"
         plotter.generate_history_plot_from_df(df, variable, fname)
         url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
+        '''
 
-    # CASE B: HORIZONTAL SLICE (Surface/Interactive Maps)
     elif plot_type in ["surface", "interactive"]:
         target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()
-        cycle_domain = ds.read_cycle_from_db(session, target_date, cycle_hour)
+        # cycle_domain = ds.read_cycle_from_db(session, target_date, cycle_hour)
+        cycle_domain = DatasetCycle.from_db(session, ds, target_date, cycle_hour)
 
         if not cycle_domain:
             return JSONResponse({"error": "Cycle data not found"}, status_code=404)

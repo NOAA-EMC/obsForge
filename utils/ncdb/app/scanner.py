@@ -55,6 +55,9 @@ class Scanner:
         logger.info(f"Discovered {len(self.datasets)} datasets {[d.name for d in self.datasets]}")
 
     def read(self, n_cycles: Optional[int] = None) -> None:
+        # logger.info(f"Reading cycles (limit = {n_cycles})")
+        if n_cycles == 0:
+            n_cycles = None
         for ds in self.datasets:
             ds.read_cycles(n_cycles)
 

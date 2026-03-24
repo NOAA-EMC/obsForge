@@ -1,17 +1,20 @@
 import logging
 from typing import Optional
+import pandas as pd
 
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
-from .dataset_orm import DatasetFieldORM
-from .dataset_file import DatasetFile
+from .dataset_orm import (
+    DatasetFieldORM,
+    DatasetCycleORM,
+    DatasetFileORM
+)
 
-import pandas as pd
-# from sqlalchemy import select
-from .dataset_orm import DatasetFileORM, DatasetCycleORM
 from .netcdf_structure_orm import  NetcdfNodeORM
 from .netcdf_file_orm import NetcdfFileDerivedAttributeORM
+
+from .dataset_file import DatasetFile
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,7 @@ class DatasetField:
         return instance
 
     def from_orm_files(self, session: Session, n: Optional[int] = None) -> None:
+        from .dataset_cycle import DatasetCycle
         stmt = (
             select(DatasetFileORM)
             .join(DatasetCycleORM)
@@ -78,10 +82,8 @@ class DatasetField:
         file_orms = session.scalars(stmt).all()
 
         for f_orm in file_orms:
-            # Reconstruct the Cycle identity (The 'When')
-            cycle_domain = DatasetCycle.from_orm_self(f_orm.dataset_cycle, self.dataset)
+            cycle_domain = DatasetCycle._from_db_self(f_orm.dataset_cycle, self.dataset)
             
-            # Reconstruct the DatasetFile (The 'Data Cell')
             ds_file = DatasetFile.from_orm(
                 session=session,
                 orm=f_orm,

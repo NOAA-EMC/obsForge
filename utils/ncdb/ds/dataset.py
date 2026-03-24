@@ -84,7 +84,7 @@ class Dataset:
         return selected
 
     @classmethod
-    def from_orm_self(cls, orm: "DatasetORM") -> "Dataset":
+    def from_db_self(cls, orm: "DatasetORM") -> "Dataset":
         if not orm:
             return None
         instance = cls(
@@ -114,14 +114,13 @@ class Dataset:
         self.dataset_fields = []
 
         for f_orm in field_orms:
-            # We use from_orm_self because we do NOT want recursion into files here
             field_domain = DatasetField.from_orm_self(f_orm, self)
             self.dataset_fields.append(field_domain)
 
         logger.info(f"Loaded {len(self.dataset_fields)} fields for dataset '{self.name}'")
 
 
-    def from_orm_cycles(self, session: Session) -> None:
+    def load_cycles_from_db(self, session: Session) -> None:
         """
         Loads all DatasetCycle identities (Date/Hour) without loading files.
         """
@@ -139,7 +138,7 @@ class Dataset:
 
         self.dataset_cycles = []
         for c_orm in cycle_orms:
-            cycle_domain = DatasetCycle.from_orm_self(c_orm, self)
+            cycle_domain = DatasetCycle._from_db_self(c_orm, self)
             self.dataset_cycles.append(cycle_domain)
 
         logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
@@ -223,7 +222,7 @@ class Dataset:
         for f in cycle_files:
             obs_space = ObsSpace.from_file(f.path, self.obs_space_name_parser)
             if not obs_space:
-                logger.error(f"Bad obs space: ignoring {file}")
+                logger.error(f"Bad obs space: ignoring {f}")
                 continue
 
             same_name_fields = [
@@ -298,8 +297,9 @@ class Dataset:
                 ):
                     discovered.append((cycle_date, hour_entry))
 
-        # Always return sorted (important!)
-        return sorted(discovered, key=lambda x: (x[0], x[1]))
+        sorted_cycles = sorted(discovered, key=lambda x: (x[0], x[1]))
+        logger.info(f"Discovered {len(sorted_cycles)} cycles for dataset {self.name}")
+        return sorted_cycles
 
     def read_cycles(self, n: Optional[int] = None) -> list["DatasetCycle"]:
         """
@@ -318,46 +318,3 @@ class Dataset:
         for cycle_date, cycle_hour in selected:
             cycle_files = DatasetCycle.read_cycle_files(self, cycle_date, cycle_hour)
             self.add_cycle(cycle_date, cycle_hour, cycle_files)
-
-    def read_cycle_from_db(
-        self, 
-        session: Session, 
-        cycle_date: date, 
-        cycle_hour: str
-    ) -> Optional[DatasetCycle]:
-        """
-        get a cycle and its files from the DB.
-        """
-        if not self.dataset_fields:
-            self.from_orm_fields(session)
-
-        # Check if already in dataset
-        existing_memory = next(
-            (c for c in self.dataset_cycles 
-             if c.cycle_date == cycle_date and c.cycle_hour == cycle_hour), 
-            None
-        )
-        if existing_memory:
-            return existing_memory
-
-        # Find the Cycle ORM record
-        stmt = select(DatasetCycleORM).where(
-            and_(
-                DatasetCycleORM.dataset_id == self.id,
-                DatasetCycleORM.cycle_date == cycle_date,
-                DatasetCycleORM.cycle_hour == cycle_hour
-            )
-        )
-        c_orm = session.scalar(stmt)
-
-        if not c_orm:
-            logger.warning(f"Cycle {cycle_date} {cycle_hour} not found in DB for {self.name}")
-            return None
-
-        # This will link files to the fields found in self.dataset_fields
-        cycle_domain = DatasetCycle.from_orm(session, c_orm, self)
-
-        self.dataset_cycles.append(cycle_domain)
-        self.dataset_cycles.sort()
-
-        return cycle_domain
