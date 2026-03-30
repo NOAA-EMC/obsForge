@@ -153,10 +153,10 @@ class WebsiteGenerator:
         """
 
         # Sections
-        html += self._render_flagged_section(current_run)
-        html += self._render_inventory_section(current_run)
         html += self._render_timing_section(current_run)
         html += self._render_category_section(current_run)
+        html += self._render_flagged_section(current_run)
+        html += self._render_inventory_section(current_run)
 
         # Close container
         html += "</div></body></html>"
@@ -345,12 +345,15 @@ class WebsiteGenerator:
             detail_filename = f"{run_type}_{safe_cat}.html"
             cat_link = os.path.join("html", run_type, "categories", detail_filename)
 
-            # html += f"""
-            # <div class='plot-card'>
-                # <a href='categories/{detail_filename}'
-                   # style='text-decoration:none; color:inherit'>
-                    # <h3>{category} &rarr;</h3>
-            # """
+            detail_filename = f"{run_type}_NOAA_{safe_cat}.html"
+            NOAA_cat_link = os.path.join("html", run_type, "categories", detail_filename)
+
+            html += f"""
+            <div class='plot-card'>
+                <a href='{NOAA_cat_link}'
+                   style='text-decoration:none; color:inherit'>
+                    <h3>{category} &rarr;</h3>
+            """
 
             html += f"""
             <div class='plot-card'>

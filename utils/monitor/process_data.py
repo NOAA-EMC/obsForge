@@ -54,6 +54,7 @@ def main():
     logger.info(f"DB path     : {args.db}")
     logger.info(f"Data root   : {args.data_root}")
     logger.info(f"Output dir  : {args.out}")
+    logger.info(f"Cycle limit : {args.limit_cycles}")
 
     try:
         data = WebsiteDataProducts(

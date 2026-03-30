@@ -14,6 +14,7 @@ try:
     import cartopy
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
+    import matplotlib.ticker as mticker
 
     # from .var_plot_scales import VariablePlotScales
     from .subsample_surface import subsample_surface_points
@@ -377,11 +378,33 @@ class PlotGenerator:
             ax.set_ylim(limit_min, y_max + (span * 0.1))
 
             # Date Axis Formatting
+            '''
             if len(d_arr) > 14:
                 ax.xaxis.set_major_locator(mdates.DayLocator())
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
             else:
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            '''
+
+            # Date Axis Formatting (adaptive, prevents congestion)
+            n = len(d_arr)
+
+            if n > 100:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=7))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            elif n > 50:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=3))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            elif n > 20:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            else:
+                ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%H'))
+
 
             fig.autofmt_xdate()
             ax.legend(loc='upper left', fontsize='small', frameon=True)
@@ -571,12 +594,35 @@ class PlotGenerator:
 
             ax.set_ylim(limit_min, y_max + (span * 0.1))
 
+            '''
             # Date Axis Formatting
             if len(d_arr) > 14:
                 ax.xaxis.set_major_locator(mdates.DayLocator())
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
             else:
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            '''
+
+            # Date Axis Formatting (adaptive, prevents congestion)
+            n = len(d_arr)
+
+            if n > 100:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=7))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            elif n > 50:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=3))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            elif n > 20:
+                ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+
+            else:
+                ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%H'))
+
+
 
             fig.autofmt_xdate()
             ax.legend(loc='upper left', fontsize='small', frameon=True)
@@ -740,11 +786,6 @@ class PlotGenerator:
             plt.close(fig)
 
 
-
-
-
-
-
     def _moving_avg(self, y, N=120):
         """
         Compute trailing moving average and standard deviation.
@@ -841,3 +882,258 @@ class PlotGenerator:
         # 8. Save figure
         plt.savefig(output_path, bbox_inches='tight', dpi=150)
         plt.close(fig)
+
+    '''
+    def _plot_series_with_moving_avg(
+        self,
+        dates,
+        values,
+        mvalues=None,
+        mstds=None,
+        stds=None,
+        title="",
+        y_label="",
+        out_path=None,
+        clamp_bottom=None,
+    '''
+
+    def generate_NOAA_Obs_count_plot(
+        self,
+        title,
+        data,
+        val_key,
+        fname,
+        y_label="Obs per Hour",
+    ):
+        """
+        NOAA-style observation count plot:
+        - Green dashed line: hourly obs (cycle value / 6)
+        - Red solid line: 30-day (~120 cycles) moving avg
+        - Visible markers at each cycle
+        - 3-day window (last 12 cycles)
+        - Black grid (vertical per cycle, horizontal dynamic)
+        - X labels: dd/hh
+        """
+
+        if not HAS_MATPLOTLIB or not data:
+            return None
+
+        dates = []
+        values = []
+
+        # -------------------------
+        # Parse data
+        # -------------------------
+        for r in data:
+            try:
+                dt_str = f"{r['date']}{r['cycle']:02d}"
+                dt = datetime.strptime(dt_str, "%Y%m%d%H")
+
+                v = r.get(val_key)
+                if v is None:
+                    continue
+
+                # ✅ Convert to obs per hour
+                v = v / 6.0
+
+                dates.append(dt)
+                values.append(v)
+
+            except Exception as e:
+                logger.error(f"Bad record skipped: {r} ({e})")
+
+        if not dates:
+            return None
+        # print("RAW VALUES:", values[:10])
+
+        # -------------------------
+        # Compute 30-day moving avg (~120 cycles)
+        # -------------------------
+        # mvalues, _ = self._moving_avg(v_arr, N=120)
+
+        full_v_arr = np.array(values)
+        mvalues_full, _ = self._moving_avg(full_v_arr, N=120)
+
+
+        # -------------------------
+        # Restrict to last 3 days (12 cycles)
+        # -------------------------
+        points = 3 * 4
+        # if len(dates) > points:
+            # dates = dates[-points:]
+            # values = values[-points:]
+
+        dates = dates[-points:]
+        v_arr = full_v_arr[-points:]
+        mvalues = mvalues_full[-points:]
+
+        d_arr = np.array(dates)
+        # v_arr = np.array(values)
+
+        print("len(d_arr):", len(d_arr))
+        print("date range:", d_arr[0], "→", d_arr[-1])
+
+        # -------------------------
+        # Output path
+        # -------------------------
+        out_path = os.path.join(self.output_dir, fname)
+
+        try:
+            fig, ax = plt.subplots(figsize=(12, 5))
+
+            # -------------------------
+            # Plot lines
+            # -------------------------
+            ax.plot(
+                d_arr,
+                v_arr,
+                color='green',
+                linestyle='--',
+                linewidth=2,
+                marker='o',
+                markersize=4,
+                label='Hourly Obs'
+            )
+
+            ax.plot(
+                d_arr,
+                mvalues,
+                color='red',
+                linestyle='-',
+                linewidth=2,
+                marker='o',
+                markersize=4,
+                label='30-Day Avg'
+            )
+
+
+            # -------------------------
+            # Grid styling
+            # -------------------------
+
+            # --- axis ticks only (no grid) ---
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%H'))
+
+            ax.xaxis.set_minor_locator(mdates.HourLocator(interval=6))
+
+            # disable auto grid so it doesn't conflict
+            ax.grid(False)
+
+            # Vertical lines per cycle (OK for 3-day window)
+            # for dt in d_arr:
+                # ax.axvline(dt, color='black', linewidth=0.5, alpha=0.6)
+
+            for dt in d_arr:
+                if dt.hour == 18:
+                    # ✅ Day boundary (bold)
+                    ax.axvline(dt, color='black', linewidth=1.5, alpha=0.9)
+                else:
+                    # regular cycle lines
+                    ax.axvline(dt, color='black', linewidth=0.5, alpha=0.5)
+
+            # -------------------------
+            # Y-axis scaling
+            # -------------------------
+            y_min = 0
+            y_max = np.max(v_arr)
+
+            span = y_max - y_min
+
+            # ✅ Improved dv logic (handles small values properly)
+            if span <= 10:
+                dv = 1
+            elif span <= 50:
+                dv = 5
+            elif span <= 200:
+                dv = 10
+            elif span <= 2000:
+                dv = 200
+            elif span <= 20000:
+                dv = 1000
+            elif span <= 200000:
+                dv = 10000
+            else:
+                dv = int(span / 10)
+
+            # Ensure at least a few ticks exist
+            if dv == 0:
+                dv = 1
+
+            yticks = np.arange(y_min, y_max + dv, dv)
+            ax.set_yticks(yticks)
+
+            # ✅ Disable scientific notation + add commas
+            ax.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:,.0f}'))
+
+            '''
+            # -------------------------
+            # Grid styling
+            # -------------------------
+            # Vertical lines per cycle
+            for dt in d_arr:
+                ax.axvline(dt, color='black', linewidth=0.5, alpha=0.6)
+
+            # Horizontal spacing
+            y_min = 0
+            y_max = np.max(v_arr)
+
+            span = y_max - y_min
+            if span <= 2000:
+                dv = 200
+            elif span <= 20000:
+                dv = 1000
+            elif span <= 200000:
+                dv = 10000
+            else:
+                dv = int(span / 10)
+
+            yticks = np.arange(y_min, y_max + dv, dv)
+            ax.set_yticks(yticks)
+            '''
+
+            for y in yticks:
+                ax.axhline(y, color='black', linewidth=0.5, alpha=0.6)
+
+            # -------------------------
+            # Axis formatting
+            # -------------------------
+            ax.set_xlim(d_arr[0], d_arr[-1])
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%H'))
+
+            ax.set_ylabel(y_label)
+            ax.set_title(title, fontsize=11, fontweight='bold')
+
+            # -------------------------
+            # NOAA label
+            # -------------------------
+            ax.text(
+                0.01, 0.95,
+                "NOAA",
+                transform=ax.transAxes,
+                fontsize=14,
+                fontweight='bold',
+                color='navy',
+                alpha=0.7,
+                verticalalignment='top'
+            )
+
+            # -------------------------
+            # Limits
+            # -------------------------
+            ax.set_ylim(0, y_max * 1.1)
+
+            # -------------------------
+            # Legend
+            # -------------------------
+            ax.legend(loc='upper left', fontsize='small', frameon=True)
+
+            plt.tight_layout()
+            plt.savefig(out_path, dpi=120)
+            plt.close(fig)
+
+            return fname
+
+        except Exception as e:
+            logger.error(f"NOAA plot failed for {fname}: {e}")
+            return None
