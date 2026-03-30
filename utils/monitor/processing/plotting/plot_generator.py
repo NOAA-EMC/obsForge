@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from datetime import datetime
+from datetime import timedelta
 
 # --- FAIL-SOFT IMPORTS ---
 # Allows the pipeline to run even if Matplotlib is missing.
@@ -956,6 +957,34 @@ class PlotGenerator:
 
 
         # -------------------------
+        # Build fixed 3-day timeline (12 cycles)
+        # -------------------------
+        end_time = dates[-1]
+
+        # Align to nearest 6-hour cycle (optional but recommended)
+        end_time = end_time.replace(hour=(end_time.hour // 6) * 6)
+
+        time_grid = [end_time - timedelta(hours=6 * i) for i in range(12)]
+        time_grid = list(reversed(time_grid))  # oldest → newest
+
+        # -------------------------
+        # Map existing data onto grid
+        # -------------------------
+        data_dict = {d: v for d, v in zip(dates, full_v_arr)}
+        ma_dict = {d: v for d, v in zip(dates, mvalues_full)}
+
+        d_arr = np.array(time_grid)
+
+        v_arr = np.array([
+            data_dict.get(t, np.nan) for t in time_grid
+        ])
+
+        mvalues = np.array([
+            ma_dict.get(t, np.nan) for t in time_grid
+        ])
+
+        '''
+        # -------------------------
         # Restrict to last 3 days (12 cycles)
         # -------------------------
         points = 3 * 4
@@ -972,6 +1001,7 @@ class PlotGenerator:
 
         print("len(d_arr):", len(d_arr))
         print("date range:", d_arr[0], "→", d_arr[-1])
+        '''
 
         # -------------------------
         # Output path
