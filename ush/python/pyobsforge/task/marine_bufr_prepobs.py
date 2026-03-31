@@ -145,7 +145,7 @@ class MarineBufrObsPrep(Task):
                     'window begin': self.task_config['window_begin'],
                     'window end': self.task_config['window_end'],
                     'variable': variable['name'],
-                    # error ratio below is for concatinate 
+                    # Ratio below is for concatination only
                     'error ratio': 0.4,
                     'input files': ioda_files_to_concat,
                     'output file': f"{RUN}.t{cycstr}z.{provider_var}.{self.task_config.yyyymmdd}{cycstr}.concat.nc",
