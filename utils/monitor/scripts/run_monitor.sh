@@ -87,6 +87,7 @@ fi
     python3 "${PROJECT_ROOT}/process_data.py" \
         --db "$DATABASE" \
         --data-root "$DATA_ROOT" \
+        --limit-cycles "$LIMIT_CYCLES" \
         --out "$DATA_PRODUCTS_DIR"
 
 

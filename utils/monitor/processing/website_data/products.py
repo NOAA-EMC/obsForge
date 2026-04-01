@@ -12,6 +12,7 @@ from .category_volume7_plot_product import CategoryVolume7PlotProduct
 from .obs_space_var_data_plot_product import ObsSpaceVarDataPlotProduct
 from .obs_space_volume_plot_product import ObsSpaceVolumePlotProduct
 from .obs_space_volume7_plot_product import ObsSpaceVolume7PlotProduct
+from .obs_space_NOAA_volume_plot_product import ObsSpaceNOAAVolumePlotProduct
 from .obs_space_mean_plot_product import ObsSpaceMeanPlotProduct
 from .obs_space_mean7_plot_product import ObsSpaceMean7PlotProduct
 from .ioda_structure_product import IodaStructureProduct
@@ -110,7 +111,7 @@ class WebsiteDataProducts:
     def _generate_data_products(self, run_type, scope, data_object_name):
         cycles = self.reader.get_cycles_for_run(run_type)
         if self.limit_cycles and self.limit_cycles > 0:
-            logger.info(f"Generating data products for {run_type} is limited to {self.limit_cycles} cycles")
+            # logger.info(f"Generating data products for {run_type} is limited to {self.limit_cycles} cycles")
             cycles = cycles[-self.limit_cycles:]
 
         for name, product in PRODUCT_REGISTRY.items():
@@ -126,7 +127,9 @@ class WebsiteDataProducts:
                 )
                 
                 if os.path.exists(product_path):
+                    logger.info(f"EXISTS {product_path} -- SKIPPING")
                     continue
+                logger.info(f"Generating --- {product_path} --- ")
 
                 product.generate(
                     product_path=product_path,
