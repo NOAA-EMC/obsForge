@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dataset Viewer</title>
+</head>
+<body>
+<h1>Dataset Viewer</h1>
+
+<label>Dataset:</label>
+<select id="dataset">
+    <option value="">--Select--</option>
+    {% for ds in datasets %}
+        <option value="{{ ds.id }}">{{ ds.name }}</option>
+    {% endfor %}
+</select>
+
+<br><br>
+
+<label>ObsSpace:</label>
+<select id="field">
+    <option value="">--Select--</option>
+</select>
+
+<label>Cycle:</label>
+<select id="cycle">
+    <option value="">--Select--</option>
+</select>
+
+<br><br>
+
+<label>Variable:</label>
+<select id="variable">
+    <option value="">--Select--</option>
+</select>
+
+<br><br>
+
+<label>Plot Type:</label>
+<input type="radio" name="plotType" value="historical" checked> Historical
+<input type="radio" name="plotType" value="surface"> Surface
+<input type="radio" name="plotType" value="interactive"> Interactive Surface
+
+<button onclick="plot()">Plot</button>
+
+<div id="plot"></div>
+
+<script>
+async function fetchJSON(url) {
+    const res = await fetch(url);
+    return await res.json();
+}
+
+document.getElementById('dataset').addEventListener('change', async function() {
+    const dsId = this.value;
+    const fields = await fetchJSON(`/datasets/${dsId}/fields`);
+    const fieldSelect = document.getElementById('field');
+    fieldSelect.innerHTML = '<option value="">--Select--</option>';
+    fields.forEach(f => fieldSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`);
+});
+
+document.getElementById('field').addEventListener('change', async function() {
+    const fieldId = this.value;
+    const cycles = await fetchJSON(`/fields/${fieldId}/cycles`);
+    const cycleSelect = document.getElementById('cycle');
+    cycleSelect.innerHTML = '<option value="">--Select--</option>';
+    cycles.forEach(c => cycleSelect.innerHTML += `<option value="${c.date}_${c.hour}">${c.date} ${c.hour}</option>`);
+
+    const variables = await fetchJSON(`/fields/${fieldId}/variables`);
+    const varSelect = document.getElementById('variable');
+    varSelect.innerHTML = '<option value="">--Select--</option>';
+
+	variables.forEach(v => 
+		varSelect.innerHTML += `<option value="${v}">${v}</option>`
+	);
+
+});
+
+async function plot() {
+    const datasetId = document.getElementById("dataset").value;
+    const fieldId = document.getElementById("field").value;
+    const cycleVal = document.getElementById("cycle").value;
+    const [cycle_date, cycle_hour] = cycleVal.split("_");
+    const variable = document.getElementById("variable").value;
+    const plotType = document.querySelector('input[name="plotType"]:checked').value;
+
+    const res = await fetch('/generate-plot', {
+        method: 'POST',
+        body: new URLSearchParams({
+            dataset_id: datasetId,
+            field_id: fieldId,
+            cycle_date,
+            cycle_hour,
+            variable,
+            plot_type: plotType
+        })
+    });
+
+    const data = await res.json();
+    const plotDiv = document.getElementById('plot');
+    if(plotType === 'interactive') {
+        plotDiv.innerHTML = `<iframe src="${data.url}" width="800" height="600"></iframe>`;
+    } else {
+        plotDiv.innerHTML = `<img src="${data.url}" width="800" />`;
+    }
+}
+</script>
+
+</body>
+</html>
