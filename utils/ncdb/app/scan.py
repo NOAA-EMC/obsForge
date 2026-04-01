@@ -41,10 +41,15 @@ def main():
     # configure_logging(args.debug) 
     logger = logging.getLogger(__name__)
 
-    if args.limit_cycles:
-        cycles_to_process = - args.limit_cycles
-    else:
-        cycles_to_process = args.limit_cycles
+    # if args.limit_cycles:
+        # cycles_to_process = - args.limit_cycles
+    # else:
+        # cycles_to_process = args.limit_cycles
+
+    cycles_to_process = (
+        None if not args.limit_cycles else -args.limit_cycles
+    )
+
     db_path=args.db
     data_root=args.data_root
     data_products_root=args.data_products_root
@@ -57,7 +62,8 @@ def main():
         db_path=db_path,
         data_root=data_root
     )   
-    scanner.run(n_cycles=cycles_to_process)
+    # scanner.run(n_cycles=cycles_to_process)
+    scanner.run_streaming(n_cycles=cycles_to_process)
 
     '''
     datasets = scanner.datasets

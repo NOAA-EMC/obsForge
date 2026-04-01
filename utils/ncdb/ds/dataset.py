@@ -94,7 +94,7 @@ class Dataset:
         )
         return instance
 
-    def from_orm_fields(self, session: Session) -> None:
+    def load_fields_from_db(self, session: Session) -> None:
         """
         get all the obs spaces from the db
         """
@@ -114,7 +114,7 @@ class Dataset:
         self.dataset_fields = []
 
         for f_orm in field_orms:
-            field_domain = DatasetField.from_orm_self(f_orm, self)
+            field_domain = DatasetField.from_db_self(f_orm, self)
             self.dataset_fields.append(field_domain)
 
         logger.info(f"Loaded {len(self.dataset_fields)} fields for dataset '{self.name}'")
@@ -215,7 +215,10 @@ class Dataset:
         self.to_db_cycles(session, n)
         logger.info(f"to_db {self}")
 
-    def add_cycle(self, cycle_date, cycle_hour, cycle_files):
+    def add_cycle(self, cycle):
+        self.dataset_cycles.append(cycle)
+
+    def old_add_cycle(self, cycle_date, cycle_hour, cycle_files):
         cycle = DatasetCycle(self, cycle_date, cycle_hour)
         self.dataset_cycles.append(cycle)
 
@@ -241,6 +244,7 @@ class Dataset:
             dsf = DatasetFile.from_file(f, field, cycle)
             field.add_file(dsf)
             cycle.add_file(dsf)
+            # logger.info(f"Added {dsf} to {cycle}")
 
             if not same_name_fields:
                 self.dataset_fields.append(field)

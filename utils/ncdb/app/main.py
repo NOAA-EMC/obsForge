@@ -62,9 +62,8 @@ def get_fields(dataset_id: int):
     if not dataset_orm:
         return JSONResponse({"error": "Dataset not found"}, status_code=404)
 
-    # the non-recursive from_orm
     ds = Dataset.from_db_self(dataset_orm) 
-    ds.from_orm_fields(session)
+    ds.load_fields_from_db(session)
 
     # Return the data from the domain objects
     return [
@@ -114,7 +113,7 @@ def get_variables(field_id: int):
     field_orm = session.get(DatasetFieldORM, field_id)
     if not field_orm:
         return []
-    field = DatasetField.from_orm_self(field_orm, dataset=None) 
+    field = DatasetField.from_db_self(field_orm, dataset=None) 
     return field.obs_space.netcdf_structure.list_variables()
 
 def generate_history_plot(session, field, variable, plotter):
@@ -228,7 +227,7 @@ def generate_plot(
     # --- 2. Branching by Plot Type (The Data Slices) ---
     
     if plot_type == "historical":
-        field = DatasetField.from_orm(session, f_orm, ds)
+        field = DatasetField.from_db(session, f_orm, ds)
         fname = generate_history_plot(session, field, variable, plotter)
         
         if not fname:
@@ -236,24 +235,6 @@ def generate_plot(
 
         url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
         return JSONResponse({"url": url})
-
-        '''
-        # Hydrate the Field with its history 
-        # This uses DatasetField.from_orm logic we wrote earlier
-        # field = DatasetField.from_orm(session, f_orm, ds, n_files=50)
-        field = DatasetField.from_orm(session, f_orm, ds)
-        
-        # Build the DataFrame using the logic we moved into the Field class
-        df = field.get_variable_derived_data(session, variable)
-        
-        if df.empty:
-            return JSONResponse({"error": "No historical stats found in DB"}, status_code=404)
-
-        # Plot using the DataFrame
-        fname = f"{field.obs_space.name}_history.png"
-        plotter.generate_history_plot_from_df(df, variable, fname)
-        url = f"/products/{ds.name}/{cycle_date}_{cycle_hour}/{fname}"
-        '''
 
     elif plot_type in ["surface", "interactive"]:
         target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()

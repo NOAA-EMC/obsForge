@@ -57,7 +57,8 @@ def main():
         db_path=db_path,
         data_root=data_root
     )   
-    scanner.run(n_cycles=cycles_to_process)
+    # scanner.run(n_cycles=cycles_to_process)
+    scanner.runs_streaming(n_cycles=cycles_to_process)
     datasets = scanner.datasets
 
     logger.info(f"Generating data product in: {data_products_root}")

@@ -74,6 +74,53 @@ class DatasetCycle:
     def add_file(self, file):
         self.files.append(file)
 
+    @classmethod
+    def from_dir(cls, dataset: "Dataset", cycle_date: date, cycle_hour: str) -> "DatasetCycle":
+        cycle = cls(dataset, cycle_date, cycle_hour)
+
+
+        '''
+        cycle_dir = cls.cycle_dir(dataset, cycle_date, cycle_hour)
+        if not os.path.isdir(cycle_dir):
+            logger.warning(f"Cycle directory does not exist: {cycle_dir}")
+            return None
+
+        all_files = dataset.file_scanner.scan(cycle_dir)
+
+        pattern = dataset.obs_space_name_parser.get_search_pattern(
+            dataset.name,
+            cycle_hour
+        )
+
+        selected, _ = FileScanner.filter_files(all_files, pattern)
+        '''
+
+        selected = DatasetCycle.read_cycle_files(dataset, cycle_date, cycle_hour)
+
+        for f in selected:
+            obs_space = ObsSpace.from_file(f.path, dataset.obs_space_name_parser)
+            if not obs_space:
+                continue
+
+            # find or create field
+            matching_fields = [
+                field for field in dataset.dataset_fields
+                if field.obs_space.name == obs_space.name
+            ]
+
+            if matching_fields:
+                field = matching_fields[0]
+            else:
+                field = DatasetField(dataset, obs_space)
+                dataset.dataset_fields.append(field)
+
+            ds_file = DatasetFile.from_file(f, field, cycle)
+
+            field.add_file(ds_file)
+            cycle.add_file(ds_file)
+
+        return cycle
+
     @staticmethod
     def read_cycle_files(dataset: "Dataset", cycle_date: date, cycle_hour: str):
         cycle_dir = DatasetCycle.cycle_dir(dataset, cycle_date, cycle_hour)
@@ -133,19 +180,6 @@ class DatasetCycle:
             return None
 
         return cycle_date, cycle_hour
-    '''
-
-    '''
-    @classmethod
-    def from_orm(
-        cls, 
-        session: Session, 
-        orm: DatasetCycleORM, 
-        dataset: "Dataset"
-    ) -> "DatasetCycle":
-        instance = cls.from_db_self(orm, dataset)
-        instance._load_files_from_db(session)
-        return instance
     '''
 
     @classmethod
@@ -252,7 +286,7 @@ class DatasetCycle:
 
         # ⚠️ Preserve current implicit dependency
         if not dataset.dataset_fields:
-            dataset.from_orm_fields(session)
+            dataset.load_fields_from_db(session)
 
         # 1. Check if already loaded in memory
         existing = next(
@@ -281,7 +315,6 @@ class DatasetCycle:
             return None
 
         # 3. Build domain object (existing logic)
-        # cycle = cls.from_orm(session, c_orm, dataset)
         cycle = cls._from_db_self(c_orm, dataset)
         cycle._load_files_from_db(session)
 

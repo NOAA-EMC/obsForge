@@ -45,19 +45,19 @@ class DatasetField:
         self.files.append(f)
 
     @classmethod
-    def from_orm(
+    def from_db(
         cls, 
         session: Session, 
         orm: DatasetFieldORM, 
         dataset: "Dataset", 
         n_files: Optional[int] = None
     ) -> "DatasetField":
-        instance = cls.from_orm_self(orm, dataset)
-        instance.from_orm_files(session, n=n_files)
+        instance = cls.from_db_self(orm, dataset)
+        instance.load_files_from_db(session, n=n_files)
         return instance
 
     @classmethod
-    def from_orm_self(cls, orm: DatasetFieldORM, dataset: "Dataset") -> "DatasetField":
+    def from_db_self(cls, orm: DatasetFieldORM, dataset: "Dataset") -> "DatasetField":
         if not orm: return None
         
         from .obs_space import ObsSpace
@@ -67,7 +67,7 @@ class DatasetField:
         instance.id = orm.id
         return instance
 
-    def from_orm_files(self, session: Session, n: Optional[int] = None) -> None:
+    def load_files_from_db(self, session: Session, n: Optional[int] = None) -> None:
         from .dataset_cycle import DatasetCycle
         stmt = (
             select(DatasetFileORM)
