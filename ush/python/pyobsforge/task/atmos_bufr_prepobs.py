@@ -266,3 +266,23 @@ class AtmosBufrObsPrep(Task):
             logger.warning(f"Failed to create summary file {ready_file}: {e}")
             logger.warning("Creating an empty ready file instead")
             ready_file.touch()
+
+        # Run unified restriction filter AFTER finalize
+        stats_yaml = os.path.join(self.task_config.DATA, "stats.yaml")
+
+        script_path = os.path.join(
+            self.task_config.HOMEobsforge, "build", "bin", "ioda_restriction_filter.py"
+        )
+
+        logger.info(f"Running unified restriction filter using {stats_yaml}")
+
+        exec_cmd = Executable("python")
+        exec_cmd.add_default_arg(script_path)
+        exec_cmd.add_default_arg("--stats")
+        exec_cmd.add_default_arg(stats_yaml)
+
+        try:
+            exec_cmd()
+        except Exception as e:
+            logger.warning(f"ioda_restriction_filter.py failed: {e}")
+
