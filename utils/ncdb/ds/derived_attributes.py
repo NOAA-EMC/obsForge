@@ -17,22 +17,45 @@ class DerivedAttributeRegistry:
         """
         Compute a subset of registered metrics for a given array.
         If metrics is None, computes all.
+        Handles masked arrays to prevent NaN-related database IntegrityErrors.
         """
-        target = metrics if metrics else self._available_metrics.keys()
         results = {}
         
-        # Ensure we only process numeric data and handle masks
         if not hasattr(array, "size") or array.size == 0:
             return results
 
+        target = metrics if metrics else self._available_metrics.keys()
+
+        # nobs = number of unmasked (valid) observations
+        nobs = int(array.count()) if hasattr(array, 'mask') else int(array.size)
+        
         for name in target:
-            if name in self._available_metrics:
-                try:
-                    # Logic to handle masked arrays vs standard numpy
+            if name not in self._available_metrics:
+                continue
+                
+            try:
+                if name == "nobs":
+                    results["nobs"] = nobs
+                elif name == "nmissing":
+                    results["nmissing"] = int(array.size - nobs)
+                elif nobs > 0:
                     val = self._available_metrics[name](array)
-                    results[name] = float(val) if not np.isnan(val) else None
-                except Exception as e:
-                    logger.debug(f"Metric {name} failed: {e}")
+                    
+                    # Convert to standard Python float/int if not NaN
+                    if not np.isnan(val):
+                        results[name] = float(val)
+                    else:
+                        # Explicitly skip adding to dict to avoid NULL in NOT NULL columns
+                        logger.debug(f"Metric {name} resulted in NaN for node, skipping.")
+                
+                else:
+                    # nobs == 0: We skip min/max/mean entirely so no row is created 
+                    # or no NULL value is sent to the DB.
+                    logger.debug(f"Skipping math metric {name} because array is 100% masked.")
+                    
+            except Exception as e:
+                logger.debug(f"Metric {name} failed: {e}")
+
         return results
 
     @classmethod
@@ -43,6 +66,7 @@ class DerivedAttributeRegistry:
         registry.register("mean", lambda x: np.ma.mean(x) if hasattr(x, 'mask') else np.mean(x))
         registry.register("std_dev", lambda x: np.ma.std(x) if hasattr(x, 'mask') else np.std(x))
         registry.register("nobs", lambda x: x.count() if hasattr(x, 'mask') else x.size)
+        registry.register("nmissing", lambda x: x.size - x.count() if hasattr(x, 'mask') else 0)
         # registry.register("median", lambda x: float(np.median(x)))
         return registry
 

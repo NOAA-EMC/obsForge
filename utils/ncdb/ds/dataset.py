@@ -135,6 +135,8 @@ class Dataset:
             .order_by(DatasetCycleORM.cycle_date.desc(), DatasetCycleORM.cycle_hour.desc())
         )
         cycle_orms = session.scalars(stmt).all()
+        logger.info(f"QUERY: Dataset ID is {self.id}")
+        logger.info(f"RESULT: Found {len(cycle_orms)} cycles in DB")
 
         self.dataset_cycles = []
         for c_orm in cycle_orms:
