@@ -270,19 +270,15 @@ class AtmosBufrObsPrep(Task):
         # Run unified restriction filter AFTER finalize
         stats_yaml = os.path.join(self.task_config.DATA, "stats.yaml")
 
-        script_path = os.path.join(
-            self.task_config.HOMEobsforge, "build", "bin", "ioda_restriction_filter.py"
-        )
-
         logger.info(f"Running unified restriction filter using {stats_yaml}")
 
-        exec_cmd = Executable("python")
-        exec_cmd.add_default_arg(script_path)
-        exec_cmd.add_default_arg("--stats")
-        exec_cmd.add_default_arg(stats_yaml)
+        # Add ioda-restrict directory to PYTHONPATH so we can import it
+        import sys
+        sys.path.append(os.path.join(self.task_config.HOMEobsforge, "build", "bin"))
+
+        from ioda_restriction_filter import main as restriction_main
 
         try:
-            exec_cmd()
+            restriction_main(stats_yaml)
         except Exception as e:
             logger.warning(f"ioda_restriction_filter.py failed: {e}")
-
