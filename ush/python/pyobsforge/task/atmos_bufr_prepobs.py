@@ -257,7 +257,7 @@ class AtmosBufrObsPrep(Task):
             'output file': str(ready_file),
         }
         save_as_yaml(summary_dict, os.path.join(self.task_config.DATA, "stats.yaml"))
-        exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "ioda-dump.x"))
+        exec_cmd = Executable(os.path.join(self.task_config.HOMEobsforge, "build", "bin", "ioda-summary.x"))
         exec_cmd.add_default_arg(os.path.join(self.task_config.DATA, "stats.yaml"))
         try:
             logger.info(f"Creating summary file {ready_file}")
@@ -274,11 +274,12 @@ class AtmosBufrObsPrep(Task):
 
         # Add ioda-restrict directory to PYTHONPATH so we can import it
         import sys
+
         sys.path.append(os.path.join(self.task_config.HOMEobsforge, "build", "bin"))
 
-        from ioda_restriction_filter import main as restriction_main
+        from ioda_restriction_filter import run_rsrd_exprsrd as restriction_filter
 
         try:
-            restriction_main(stats_yaml)
+            restriction_filter(stats_yaml)
         except Exception as e:
             logger.warning(f"ioda_restriction_filter.py failed: {e}")
