@@ -16,11 +16,11 @@ class DatasetORM(Base):
     root_dir = Column(String, nullable=False)
 
     # One-to-many: cycles and fields
-    cycles = relationship("DatasetCycleORM", back_populates="dataset")
-    fields = relationship("DatasetFieldORM", back_populates="dataset")
+    cycles = relationship("CycleORM", back_populates="dataset")
+    fields = relationship("FieldORM", back_populates="dataset")
 
 
-class DatasetCycleORM(Base):
+class CycleORM(Base):
     __tablename__ = "dataset_cycles"
 
     id = Column(Integer, primary_key=True)
@@ -46,7 +46,7 @@ class DatasetCycleORM(Base):
     )
 
 
-class DatasetFieldORM(Base):
+class FieldORM(Base):
     __tablename__ = "dataset_fields"
 
     id = Column(Integer, primary_key=True)
@@ -70,7 +70,7 @@ class DatasetFieldORM(Base):
 
 # Import at the bottom to avoid circular reference
 from .obs_space_orm import ObsSpaceORM
-DatasetFieldORM.obs_space = relationship(
+FieldORM.obs_space = relationship(
     "ObsSpaceORM"
 )
 
@@ -93,11 +93,11 @@ class DatasetFileORM(Base):
     file_id = Column(Integer, ForeignKey("files.id"), nullable=False)
 
     dataset_field = relationship(
-        "DatasetFieldORM",
+        "FieldORM",
         back_populates="dataset_files"
     )
     dataset_cycle = relationship(
-        "DatasetCycleORM",
+        "CycleORM",
         back_populates="dataset_files"
     )
     file = relationship(FileORM)

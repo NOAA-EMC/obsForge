@@ -6,8 +6,8 @@ from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 from .dataset_orm import (
-    DatasetFieldORM,
-    DatasetCycleORM,
+    FieldORM,
+    CycleORM,
     DatasetFileORM
 )
 
@@ -48,7 +48,7 @@ class DatasetField:
     def from_db(
         cls, 
         session: Session, 
-        orm: DatasetFieldORM, 
+        orm: FieldORM, 
         dataset: "Dataset", 
         n_files: Optional[int] = None
     ) -> "DatasetField":
@@ -57,7 +57,7 @@ class DatasetField:
         return instance
 
     @classmethod
-    def from_db_self(cls, orm: DatasetFieldORM, dataset: "Dataset") -> "DatasetField":
+    def from_db_self(cls, orm: FieldORM, dataset: "Dataset") -> "DatasetField":
         if not orm: return None
         
         from .obs_space import ObsSpace
@@ -71,9 +71,9 @@ class DatasetField:
         from .dataset_cycle import DatasetCycle
         stmt = (
             select(DatasetFileORM)
-            .join(DatasetCycleORM)
+            .join(CycleORM)
             .where(DatasetFileORM.dataset_field_id == self.id)
-            .order_by(DatasetCycleORM.cycle_date.desc(), DatasetCycleORM.cycle_hour.desc())
+            .order_by(CycleORM.cycle_date.desc(), CycleORM.cycle_hour.desc())
         )
 
         if n:
@@ -92,14 +92,14 @@ class DatasetField:
             )
             self.add_file(ds_file)
 
-    def to_orm(self) -> DatasetFieldORM:
-        return DatasetFieldORM(
+    def to_orm(self) -> FieldORM:
+        return FieldORM(
             id=self.id,
             dataset_id=self.dataset.id,
             obs_space_id=self.obs_space.id
         )
 
-    def to_db(self, session: Session) -> "DatasetFieldORM":
+    def to_db(self, session: Session) -> "FieldORM":
         """
         Ensure this DatasetField exists in the DB. Returns the ORM object.
         Sets self.id.
@@ -110,7 +110,7 @@ class DatasetField:
 
         # Already persisted? Return ORM object
         if self.id is not None:
-            existing = session.get(DatasetFieldORM, self.id)
+            existing = session.get(FieldORM, self.id)
             if existing:
                 return existing
 
@@ -122,10 +122,10 @@ class DatasetField:
 
         # Check DB + session for existing row
         existing = session.scalar(
-            select(DatasetFieldORM).where(
+            select(FieldORM).where(
                 and_(
-                    DatasetFieldORM.dataset_id == self.dataset.id,
-                    DatasetFieldORM.obs_space_id == self.obs_space.id
+                    FieldORM.dataset_id == self.dataset.id,
+                    FieldORM.obs_space_id == self.obs_space.id
                 )
             )
         )
@@ -179,16 +179,16 @@ class DatasetField:
 
         stmt = (
             select(
-                DatasetCycleORM.cycle_date,
-                DatasetCycleORM.cycle_hour,
+                CycleORM.cycle_date,
+                CycleORM.cycle_hour,
                 NetcdfFileDerivedAttributeORM.name,
                 NetcdfFileDerivedAttributeORM.value
             )
-            .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == DatasetCycleORM.id)
+            .join(DatasetFileORM, DatasetFileORM.dataset_cycle_id == CycleORM.id)
             .join(NetcdfFileDerivedAttributeORM, NetcdfFileDerivedAttributeORM.file_id == DatasetFileORM.file_id)
             .join(NetcdfNodeORM, NetcdfNodeORM.id == NetcdfFileDerivedAttributeORM.netcdf_node_id)
             .where(*conditions)
-            .order_by(DatasetCycleORM.cycle_date, DatasetCycleORM.cycle_hour)
+            .order_by(CycleORM.cycle_date, CycleORM.cycle_hour)
         )
         # print(stmt.compile(compile_kwargs={"literal_binds": True}))
 

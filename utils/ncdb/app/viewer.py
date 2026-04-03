@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from . import db
 print(f"DEBUG: viewer.py imported. db.engine is {db.engine}")
 
-from ds.dataset_orm import DatasetORM, DatasetCycleORM, DatasetFieldORM, DatasetFileORM
+from ds.dataset_orm import DatasetORM, FieldORM, DatasetFileORM
 from ds.netcdf_structure_orm import NetcdfNodeORM
 
 from ds.dataset import Dataset
@@ -126,7 +126,7 @@ def get_cycles(field_id: int):
 
     with db.SessionLocal() as session:
         # 1. Fetch the Field ORM to get the Dataset link
-        f_orm = session.get(DatasetFieldORM, field_id)
+        f_orm = session.get(FieldORM, field_id)
         if not f_orm:
             print(f"[DEBUG] ERROR: Field {field_id} not found in DB")
             return []
@@ -160,7 +160,7 @@ def get_cycles(field_id: int):
 @app.get("/fields/{field_id}/variables")
 def get_variables(field_id: int):
     with db.SessionLocal() as session:
-        field_orm = session.get(DatasetFieldORM, field_id)
+        field_orm = session.get(FieldORM, field_id)
         if not field_orm:
             return []
         field = DatasetField.from_db_self(field_orm, dataset=None) 
@@ -201,7 +201,7 @@ def generate_plot(
 
         # --- 1. Basic Identity Setup ---
         ds_orm = session.get(DatasetORM, dataset_id)
-        f_orm = session.get(DatasetFieldORM, field_id)
+        f_orm = session.get(FieldORM, field_id)
         
         if not ds_orm or not f_orm:
             return JSONResponse({"error": "Dataset or Field not found"}, status_code=404)

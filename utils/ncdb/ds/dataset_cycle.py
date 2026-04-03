@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
-from .dataset_orm import DatasetCycleORM, DatasetFileORM
+from .dataset_orm import CycleORM, DatasetFileORM
 
 from .file_scanner import FileScanner, SubdirFileScanner
 from .obs_space import ObsSpace
@@ -115,7 +115,7 @@ class DatasetCycle:
     '''
 
     @classmethod
-    def _from_db_self(cls, orm: DatasetCycleORM, dataset: "Dataset") -> "DatasetCycle":
+    def _from_db_self(cls, orm: CycleORM, dataset: "Dataset") -> "DatasetCycle":
         if not orm:
             return None
 
@@ -146,8 +146,8 @@ class DatasetCycle:
                 field_domain.add_file(ds_file)
                 self.add_file(ds_file)
 
-    def to_orm(self) -> DatasetCycleORM:
-        return DatasetCycleORM(
+    def to_orm(self) -> CycleORM:
+        return CycleORM(
             dataset_id=self.dataset.id,
             cycle_date=self.cycle_date,
             cycle_hour=self.cycle_hour
@@ -165,7 +165,7 @@ class DatasetCycle:
         for f in self.files:
             f.to_db(session)
 
-    def to_db_self(self, session) -> DatasetCycleORM:
+    def to_db_self(self, session) -> CycleORM:
         """
         Ensure this DatasetCycle exists in the DB. Returns the ORM object.
         Sets self.id.
@@ -174,17 +174,17 @@ class DatasetCycle:
         # Already persisted? Return existing ORM
         if self.id is not None:
             # Fetch the ORM object if needed
-            existing = session.get(DatasetCycleORM, self.id)
+            existing = session.get(CycleORM, self.id)
             if existing:
                 return existing
 
         # Check DB for existing cycle
         existing = session.scalar(
-            select(DatasetCycleORM).where(
+            select(CycleORM).where(
                 and_(
-                    DatasetCycleORM.dataset_id == self.dataset.id,
-                    DatasetCycleORM.cycle_date == self.cycle_date,
-                    DatasetCycleORM.cycle_hour == self.cycle_hour
+                    CycleORM.dataset_id == self.dataset.id,
+                    CycleORM.cycle_date == self.cycle_date,
+                    CycleORM.cycle_hour == self.cycle_hour
                 )
             )
         )
@@ -230,11 +230,11 @@ class DatasetCycle:
             return existing
 
         # 2. Query ORM
-        stmt = select(DatasetCycleORM).where(
+        stmt = select(CycleORM).where(
             and_(
-                DatasetCycleORM.dataset_id == dataset.id,
-                DatasetCycleORM.cycle_date == cycle_date,
-                DatasetCycleORM.cycle_hour == cycle_hour
+                CycleORM.dataset_id == dataset.id,
+                CycleORM.cycle_date == cycle_date,
+                CycleORM.cycle_hour == cycle_hour
             )
         )
         c_orm = session.scalar(stmt)

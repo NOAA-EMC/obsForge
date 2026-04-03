@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 
 from .dataset_orm import (
     DatasetORM, 
-    DatasetCycleORM, 
-    DatasetFieldORM,
+    CycleORM, 
+    FieldORM,
     DatasetFileORM
 )
 from .obs_space_orm import ObsSpaceORM
@@ -115,8 +115,8 @@ class Dataset:
         # 1. Query all fields for this dataset
         # We join ObsSpace to get the name and structure_id in one go
         stmt = (
-            select(DatasetFieldORM)
-            .where(DatasetFieldORM.dataset_id == self.id)
+            select(FieldORM)
+            .where(FieldORM.dataset_id == self.id)
         )
         field_orms = session.scalars(stmt).all()
 
@@ -140,9 +140,9 @@ class Dataset:
 
         # Query all cycles for this dataset
         stmt = (
-            select(DatasetCycleORM)
-            .where(DatasetCycleORM.dataset_id == self.id)
-            .order_by(DatasetCycleORM.cycle_date.desc(), DatasetCycleORM.cycle_hour.desc())
+            select(CycleORM)
+            .where(CycleORM.dataset_id == self.id)
+            .order_by(CycleORM.cycle_date.desc(), CycleORM.cycle_hour.desc())
         )
         cycle_orms = session.scalars(stmt).all()
         logger.info(f"QUERY: Dataset ID is {self.id}")
