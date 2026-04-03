@@ -167,6 +167,7 @@ def get_variables(field_id: int):
         return field.obs_space.netcdf_structure.list_variables()
 
 def generate_history_plot(session, field, variable, plotter):
+    logger.info(f"Generating history plot for {variable}")
     df = field.get_variable_derived_data(session, variable)
     if df.empty:
         logger.debug(f"No history found for {variable}")

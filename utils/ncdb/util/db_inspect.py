@@ -4,7 +4,7 @@ import sys
 from data_service import ReportDataService
 # from ncdb.data_service import ReportDataService
 
-DESCRIPTION = """ObsForge Monitor Reporter
+DESCRIPTION = """Monitor Reporter
 Commands: inventory, schema, stats, tables, query"""
 
 class MonitorReporter:

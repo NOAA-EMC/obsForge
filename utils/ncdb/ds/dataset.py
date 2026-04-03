@@ -69,6 +69,16 @@ class Dataset:
             f"{len(self.dataset_fields)} fields"
         )
 
+
+    """
+    Parameters
+    ----------
+    n:
+        > 0  → read first n cycles
+        < 0  → read last |n| cycles
+        None → read all cycles
+        0    → read none
+    """
     @staticmethod
     def _select_cycles(cycles: list["DatasetCycle"], n: Optional[int] = None) -> list["DatasetCycle"]:
         if not cycles:
@@ -219,40 +229,7 @@ class Dataset:
 
     def add_cycle(self, cycle):
         self.dataset_cycles.append(cycle)
-
-    def old_add_cycle(self, cycle_date, cycle_hour, cycle_files):
-        cycle = DatasetCycle(self, cycle_date, cycle_hour)
-        self.dataset_cycles.append(cycle)
-
-        for f in cycle_files:
-            obs_space = ObsSpace.from_file(f.path, self.obs_space_name_parser)
-            if not obs_space:
-                logger.error(f"Bad obs space: ignoring {f}")
-                continue
-
-            same_name_fields = [
-                f for f in self.dataset_fields
-                if f.obs_space.name == obs_space.name
-            ]
-
-            if same_name_fields:
-                field = same_name_fields[0]
-                if not field.obs_space.compare(obs_space):
-                    logger.error(f"Obs space structure conflict: ignoring {f}")
-                    continue
-            else:
-                field = DatasetField(self, obs_space)
-
-            dsf = DatasetFile.from_file(f, field, cycle)
-            field.add_file(dsf)
-            cycle.add_file(dsf)
-            # logger.info(f"Added {dsf} to {cycle}")
-
-            if not same_name_fields:
-                self.dataset_fields.append(field)
-                # logger.info(f"Added new {field} to dataset {self}")
-
-        # logger.info(f"Added {cycle} to dataset {self}")
+        self.dataset_cycles.sort()
 
     def discover_cycles(self) -> list[tuple[date, str]]:
         """
@@ -307,20 +284,32 @@ class Dataset:
         logger.info(f"Discovered {len(sorted_cycles)} cycles for dataset {self.name}")
         return sorted_cycles
 
-    def read_cycles(self, n: Optional[int] = None) -> list["DatasetCycle"]:
-        """
-        Parameters
-        ----------
-        n:
-            > 0  → read first n cycles
-            < 0  → read last |n| cycles
-            None → read all cycles
-            0    → read none
-        """
+    def build_cycle(self, cycle_date: date, cycle_hour: str) -> DatasetCycle:
+        # Get files from disk
+        cycle_dir = DatasetCycle.cycle_dir(self, cycle_date, cycle_hour)
+        all_files = self.file_scanner.scan(cycle_dir)
+        pattern = self.obs_space_name_parser.get_search_pattern(self.name, cycle_hour)
+        selected, _ = FileScanner.filter_files(all_files, pattern)
 
-        discovered = self.discover_cycles()
-        selected = Dataset._select_cycles(discovered, n)
+        cycle = DatasetCycle(self, cycle_date, cycle_hour)
 
-        for cycle_date, cycle_hour in selected:
-            cycle_files = DatasetCycle.read_cycle_files(self, cycle_date, cycle_hour)
-            self.add_cycle(cycle_date, cycle_hour, cycle_files)
+        # Map files to fields
+        for f in selected:
+            obs_space = ObsSpace.from_file(f.path, self.obs_space_name_parser)
+            if not obs_space: continue
+
+            field = self.get_or_create_field(obs_space)
+            
+            ds_file = DatasetFile.from_file(f, field, cycle)
+            field.add_file(ds_file)
+            cycle.add_file(ds_file)
+
+        return cycle
+
+    def get_or_create_field(self, obs_space: ObsSpace) -> DatasetField:
+        for f in self.dataset_fields:
+            if f.obs_space.name == obs_space.name:
+                return f
+        new_field = DatasetField(self, obs_space)
+        self.dataset_fields.append(new_field)
+        return new_field
