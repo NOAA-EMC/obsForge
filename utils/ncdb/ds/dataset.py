@@ -69,6 +69,16 @@ class Dataset:
             f"{len(self.dataset_fields)} fields"
         )
 
+    @classmethod
+    def get_all(cls, session: Session) -> List["Dataset"]:
+        stmt = select(DatasetORM).order_by(DatasetORM.name)
+        return [cls.from_db_self(orm) for orm in session.scalars(stmt).all()]
+
+    @classmethod
+    def get_by_id(cls, session: Session, dataset_id: int) -> Optional["Dataset"]:
+        orm = session.get(DatasetORM, dataset_id)
+        return cls.from_db_self(orm) if orm else None
+
 
     """
     Parameters
@@ -104,7 +114,8 @@ class Dataset:
         )
         return instance
 
-    def load_fields_from_db(self, session: Session) -> None:
+    # to be deprecated:
+    def old_load_fields_from_db(self, session: Session) -> None:
         """
         get all the obs spaces from the db
         """
@@ -209,13 +220,13 @@ class Dataset:
         self.id = orm_obj.id
         return orm_obj
 
-    def to_db_cycles(self, session, n):
+    def old_to_db_cycles(self, session, n):
         cycles = Dataset._select_cycles(self.dataset_cycles, n)
         # Persist cycles, including files
         for cycle in cycles:
             cycle.to_db(session)
 
-    def to_db(self, session: "Session", n: Optional[int] = None) -> None:
+    def old_to_db(self, session: "Session", n: Optional[int] = None) -> None:
         self.to_db_self(session)
 
         # Persist fields without persisting files
@@ -226,6 +237,18 @@ class Dataset:
 
         self.to_db_cycles(session, n)
         logger.info(f"to_db {self}")
+
+    def to_db(self, repo, n: Optional[int] = None) -> None:
+        repo.save_dataset(self)
+
+        for field in self.dataset_fields:
+            field.to_db(repo.session)   # keep unchanged for now
+
+        cycles = Dataset._select_cycles(self.dataset_cycles, n)
+        for cycle in cycles:
+            # cycle.to_db(repo.session)
+            cycle.to_db(repo)
+
 
     def add_cycle(self, cycle):
         self.dataset_cycles.append(cycle)

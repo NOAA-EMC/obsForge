@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ds.db_base import Base
 from ds.dataset import Dataset
 from ds.dataset_cycle import DatasetCycle
+from ds.io.dataset_repository import DatasetRepository
 
 logger = logging.getLogger(__name__)
 
@@ -55,17 +56,21 @@ class Scanner:
     def run(self, n_cycles: Optional[int] = None):
         self.discover()
         with Session(self.engine) as session:
+            repo = DatasetRepository(session)
             for ds in self.datasets:
-                ds.to_db_self(session)
+                # ds.to_db_self(session)
+                repo.save_dataset(ds)
                 
-                ds.load_fields_from_db(session) 
+                # ds.load_fields_from_db(session) 
+                repo.load_fields(ds)
 
                 cycles = ds.discover_cycles()
                 selected = Dataset._select_cycles(cycles, n_cycles)
 
                 for cycle_date, cycle_hour in selected:
                     cycle = ds.build_cycle(cycle_date, cycle_hour)
-                    cycle.to_db(session) 
+                    # cycle.to_db(session) 
+                    cycle.to_db(repo) 
                     session.commit()
 
 
@@ -81,8 +86,10 @@ class Scanner:
 
     def persist(self, n_cycles: Optional[int] = None) -> None:
         with Session(self.engine) as session:
+            repo = DatasetRepository(session)
             for ds in self.datasets:
-                ds.to_db(session, n_cycles)
+                # ds.to_db(session, n_cycles)
+                ds.to_db(repo, n_cycles)
                 logger.info(f"Persisted dataset: {ds.name} (ID={ds.id})")
 
             session.commit()

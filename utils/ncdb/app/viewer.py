@@ -25,6 +25,7 @@ from ds.dataset_field import DatasetField
 from ds.dataset_cycle import DatasetCycle
 from ds.obs_space import ObsSpace
 from ds.netcdf_structure import NetcdfStructure
+from ds.io.dataset_repository import DatasetRepository
 
 from plotting.plot_generator import PlotGenerator
 # from products_server import DataProductsServer
@@ -42,19 +43,6 @@ ds_logger = logging.getLogger("ds")
 ds_logger.setLevel(logging.INFO)
 logger = ds_logger
 
-'''
-from contextlib import asynccontextmanager
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # This runs inside the Worker process right as it starts
-    db_path = app.state.db_path
-    db.init_db(db_path)
-    print(f"INFO: Database initialized from app state: {db_path}")
-    yield
-    # Shutdown logic goes here if needed
-
-app = FastAPI(lifespan=lifespan)
-'''
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -79,11 +67,6 @@ app.mount("/products", StaticFiles(directory=BASE_DATA_PRODUCTS_DIR), name="prod
 # Pages
 # ----------------------------------
 
-# @app.get("/", response_class=HTMLResponse)
-# def index(request: Request):
-    # datasets = session.query(DatasetORM).all()
-    # return templates.TemplateResponse("index.html", {"request": request, "datasets": datasets})
-
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     with db.SessionLocal() as session:
@@ -93,11 +76,10 @@ def index(request: Request):
             {
                 "request": request, 
                 "datasets": datasets,
-                "db_path": db.DB_PATH,  # This is the path passed via --db
+                "db_path": db.DB_PATH,
                 "data_dir": BASE_DATA_PRODUCTS_DIR
             }
         )
-
 
 # ----------------------------------
 # API Endpoints
@@ -110,7 +92,9 @@ def get_fields(dataset_id: int):
             return JSONResponse({"error": "Dataset not found"}, status_code=404)
 
         ds = Dataset.from_db_self(dataset_orm) 
-        ds.load_fields_from_db(session)
+        # ds.load_fields_from_db(session)
+        repo = DatasetRepository(session)
+        repo.load_fields(ds)
 
         # Return the data from the domain objects
         return [
@@ -202,7 +186,7 @@ def generate_plot(
         # --- 1. Basic Identity Setup ---
         ds_orm = session.get(DatasetORM, dataset_id)
         f_orm = session.get(FieldORM, field_id)
-        
+
         if not ds_orm or not f_orm:
             return JSONResponse({"error": "Dataset or Field not found"}, status_code=404)
 
@@ -237,8 +221,12 @@ def generate_plot(
 
         elif plot_type in ["surface", "interactive"]:
             target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()
-            # cycle_domain = ds.read_cycle_from_db(session, target_date, cycle_hour)
-            cycle_domain = DatasetCycle.from_db(session, ds, target_date, cycle_hour)
+            # cycle_domain = DatasetCycle.from_db(session, ds, target_date, cycle_hour)
+
+            repo = DatasetRepository(session)
+            # cycle_domain = DatasetCycle.old_from_db(session, ds, target_date, cycle_hour, repo=repo)
+            repo.load_fields(ds)
+            cycle_domain = repo.load_cycle(ds, target_date, cycle_hour)
 
             if not cycle_domain:
                 return JSONResponse({"error": "Cycle data not found"}, status_code=404)

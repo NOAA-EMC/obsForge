@@ -126,7 +126,7 @@ class DatasetCycle:
             id=orm.id
         )
 
-    def _load_files_from_db(self, session: Session) -> None:
+    def old_load_files_from_db(self, session: Session) -> None:
         stmt = (
             select(DatasetFileORM)
             .where(DatasetFileORM.dataset_cycle_id == self.id)
@@ -153,13 +153,18 @@ class DatasetCycle:
             cycle_hour=self.cycle_hour
         )
 
-    def to_db(self, session):
-        orm = self.to_db_self(session)
-        self.to_db_files(session)
-
+    def to_db(self, repo):
+        orm = repo.save_cycle(self)
+        self.to_db_files(repo.session)
         logger.info(f"to_db {self.dataset.name} {self}")
 
-        return orm
+    # def to_db(self, session):
+        # orm = self.to_db_self(session)
+        # self.to_db_files(session)
+
+        # logger.info(f"to_db {self.dataset.name} {self}")
+
+        # return orm
 
     def to_db_files(self, session):
         for f in self.files:
@@ -204,12 +209,13 @@ class DatasetCycle:
 
 
     @classmethod
-    def from_db(
+    def old_from_db(
         cls,
         session: Session,
         dataset: "Dataset",
         cycle_date: date,
-        cycle_hour: str
+        cycle_hour: str,
+        repo=None
     ) -> Optional["DatasetCycle"]:
         """
         Factory: load a cycle and its files from DB.
@@ -217,8 +223,15 @@ class DatasetCycle:
         """
 
         # ⚠️ Preserve current implicit dependency
+        # if not dataset.dataset_fields:
+            # dataset.load_fields_from_db(session)
+
         if not dataset.dataset_fields:
-            dataset.load_fields_from_db(session)
+            if repo is None:
+                # raise ValueError("Dataset fields not loaded and no repository provided")
+                logger.error("Dataset fields not loaded and no repository provided")
+                return None
+            repo.load_fields(dataset)
 
         # 1. Check if already loaded in memory
         existing = next(
@@ -248,7 +261,12 @@ class DatasetCycle:
 
         # 3. Build domain object (existing logic)
         cycle = cls._from_db_self(c_orm, dataset)
-        cycle._load_files_from_db(session)
+        # cycle._load_files_from_db(session)
+        if repo is None:
+            logger.error("Repository required to load cycle files")
+            # raise ValueError("Repository required to load cycle files")
+            return None
+        repo.load_cycle_files(cycle)
 
         # 4. Register in dataset (preserve behavior)
         dataset.dataset_cycles.append(cycle)

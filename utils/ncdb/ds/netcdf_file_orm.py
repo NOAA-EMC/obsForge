@@ -74,8 +74,10 @@ class NetcdfFileAttributeORM(Base):
 
     attr_value = Column(JSON, nullable=False)
 
-    UniqueConstraint(
-        "file_id",
-        "struct_attr_id",
-        name="_file_struct_attr_uc"
+    __table_args__ = (
+        UniqueConstraint(
+            "file_id",
+            "struct_attr_id",
+            name="_file_struct_attr_uc"
+        ),
     )
