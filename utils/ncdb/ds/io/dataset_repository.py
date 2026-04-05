@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import select, and_
 from ds.dataset_orm import (
     FieldORM, DatasetORM, CycleORM, DatasetFileORM
@@ -8,21 +10,12 @@ from ds.dataset_cycle import DatasetCycle
 from ds.dataset_field import DatasetField
 
 from ds.dataset_file import DatasetFile
+from ds.dataset_cycle import DatasetCycle
 
 
 class DatasetRepository:
     def __init__(self, session):
         self.session = session
-
-    def load_fields(self, dataset):
-        stmt = select(FieldORM).where(FieldORM.dataset_id == dataset.id)
-        field_orms = self.session.scalars(stmt).all()
-
-        dataset.dataset_fields = [
-            DatasetField.from_db_self(f_orm, dataset)
-            for f_orm in field_orms
-        ]
-
 
     def save_dataset(self, dataset: Dataset):
         existing = self.session.scalar(
@@ -133,7 +126,7 @@ class DatasetRepository:
             return None
 
         # 3. Build domain object
-        cycle = DatasetCycle._from_db_self(c_orm, dataset)
+        cycle = DatasetCycle.from_orm(c_orm, dataset)
 
         # 4. Load files
         self.load_cycle_files(cycle)
@@ -143,3 +136,104 @@ class DatasetRepository:
         dataset.dataset_cycles.sort()
 
         return cycle
+
+    def get_all_datasets(self):
+        stmt = select(DatasetORM).order_by(DatasetORM.name)
+        return [
+            Dataset.from_db_self(orm)
+            for orm in self.session.scalars(stmt).all()
+        ]
+
+    def get_dataset_by_id(self, dataset_id):
+        orm = self.session.get(DatasetORM, dataset_id)
+        return Dataset.from_db_self(orm) if orm else None
+
+    def save_cycle_files(self, cycle):
+        for f in cycle.files:
+            # f.to_db(self.session)
+            self.save_dataset_file(f)
+
+    def save_field(self, field):
+        field.obs_space.to_db(self.session)
+
+        self.session.flush()
+
+        existing = self.session.scalar(
+            select(FieldORM).where(
+                and_(
+                    FieldORM.dataset_id == field.dataset.id,
+                    FieldORM.obs_space_id == field.obs_space.id
+                )
+            )
+        )
+
+        if existing:
+            field.id = existing.id
+            return existing
+
+        orm = FieldORM(
+            dataset_id=field.dataset.id,
+            obs_space_id=field.obs_space.id
+        )
+
+        self.session.add(orm)
+        self.session.flush()
+
+        field.id = orm.id
+        return orm
+
+    def load_field(self, dataset, field_id):
+        orm = self.session.get(FieldORM, field_id)
+        if not orm:
+            return None
+        return DatasetField.from_db_self(orm, dataset)
+
+    def load_fields(self, dataset):
+        stmt = select(FieldORM).where(FieldORM.dataset_id == dataset.id)
+        field_orms = self.session.scalars(stmt).all()
+
+        dataset.dataset_fields = [
+            DatasetField.from_db_self(f_orm, dataset)
+            for f_orm in field_orms
+        ]
+
+    def load_field_files(self, field, n: Optional[int] = None):
+        stmt = (
+            select(DatasetFileORM)
+            .join(CycleORM)
+            .where(DatasetFileORM.dataset_field_id == field.id)
+            .order_by(CycleORM.cycle_date.desc(), CycleORM.cycle_hour.desc())
+        )
+
+        if n:
+            stmt = stmt.limit(abs(n))
+
+        file_orms = self.session.scalars(stmt).all()
+
+        for f_orm in file_orms:
+            cycle_domain = DatasetCycle._from_db_self(
+                f_orm.dataset_cycle,
+                field.dataset
+            )
+
+            ds_file = DatasetFile.from_orm(
+                session=self.session,
+                orm=f_orm,
+                dataset_field=field,
+                dataset_cycle=cycle_domain
+            )
+
+            field.add_file(ds_file)
+
+    def save_dataset_file(self, ds_file):
+        self.save_field(ds_file.dataset_field)
+        self.save_cycle(ds_file.dataset_cycle)
+        self.save_file(ds_file.file)
+
+        if ds_file.netcdf_file:
+            ds_file.netcdf_file.to_db(self.session)
+
+        return ds_file.to_db(self.session)
+
+    def save_file(self, file):
+        return file.to_db(self.session)

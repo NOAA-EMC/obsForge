@@ -115,7 +115,7 @@ class DatasetCycle:
     '''
 
     @classmethod
-    def _from_db_self(cls, orm: CycleORM, dataset: "Dataset") -> "DatasetCycle":
+    def from_orm(cls, orm: CycleORM, dataset: "Dataset") -> "DatasetCycle":
         if not orm:
             return None
 
@@ -126,26 +126,6 @@ class DatasetCycle:
             id=orm.id
         )
 
-    def old_load_files_from_db(self, session: Session) -> None:
-        stmt = (
-            select(DatasetFileORM)
-            .where(DatasetFileORM.dataset_cycle_id == self.id)
-        )
-        file_orms = session.scalars(stmt).all()
-
-        for f_orm in file_orms:
-            field_domain = self.dataset.find_field_by_id(f_orm.dataset_field_id)
-            
-            if field_domain:
-                ds_file = DatasetFile.from_orm(
-                    session=session,
-                    orm=f_orm,
-                    dataset_field=field_domain,
-                    dataset_cycle=self
-                )
-                field_domain.add_file(ds_file)
-                self.add_file(ds_file)
-
     def to_orm(self) -> CycleORM:
         return CycleORM(
             dataset_id=self.dataset.id,
@@ -154,122 +134,6 @@ class DatasetCycle:
         )
 
     def to_db(self, repo):
-        orm = repo.save_cycle(self)
-        self.to_db_files(repo.session)
+        repo.save_cycle(self)
+        repo.save_cycle_files(self)
         logger.info(f"to_db {self.dataset.name} {self}")
-
-    # def to_db(self, session):
-        # orm = self.to_db_self(session)
-        # self.to_db_files(session)
-
-        # logger.info(f"to_db {self.dataset.name} {self}")
-
-        # return orm
-
-    def to_db_files(self, session):
-        for f in self.files:
-            f.to_db(session)
-
-    def to_db_self(self, session) -> CycleORM:
-        """
-        Ensure this DatasetCycle exists in the DB. Returns the ORM object.
-        Sets self.id.
-        """
-
-        # Already persisted? Return existing ORM
-        if self.id is not None:
-            # Fetch the ORM object if needed
-            existing = session.get(CycleORM, self.id)
-            if existing:
-                return existing
-
-        # Check DB for existing cycle
-        existing = session.scalar(
-            select(CycleORM).where(
-                and_(
-                    CycleORM.dataset_id == self.dataset.id,
-                    CycleORM.cycle_date == self.cycle_date,
-                    CycleORM.cycle_hour == self.cycle_hour
-                )
-            )
-        )
-
-        if existing:
-            self.id = existing.id
-            return existing
-
-        # Create new ORM object
-        orm = self.to_orm()
-        session.add(orm)
-        session.flush()   # generate ID without committing
-
-        self.id = orm.id
-
-        return orm
-
-
-    @classmethod
-    def old_from_db(
-        cls,
-        session: Session,
-        dataset: "Dataset",
-        cycle_date: date,
-        cycle_hour: str,
-        repo=None
-    ) -> Optional["DatasetCycle"]:
-        """
-        Factory: load a cycle and its files from DB.
-        Preserves current behavior (including dataset mutation).
-        """
-
-        # ⚠️ Preserve current implicit dependency
-        # if not dataset.dataset_fields:
-            # dataset.load_fields_from_db(session)
-
-        if not dataset.dataset_fields:
-            if repo is None:
-                # raise ValueError("Dataset fields not loaded and no repository provided")
-                logger.error("Dataset fields not loaded and no repository provided")
-                return None
-            repo.load_fields(dataset)
-
-        # 1. Check if already loaded in memory
-        existing = next(
-            (c for c in dataset.dataset_cycles
-             if c.cycle_date == cycle_date and c.cycle_hour == cycle_hour),
-            None
-        )
-        if existing:
-            return existing
-
-        # 2. Query ORM
-        stmt = select(CycleORM).where(
-            and_(
-                CycleORM.dataset_id == dataset.id,
-                CycleORM.cycle_date == cycle_date,
-                CycleORM.cycle_hour == cycle_hour
-            )
-        )
-        c_orm = session.scalar(stmt)
-
-        if not c_orm:
-            logger.warning(
-                f"Cycle {cycle_date} {cycle_hour} not found in DB "
-                f"for {dataset.name}"
-            )
-            return None
-
-        # 3. Build domain object (existing logic)
-        cycle = cls._from_db_self(c_orm, dataset)
-        # cycle._load_files_from_db(session)
-        if repo is None:
-            logger.error("Repository required to load cycle files")
-            # raise ValueError("Repository required to load cycle files")
-            return None
-        repo.load_cycle_files(cycle)
-
-        # 4. Register in dataset (preserve behavior)
-        dataset.dataset_cycles.append(cycle)
-        dataset.dataset_cycles.sort()
-
-        return cycle

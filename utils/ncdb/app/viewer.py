@@ -25,7 +25,9 @@ from ds.dataset_field import DatasetField
 from ds.dataset_cycle import DatasetCycle
 from ds.obs_space import ObsSpace
 from ds.netcdf_structure import NetcdfStructure
+
 from ds.io.dataset_repository import DatasetRepository
+from ds.services.field_data_service import FieldDataService
 
 from plotting.plot_generator import PlotGenerator
 # from products_server import DataProductsServer
@@ -87,13 +89,14 @@ def index(request: Request):
 @app.get("/datasets/{dataset_id}/fields")
 def get_fields(dataset_id: int):
     with db.SessionLocal() as session:
+        repo = DatasetRepository(session)
+
         dataset_orm = session.get(DatasetORM, dataset_id)
         if not dataset_orm:
             return JSONResponse({"error": "Dataset not found"}, status_code=404)
 
         ds = Dataset.from_db_self(dataset_orm) 
         # ds.load_fields_from_db(session)
-        repo = DatasetRepository(session)
         repo.load_fields(ds)
 
         # Return the data from the domain objects
@@ -152,7 +155,9 @@ def get_variables(field_id: int):
 
 def generate_history_plot(session, field, variable, plotter):
     logger.info(f"Generating history plot for {variable}")
-    df = field.get_variable_derived_data(session, variable)
+    # df = field.get_variable_derived_data(session, variable)
+    service = FieldDataService(session)
+    df = service.get_variable_derived_data(field, variable)
     if df.empty:
         logger.debug(f"No history found for {variable}")
         return None
@@ -182,6 +187,7 @@ def generate_plot(
     plot_type: str = Form(...),
 ):
     with db.SessionLocal() as session:
+        repo = DatasetRepository(session)
 
         # --- 1. Basic Identity Setup ---
         ds_orm = session.get(DatasetORM, dataset_id)
@@ -210,7 +216,8 @@ def generate_plot(
         # --- 2. Branching by Plot Type (The Data Slices) ---
         
         if plot_type == "historical":
-            field = DatasetField.from_db(session, f_orm, ds)
+            field = repo.load_field(ds, field_id)
+            # field = DatasetField.from_db(session, f_orm, ds)
             fname = generate_history_plot(session, field, variable, plotter)
             
             if not fname:
@@ -223,7 +230,7 @@ def generate_plot(
             target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()
             # cycle_domain = DatasetCycle.from_db(session, ds, target_date, cycle_hour)
 
-            repo = DatasetRepository(session)
+            # repo = DatasetRepository(session)
             # cycle_domain = DatasetCycle.old_from_db(session, ds, target_date, cycle_hour, repo=repo)
             repo.load_fields(ds)
             cycle_domain = repo.load_cycle(ds, target_date, cycle_hour)

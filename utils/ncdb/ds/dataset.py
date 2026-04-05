@@ -70,12 +70,12 @@ class Dataset:
         )
 
     @classmethod
-    def get_all(cls, session: Session) -> List["Dataset"]:
+    def old_get_all(cls, session: Session) -> List["Dataset"]:
         stmt = select(DatasetORM).order_by(DatasetORM.name)
         return [cls.from_db_self(orm) for orm in session.scalars(stmt).all()]
 
     @classmethod
-    def get_by_id(cls, session: Session, dataset_id: int) -> Optional["Dataset"]:
+    def old_get_by_id(cls, session: Session, dataset_id: int) -> Optional["Dataset"]:
         orm = session.get(DatasetORM, dataset_id)
         return cls.from_db_self(orm) if orm else None
 
@@ -114,33 +114,6 @@ class Dataset:
         )
         return instance
 
-    # to be deprecated:
-    def old_load_fields_from_db(self, session: Session) -> None:
-        """
-        get all the obs spaces from the db
-        """
-        if self.id is None:
-            logger.error(f"Cannot load fields for dataset '{self.name}': ID is missing.")
-            return
-
-        # 1. Query all fields for this dataset
-        # We join ObsSpace to get the name and structure_id in one go
-        stmt = (
-            select(FieldORM)
-            .where(FieldORM.dataset_id == self.id)
-        )
-        field_orms = session.scalars(stmt).all()
-
-        # 2. Reset or update the local registry
-        self.dataset_fields = []
-
-        for f_orm in field_orms:
-            field_domain = DatasetField.from_db_self(f_orm, self)
-            self.dataset_fields.append(field_domain)
-
-        logger.info(f"Loaded {len(self.dataset_fields)} fields for dataset '{self.name}'")
-
-
     def load_cycles_from_db(self, session: Session) -> None:
         """
         Loads all DatasetCycle identities (Date/Hour) without loading files.
@@ -161,7 +134,7 @@ class Dataset:
 
         self.dataset_cycles = []
         for c_orm in cycle_orms:
-            cycle_domain = DatasetCycle._from_db_self(c_orm, self)
+            cycle_domain = DatasetCycle.from_orm(c_orm, self)
             self.dataset_cycles.append(cycle_domain)
 
         logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
@@ -220,35 +193,16 @@ class Dataset:
         self.id = orm_obj.id
         return orm_obj
 
-    def old_to_db_cycles(self, session, n):
-        cycles = Dataset._select_cycles(self.dataset_cycles, n)
-        # Persist cycles, including files
-        for cycle in cycles:
-            cycle.to_db(session)
-
-    def old_to_db(self, session: "Session", n: Optional[int] = None) -> None:
-        self.to_db_self(session)
-
-        # Persist fields without persisting files
-        # persisting the obs spaces and underlying NETCDF structures
-        for field in self.dataset_fields:
-            field.to_db(session)
-            # logger.info(f"persisted {field}")
-
-        self.to_db_cycles(session, n)
-        logger.info(f"to_db {self}")
-
     def to_db(self, repo, n: Optional[int] = None) -> None:
         repo.save_dataset(self)
 
         for field in self.dataset_fields:
-            field.to_db(repo.session)   # keep unchanged for now
+            repo.save_field(field)
 
         cycles = Dataset._select_cycles(self.dataset_cycles, n)
         for cycle in cycles:
             # cycle.to_db(repo.session)
             cycle.to_db(repo)
-
 
     def add_cycle(self, cycle):
         self.dataset_cycles.append(cycle)
@@ -336,3 +290,5 @@ class Dataset:
         new_field = DatasetField(self, obs_space)
         self.dataset_fields.append(new_field)
         return new_field
+
+##########################################################

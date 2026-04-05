@@ -9,6 +9,7 @@ from .dataset_orm import DatasetFileORM
 
 from .netcdf_file import NetcdfFile
 from .file import File
+# from ds.io.dataset_repository import DatasetRepository
 
 logger = logging.getLogger(__name__)
 
@@ -109,13 +110,16 @@ class DatasetFile:
 
         # logger.info(f"to_db {self}")
 
-        # Persist underlying DatasetField
-        if self.dataset_field.id is None:
-            self.dataset_field.to_db(session)
+        # Assume already persisted
+        assert self.dataset_field.id is not None
+        assert self.dataset_cycle.id is not None
 
+        # Persist underlying DatasetField
+        # if self.dataset_field.id is None:
+            # self.dataset_field.to_db(session)
         # Persist underlying DatasetCycle
-        if self.dataset_cycle.id is None:
-            self.dataset_cycle.to_db(session)
+        # if self.dataset_cycle.id is None:
+            # self.dataset_cycle.to_db(session)
 
         # Persist the physical file
         if self.file.id is None:
