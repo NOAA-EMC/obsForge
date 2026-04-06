@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Datasets</title>
+</head>
+<body>
+    <h1>Datasets</h1>
+    <ul>
+        {% for dataset in datasets %}
+        <li>
+            <strong>{{ dataset.name }}</strong>
+            <button onclick="showCycles({{ dataset.id }})">Show Cycles</button>
+            <ul id="cycles-{{ dataset.id }}"></ul>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        async function showCycles(datasetId) {
+            const cyclesList = document.getElementById('cycles-' + datasetId);
+            
+            // Avoid re-fetching if already loaded
+            if (cyclesList.childElementCount > 0) return;
+
+            const response = await fetch(`/datasets/${datasetId}/cycles`);
+            const cycles = await response.json();
+            
+            for (const cycle of cycles) {
+                const li = document.createElement('li');
+                li.textContent = cycle.cycle_date + " " + cycle.cycle_hour;
+                cyclesList.appendChild(li);
+            }
+        }
+    </script>
+</body>
+</html>

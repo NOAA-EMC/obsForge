@@ -1,0 +1,27 @@
+A relational db is used to orchestrate a computation with dir trees.
+
+All input and output data is organized in dir trees
+examples:
+	log files
+	nc files
+	derived data products for website
+	website files
+
+A computation consists of a collection of apps which 
+	read data (scan dir trees, read files)
+	update the db
+	run tasks that create data products (create dir trees, write files)
+
+For example, the monitoring application
+	reads log files (dir tree)
+	reads data file inventory (dir tree)
+	computes derived products (dir tree)
+	builds a website
+
+An application uses the db to describe its state,
+it creates tables for itself (e.g. tasks table for monitoring)
+general services can be provided: 
+	file inventory and OS data
+	abstract description of obs spaces
+	abstract physics data
+	utilities for scanning/writing dir trees and registering them in db
