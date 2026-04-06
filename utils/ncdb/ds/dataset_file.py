@@ -97,7 +97,7 @@ class DatasetFile:
             file_id=self.file.id
         )
 
-    def to_db(self, session: Session) -> "DatasetFileORM":
+    def old_to_db(self, session: Session) -> "DatasetFileORM":
         """
         Ensure this DatasetFile exists in the DB. Returns the ORM object.
         Sets self.id.

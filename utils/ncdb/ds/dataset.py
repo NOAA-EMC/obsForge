@@ -21,11 +21,12 @@ from .obs_space_orm import ObsSpaceORM
 
 from .file import File
 from .obs_space import ObsSpace
+from .netcdf_structure import NetcdfStructure
 from .dataset_cycle import DatasetCycle
 from .dataset_field import DatasetField
 from .dataset_file import DatasetFile
 
-from .file_scanner import FileScanner, SubdirFileScanner, NcObsSpaceNameParser
+# from .file_scanner import FileScanner, SubdirFileScanner, NcObsSpaceNameParser
 
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,8 @@ class Dataset:
         self.dataset_fields: List[DatasetField] = []
         self.dataset_cycles: List[DatasetCycle] = []
 
-        self.file_scanner = SubdirFileScanner("analysis/ocean/diags")
-        self.obs_space_name_parser = NcObsSpaceNameParser()
+        # self.file_scanner = SubdirFileScanner("analysis/ocean/diags")
+        # self.obs_space_name_parser = NcObsSpaceNameParser()
 
     def __repr__(self) -> str:
         return (
@@ -201,14 +202,13 @@ class Dataset:
 
         cycles = Dataset._select_cycles(self.dataset_cycles, n)
         for cycle in cycles:
-            # cycle.to_db(repo.session)
-            cycle.to_db(repo)
+            repo.save_cycle(cycle)
 
     def add_cycle(self, cycle):
         self.dataset_cycles.append(cycle)
         self.dataset_cycles.sort()
 
-    def discover_cycles(self) -> list[tuple[date, str]]:
+    def old_discover_cycles(self) -> list[tuple[date, str]]:
         """
         Discover available cycles in the dataset root directory.
 
@@ -261,7 +261,27 @@ class Dataset:
         logger.info(f"Discovered {len(sorted_cycles)} cycles for dataset {self.name}")
         return sorted_cycles
 
-    def build_cycle(self, cycle_date: date, cycle_hour: str) -> DatasetCycle:
+    def build_cycle(self, cycle_date, cycle_hour, scan_results):
+        cycle = DatasetCycle(self, cycle_date, cycle_hour)
+
+        for file, obs_space_name in scan_results:
+            nc_structure = NetcdfStructure.from_file(file.path)
+            if nc_structure is None:
+                logger.warning(f"Unable to read netcdf structure for {f.path}") 
+                continue
+            obs_space = ObsSpace(obs_space_name, nc_structure)
+
+            field = self.get_or_create_field(obs_space)
+
+            ds_file = DatasetFile.from_file(file, field, cycle)
+
+            field.add_file(ds_file)
+            cycle.add_file(ds_file)
+
+        return cycle
+
+
+    def old_build_cycle(self, cycle_date: date, cycle_hour: str) -> DatasetCycle:
         # Get files from disk
         cycle_dir = DatasetCycle.cycle_dir(self, cycle_date, cycle_hour)
         all_files = self.file_scanner.scan(cycle_dir)

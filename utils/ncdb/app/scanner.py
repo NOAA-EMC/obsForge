@@ -70,7 +70,8 @@ class Scanner:
                 for cycle_date, cycle_hour in selected:
                     cycle = ds.build_cycle(cycle_date, cycle_hour)
                     # cycle.to_db(session) 
-                    cycle.to_db(repo) 
+                    # cycle.to_db(repo) 
+                    repo.save_cycle(cycle)
                     session.commit()
 
 

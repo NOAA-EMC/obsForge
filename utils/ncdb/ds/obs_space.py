@@ -147,7 +147,7 @@ class ObsSpace:
 
 
     @classmethod
-    def from_file(cls, file_path: str, parser: "ObsSpaceNameParser"):
+    def deprecated_from_file(cls, file_path: str, parser: "ObsSpaceNameParser"):
         name = parser.parse(file_path)
         if name is None:
             return None

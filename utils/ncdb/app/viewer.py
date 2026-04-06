@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,7 @@ print(f"DEBUG: viewer.py imported. db.engine is {db.engine}")
 
 from ds.dataset_orm import DatasetORM, FieldORM, DatasetFileORM
 from ds.netcdf_structure_orm import NetcdfNodeORM
+from ds.obs_space_orm import ObsSpaceORM
 
 from ds.dataset import Dataset
 from ds.dataset_field import DatasetField
@@ -31,6 +33,7 @@ from ds.services.field_data_service import FieldDataService
 
 from plotting.plot_generator import PlotGenerator
 # from products_server import DataProductsServer
+
 
 
 import logging
@@ -144,14 +147,68 @@ def get_cycles(field_id: int):
         return results
 
 
+# @app.get("/fields/{field_id}/variables")
+# def get_variables(field_id: int):
+    # with db.SessionLocal() as session:
+        # repo = DatasetRepository(session)
+# 
+        # field_orm = session.get(FieldORM, field_id)
+        # if not field_orm:
+            # return []
+        # field = DatasetField.from_db_self(field_orm, dataset=None) 
+# 
+        # # field = repo.load_field(ds, field_id)
+        # return field.obs_space.netcdf_structure.list_variables()
+# 
+
+'''
 @app.get("/fields/{field_id}/variables")
 def get_variables(field_id: int):
     with db.SessionLocal() as session:
-        field_orm = session.get(FieldORM, field_id)
+        field_orm = (
+            session.query(FieldORM)
+            .options(joinedload(FieldORM.obs_space)
+                    .joinedload(ObsSpaceORM.netcdf_structure))
+            .get(field_id)
+        )
+
         if not field_orm:
             return []
-        field = DatasetField.from_db_self(field_orm, dataset=None) 
-        return field.obs_space.netcdf_structure.list_variables()
+
+        return field_orm.obs_space.netcdf_structure.list_variables()
+'''
+
+
+
+@app.get("/fields/{field_id}/variables")
+def get_variables(field_id: int):
+    with db.SessionLocal() as session:
+        stmt = (
+            select(FieldORM)
+            .options(
+                joinedload(FieldORM.obs_space)
+                .joinedload(ObsSpaceORM.netcdf_structure)
+            )
+            .where(FieldORM.id == field_id)
+        )
+
+        field_orm = session.scalar(stmt)
+
+        if not field_orm:
+            return []
+
+        # 🔥 Convert ORM → domain
+        structure = NetcdfStructure.from_orm(
+            field_orm.obs_space.netcdf_structure
+        )
+
+        return structure.list_variables()
+
+
+
+
+
+
 
 def generate_history_plot(session, field, variable, plotter):
     logger.info(f"Generating history plot for {variable}")

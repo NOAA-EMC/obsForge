@@ -12,7 +12,9 @@ import re
 
 from logging_config import configure_logging
 
-from app.scanner import Scanner
+# from app.scanner import Scanner
+from scanners.scanner import Scanner
+
 # from app.products_server import DataProductsServer
 # from app.generate_data_products import generate_data_products
 # from app.website_generator import WebsiteGenerator
@@ -58,7 +60,8 @@ def main():
 
     scanner = Scanner(
         db_path=db_path,
-        data_root=data_root
+        # data_root=data_root
+        root_dir=data_root
     )   
     scanner.run(n_cycles=cycles_to_process)
 

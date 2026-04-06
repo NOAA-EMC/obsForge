@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from .dataset_orm import CycleORM, DatasetFileORM
 
-from .file_scanner import FileScanner, SubdirFileScanner
+# from .file_scanner import FileScanner, SubdirFileScanner
+
 from .obs_space import ObsSpace
 from .dataset_field import DatasetField
 from .dataset_file import DatasetFile
@@ -133,7 +134,7 @@ class DatasetCycle:
             cycle_hour=self.cycle_hour
         )
 
-    def to_db(self, repo):
-        repo.save_cycle(self)
-        repo.save_cycle_files(self)
-        logger.info(f"to_db {self.dataset.name} {self}")
+    # def to_db(self, repo):
+        # repo.save_cycle(self)
+        # repo.save_cycle_files(self)
+        # logger.info(f"to_db {self.dataset.name} {self}")
