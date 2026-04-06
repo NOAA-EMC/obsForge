@@ -1,22 +1,20 @@
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+from typing import List, Tuple, Optional
+
 from abc import ABC, abstractmethod
-from typing import List, Tuple
 from datetime import date
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from ds.db_base import Base
+from ds.io.dataset_repository import DatasetRepository
+
+from ds.file import File
 from ds.dataset import Dataset
-from ds.dataset_cycle import DatasetCycle
-
-
-class new_BaseScanner:
-    def discover_datasets(self):
-        raise NotImplementedError
-
-    def discover_cycles(self, dataset_name):
-        raise NotImplementedError
-
-    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
-        raise NotImplementedError
-
-
 
 
 class BaseScanner(ABC):
@@ -33,9 +31,63 @@ class BaseScanner(ABC):
         """Find available cycles for a dataset"""
         pass
 
-    # @abstractmethod
-    # def build_cycle(
-        # self, dataset: Dataset, cycle_date: date, cycle_hour: str
-    # ) -> DatasetCycle:
-        # """Construct a DatasetCycle with files attached"""
-        # pass
+    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
+        cycle_dir = self.build_cycle_dir(
+            dataset_name, cycle_date, cycle_hour
+        )
+
+        files = self._scan_files(cycle_dir)
+        selected = self.select_files(files, dataset_name, cycle_hour)
+
+        results = []
+        for f in selected:
+            name = self.parse_obs_space(f.path)
+            if name:
+                results.append((f, name))
+
+        return results
+
+    def build_cycle_dir(self, dataset_name, cycle_date, cycle_hour):
+        raise NotImplementedError
+
+    def parse_obs_space(self, file_path):
+        raise NotImplementedError
+
+    def select_files(self, files, dataset_name, cycle_hour):
+        raise NotImplementedError
+
+    def is_valid_cycle_hour(self, hour: str) -> bool:
+        return hour in {"00", "06", "12", "18"}
+
+    def _scan_files(self, root_path):
+        all_files = []
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            if not dirnames:
+                for filename in filenames:
+                    full_path = os.path.join(dirpath, filename)
+                    all_files.append(File.from_path(full_path))
+        return all_files
+
+    def run(self, n_cycles: Optional[int] = None):
+        self.discover_datasets()
+
+        with Session(self.engine) as session:
+            repo = DatasetRepository(session)
+
+            for ds in self.datasets:
+                repo.save_dataset(ds)
+                repo.load_fields(ds)
+
+                cycles = self.discover_cycles(ds)
+                selected = Dataset._select_cycles(cycles, n_cycles)
+
+                for cycle_date, cycle_hour in selected:
+                    scan_results = self.scan_cycle(
+                        ds.name, cycle_date, cycle_hour
+                    )
+                    cycle = ds.build_cycle(
+                        cycle_date, cycle_hour, scan_results
+                    )
+                    repo.save_cycle(cycle)
+
+                session.commit()

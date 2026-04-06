@@ -8,13 +8,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from ds.db_base import Base
-
-from ds.dataset import Dataset
-from ds.dataset_cycle import DatasetCycle
 from ds.io.dataset_repository import DatasetRepository
 
+from ds.file import File
+from ds.dataset import Dataset
+
 from .base import BaseScanner
-from .file_scanner import SubdirFileScanner, NcObsSpaceNameParser
 
 
 class Scanner(BaseScanner):
@@ -27,9 +26,8 @@ class Scanner(BaseScanner):
 
         self.datasets: List[Dataset] = []
 
-        self.file_scanner = SubdirFileScanner("analysis/ocean/diags")
-        self.parser = NcObsSpaceNameParser()
-
+    # def is_valid_cycle_hour(self, hour: str) -> bool:
+        # return hour in {"00", "06", "12", "18"}
 
     def discover_datasets(self) -> None:
         if not os.path.exists(self.root_dir):
@@ -57,9 +55,6 @@ class Scanner(BaseScanner):
         ]
 
         logger.info(f"Discovered {len(self.datasets)} datasets {[d.name for d in self.datasets]}")
-
-        # return self.datasets
-
 
     def discover_cycles(self, dataset: Dataset):
         import re
@@ -96,7 +91,8 @@ class Scanner(BaseScanner):
 
                 if (
                     os.path.isdir(hour_path)
-                    and hour_entry in DatasetCycle.VALID_HOURS
+                    # and hour_entry in DatasetCycle.VALID_HOURS
+                    and self.is_valid_cycle_hour(hour_entry)
                 ):
                     discovered.append((cycle_date, hour_entry))
 
@@ -108,34 +104,58 @@ class Scanner(BaseScanner):
 
         return discovered
 
+    def select_files(self, files, dataset_name, cycle_hour):
+        return [
+            f for f in files
+            if f.path.endswith(".nc")
+        ]
 
-    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
-        # 1. Build cycle directory path
-        cycle_dir = os.path.join(
+    '''
+    def _scan_files(self, root_path):
+        all_files = []
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            if not dirnames:
+                for filename in filenames:
+                    full_path = os.path.join(dirpath, filename)
+                    all_files.append(File.from_path(full_path))
+        return all_files
+    '''
+
+    def build_cycle_dir(self, dataset_name, cycle_date, cycle_hour):
+        return os.path.join(
             self.root_dir,
             f"{dataset_name}.{cycle_date.strftime('%Y%m%d')}",
             cycle_hour,
         )
-        # print("SCAN DIR:", cycle_dir, os.path.exists(cycle_dir))
 
-        # 2. Scan all files
-        all_files = self.file_scanner.scan(cycle_dir)
-        # print(f"{len(all_files)} FILES scanned")
+    def parse_obs_space(self, path):
+        filename = os.path.basename(path)
 
-        # 3. Filter + parse
-        pairs = self.file_scanner.select_and_parse(
-            all_files,
-            self.parser,
-            dataset_name,
-            cycle_hour
+        if not filename.endswith(".nc"):
+            return None
+
+        return filename.removesuffix(".nc")
+
+    '''
+    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
+        cycle_dir = self.build_cycle_dir(
+            dataset_name, cycle_date, cycle_hour
         )
 
-        # pairs = List[(File, obs_space_name)]
-        return pairs
+        files = self._scan_files(cycle_dir)
+        selected = self.select_files(files, dataset_name, cycle_hour)
+
+        results = []
+        for f in selected:
+            name = self.parse_obs_space(f.path)
+            if name:
+                results.append((f, name))
+
+        return results
+    '''
 
 
-
-    def run(self, n_cycles: Optional[int] = None):
+    def old_run(self, n_cycles: Optional[int] = None):
         self.discover_datasets()
 
         with Session(self.engine) as session:
@@ -158,52 +178,3 @@ class Scanner(BaseScanner):
                     repo.save_cycle(cycle)
 
                 session.commit()
-
-
-
-    def old_run(self, n_cycles: Optional[int] = None):
-        self.discover_datasets()
-        with Session(self.engine) as session:
-            repo = DatasetRepository(session)
-            for ds in self.datasets:
-                repo.save_dataset(ds)
-                
-                repo.load_fields(ds)
-
-                cycles = self.discover_cycles(ds)
-                # cycles = ds.discover_cycles()
-                selected = Dataset._select_cycles(cycles, n_cycles)
-
-                for cycle_date, cycle_hour in selected:
-                    # cycle = ds.build_cycle(cycle_date, cycle_hour)
-                    cycle = self.build_cycle(ds, cycle_date, cycle_hour)
-                    repo.save_cycle(cycle)
-                    session.commit()
-
-
-
-
-    # LEGACY METHODS
-
-    def read(self, n_cycles: Optional[int] = None) -> None:
-        for ds in self.datasets:
-            discovered = ds.discover_cycles()
-            selected = Dataset._select_cycles(discovered, n_cycles)
-            for d, h in selected:
-                cycle = ds.build_cycle(d, h) # Logic is unified here
-                ds.add_cycle(cycle)
-
-    def persist(self, n_cycles: Optional[int] = None) -> None:
-        with Session(self.engine) as session:
-            repo = DatasetRepository(session)
-            for ds in self.datasets:
-                # ds.to_db(session, n_cycles)
-                ds.to_db(repo, n_cycles)
-                logger.info(f"Persisted dataset: {ds.name} (ID={ds.id})")
-
-            session.commit()
-
-    def batch_run(self, n_cycles: Optional[int] = None) -> None:
-        self.discover()
-        self.read(n_cycles=n_cycles)
-        self.persist(n_cycles=n_cycles)
