@@ -114,10 +114,13 @@ class StageOutput(Task):
 
         # Copy obsforge BUFR status log file
         bufr_status_log_src = os.path.join(self.task_config.COMIN_ATMOS_OBSFORGE,
-                                           "obsforge_atmos_bufr_status.log")
+                                           f"{self.task_config.OPREFIX}obsforge_atmos_bufr_status.log")
         bufr_status_log_dest = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
-                                            "obsforge_atmos_bufr_status.log")
+                                            f"{self.task_config.OPREFIX}obsforge_atmos_bufr_status.log")
         if os.path.exists(bufr_status_log_src):
+            # If no observation files were copied, ensure the output directory exists
+            if not copy_list:
+                os.makedirs(self.task_config.COMOUT_ATMOS_OBS, exist_ok=True)
             FileHandler({'copy': [[bufr_status_log_src, bufr_status_log_dest]]}).sync()
             logger.info(f"Copied BUFR status log from {bufr_status_log_src} to {bufr_status_log_dest}")
         else:
@@ -127,9 +130,9 @@ class StageOutput(Task):
         bias_correction_config = self.task_config.get('bias correction', {})
         if bias_correction_config.get('source') == 'GSI':
             bc_src_file = os.path.join(self.task_config.COMIN_ATMOS_GSI,
-                                       f"{self.task_config.OPREFIX}rad_varbc_params.tar")
+                                       f"{self.task_config.OPREFIX}varbc_params.tar")
             bc_dest_file = os.path.join(self.task_config.COMOUT_ATMOS_BC,
-                                        f"{self.task_config.OPREFIX}rad_varbc_params.tar")
+                                        f"{self.task_config.OPREFIX}varbc_params.tar")
             if os.path.exists(bc_src_file):
                 FileHandler({'mkdir': [self.task_config.COMOUT_ATMOS_BC],
                              'copy': [[bc_src_file, bc_dest_file]]}).sync()
