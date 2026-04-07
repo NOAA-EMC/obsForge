@@ -58,9 +58,6 @@ class Dataset:
         self.dataset_fields: List[DatasetField] = []
         self.dataset_cycles: List[DatasetCycle] = []
 
-        # self.file_scanner = SubdirFileScanner("analysis/ocean/diags")
-        # self.obs_space_name_parser = NcObsSpaceNameParser()
-
     def __repr__(self) -> str:
         return (
             f"Dataset {self.name}, "
@@ -69,16 +66,6 @@ class Dataset:
             f"{len(self.dataset_cycles)} cycles, "
             f"{len(self.dataset_fields)} fields"
         )
-
-    @classmethod
-    def old_get_all(cls, session: Session) -> List["Dataset"]:
-        stmt = select(DatasetORM).order_by(DatasetORM.name)
-        return [cls.from_db_self(orm) for orm in session.scalars(stmt).all()]
-
-    @classmethod
-    def old_get_by_id(cls, session: Session, dataset_id: int) -> Optional["Dataset"]:
-        orm = session.get(DatasetORM, dataset_id)
-        return cls.from_db_self(orm) if orm else None
 
 
     """
@@ -115,31 +102,6 @@ class Dataset:
         )
         return instance
 
-    def load_cycles_from_db(self, session: Session) -> None:
-        """
-        Loads all DatasetCycle identities (Date/Hour) without loading files.
-        """
-        if self.id is None:
-            logger.error(f"Cannot load cycles for dataset '{self.name}': ID is missing.")
-            return
-
-        # Query all cycles for this dataset
-        stmt = (
-            select(CycleORM)
-            .where(CycleORM.dataset_id == self.id)
-            .order_by(CycleORM.cycle_date.desc(), CycleORM.cycle_hour.desc())
-        )
-        cycle_orms = session.scalars(stmt).all()
-        logger.info(f"QUERY: Dataset ID is {self.id}")
-        logger.info(f"RESULT: Found {len(cycle_orms)} cycles in DB")
-
-        self.dataset_cycles = []
-        for c_orm in cycle_orms:
-            cycle_domain = DatasetCycle.from_orm(c_orm, self)
-            self.dataset_cycles.append(cycle_domain)
-
-        logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
-
 
     def find_field_by_id(self, field_id: int) -> Optional[DatasetField]:
         """Finds a loaded Field domain object by its database ID."""
@@ -147,15 +109,6 @@ class Dataset:
             if field.id == field_id:
                 return field
         return None
-
-    '''
-    def get_field_by_obs_space(self, obs_space_name: str) -> Optional[DatasetField]:
-        """Finds a loaded Field by the name of its observation space."""
-        for field in self.dataset_fields:
-            if field.obs_space.name == obs_space_name:
-                return field
-        return None
-    '''
 
     # --------------------------------------------------------
     # Persistence
@@ -208,70 +161,21 @@ class Dataset:
         self.dataset_cycles.append(cycle)
         self.dataset_cycles.sort()
 
-    def old_discover_cycles(self) -> list[tuple[date, str]]:
-        """
-        Discover available cycles in the dataset root directory.
-
-        Returns
-        -------
-        List of (cycle_date, cycle_hour) tuples sorted chronologically.
-        Does NOT modify in-memory state.
-        """
-
-        if not self.root_dir or not os.path.isdir(self.root_dir):
-            logger.warning(f"Invalid root_dir for dataset '{self.name}'")
-            return []
-
-        DATASET_DIR_PATTERN = re.compile(
-            rf"^{re.escape(self.name)}\.(\d{{8}})$"
-        )
-
-        discovered = []
-
-        for entry in os.listdir(self.root_dir):
-            entry_path = os.path.join(self.root_dir, entry)
-
-            if not os.path.isdir(entry_path):
-                continue
-
-            match = DATASET_DIR_PATTERN.match(entry)
-            if not match:
-                continue
-
-            cycle_date_str = match.group(1)
-
-            try:
-                cycle_date = datetime.strptime(
-                    cycle_date_str, "%Y%m%d"
-                ).date()
-            except ValueError:
-                logger.warning(f"Invalid date format: {cycle_date_str}")
-                continue
-
-            for hour_entry in os.listdir(entry_path):
-                hour_path = os.path.join(entry_path, hour_entry)
-
-                if (
-                    os.path.isdir(hour_path)
-                    and hour_entry in DatasetCycle.VALID_HOURS
-                ):
-                    discovered.append((cycle_date, hour_entry))
-
-        sorted_cycles = sorted(discovered, key=lambda x: (x[0], x[1]))
-        logger.info(f"Discovered {len(sorted_cycles)} cycles for dataset {self.name}")
-        return sorted_cycles
-
     def build_cycle(self, cycle_date, cycle_hour, scan_results):
         cycle = DatasetCycle(self, cycle_date, cycle_hour)
+        # logger.info("build_cycle:")
 
         for file, obs_space_name in scan_results:
             nc_structure = NetcdfStructure.from_file(file.path)
+            # logger.info(f"FILE = {file.path}\nHASH = {nc_structure.structure_hash}")
             if nc_structure is None:
                 logger.warning(f"Unable to read netcdf structure for {f.path}") 
                 continue
             obs_space = ObsSpace(obs_space_name, nc_structure)
 
             field = self.get_or_create_field(obs_space)
+            if not field:
+                continue
 
             ds_file = DatasetFile.from_file(file, field, cycle)
 
@@ -280,35 +184,45 @@ class Dataset:
 
         return cycle
 
-
-    def old_build_cycle(self, cycle_date: date, cycle_hour: str) -> DatasetCycle:
-        # Get files from disk
-        cycle_dir = DatasetCycle.cycle_dir(self, cycle_date, cycle_hour)
-        all_files = self.file_scanner.scan(cycle_dir)
-        pattern = self.obs_space_name_parser.get_search_pattern(self.name, cycle_hour)
-        selected, _ = FileScanner.filter_files(all_files, pattern)
-
-        cycle = DatasetCycle(self, cycle_date, cycle_hour)
-
-        # Map files to fields
-        for f in selected:
-            obs_space = ObsSpace.from_file(f.path, self.obs_space_name_parser)
-            if not obs_space: continue
-
-            field = self.get_or_create_field(obs_space)
-            
-            ds_file = DatasetFile.from_file(f, field, cycle)
-            field.add_file(ds_file)
-            cycle.add_file(ds_file)
-
-        return cycle
-
     def get_or_create_field(self, obs_space: ObsSpace) -> DatasetField:
         for f in self.dataset_fields:
             if f.obs_space.name == obs_space.name:
+                if not f.obs_space.compare(obs_space):
+                    # raise ValueError(
+                    logger.error(
+                        f"ObsSpace structure mismatch for '{obs_space.name}'"
+                    )
+                    return None
                 return f
+
         new_field = DatasetField(self, obs_space)
         self.dataset_fields.append(new_field)
         return new_field
 
-##########################################################
+
+###################################################
+    def old_load_cycles_from_db(self, session: Session) -> None:
+        """
+        Loads all DatasetCycle identities (Date/Hour) without loading files.
+        """
+        if self.id is None:
+            logger.error(f"Cannot load cycles for dataset '{self.name}': ID is missing.")
+            return
+
+        # Query all cycles for this dataset
+        stmt = (
+            select(CycleORM)
+            .where(CycleORM.dataset_id == self.id)
+            .order_by(CycleORM.cycle_date.desc(), CycleORM.cycle_hour.desc())
+        )
+        cycle_orms = session.scalars(stmt).all()
+        logger.info(f"QUERY: Dataset ID is {self.id}")
+        logger.info(f"RESULT: Found {len(cycle_orms)} cycles in DB")
+
+        self.dataset_cycles = []
+        for c_orm in cycle_orms:
+            cycle_domain = DatasetCycle.from_orm(c_orm, self)
+            self.dataset_cycles.append(cycle_domain)
+
+        logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
+

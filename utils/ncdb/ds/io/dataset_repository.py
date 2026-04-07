@@ -41,7 +41,7 @@ class DatasetRepository:
         return orm
 
     def save_cycle(self, cycle):
-        logger.info(f"save_cycle: {cycle}")
+        # logger.info(f"save_cycle: {cycle}")
 
         # persist cycle itself
         if cycle.id is None:

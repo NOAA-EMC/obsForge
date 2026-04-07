@@ -18,8 +18,14 @@ from ds.dataset import Dataset
 
 
 class BaseScanner(ABC):
-    def __init__(self, root_dir: str):
+    def __init__(self, db_path: str, root_dir: str):
+        self.db_path = db_path
         self.root_dir = root_dir
+
+        self.engine = create_engine(f"sqlite:///{db_path}")
+        Base.metadata.create_all(self.engine)
+
+        self.datasets: List[Dataset] = []
 
     @abstractmethod
     def discover_datasets(self) -> List[Dataset]:
@@ -77,6 +83,9 @@ class BaseScanner(ABC):
             for ds in self.datasets:
                 repo.save_dataset(ds)
                 repo.load_fields(ds)
+                # logger.info(f"loaded fields for {ds}")
+                # for f in ds.dataset_fields:
+                    # logger.info(f"-->  {f}")
 
                 cycles = self.discover_cycles(ds)
                 selected = Dataset._select_cycles(cycles, n_cycles)

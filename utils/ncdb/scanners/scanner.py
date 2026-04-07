@@ -4,11 +4,11 @@ logger = logging.getLogger(__name__)
 import os
 from typing import List, Optional
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import Session
 
-from ds.db_base import Base
-from ds.io.dataset_repository import DatasetRepository
+# from ds.db_base import Base
+# from ds.io.dataset_repository import DatasetRepository
 
 from ds.file import File
 from ds.dataset import Dataset
@@ -17,7 +17,7 @@ from .base import BaseScanner
 
 
 class Scanner(BaseScanner):
-    def __init__(self, db_path: str, root_dir: str):
+    def old__init__(self, db_path: str, root_dir: str):
         self.db_path = db_path
         self.root_dir = root_dir
 
@@ -31,7 +31,6 @@ class Scanner(BaseScanner):
 
     def discover_datasets(self) -> None:
         if not os.path.exists(self.root_dir):
-            # raise FileNotFoundError(
             logger.error(
                 f"Data root not found: {self.root_dir}"
             )
@@ -110,17 +109,6 @@ class Scanner(BaseScanner):
             if f.path.endswith(".nc")
         ]
 
-    '''
-    def _scan_files(self, root_path):
-        all_files = []
-        for dirpath, dirnames, filenames in os.walk(root_path):
-            if not dirnames:
-                for filename in filenames:
-                    full_path = os.path.join(dirpath, filename)
-                    all_files.append(File.from_path(full_path))
-        return all_files
-    '''
-
     def build_cycle_dir(self, dataset_name, cycle_date, cycle_hour):
         return os.path.join(
             self.root_dir,
@@ -135,6 +123,20 @@ class Scanner(BaseScanner):
             return None
 
         return filename.removesuffix(".nc")
+
+
+################################################
+
+    '''
+    def _scan_files(self, root_path):
+        all_files = []
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            if not dirnames:
+                for filename in filenames:
+                    full_path = os.path.join(dirpath, filename)
+                    all_files.append(File.from_path(full_path))
+        return all_files
+    '''
 
     '''
     def scan_cycle(self, dataset_name, cycle_date, cycle_hour):

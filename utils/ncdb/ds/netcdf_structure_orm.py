@@ -65,6 +65,12 @@ class NetcdfStructureORM(Base):
     # Link back to your existing obs_spaces
     obs_spaces = relationship("ObsSpaceORM", back_populates="netcdf_structure")
 
+    def __repr__(self) -> str:
+        return (
+            f"<NetcdfStructureORM:"
+            f"id = {self.id}, "
+            f"hash = {self.structure_hash}>"
+        )
 
 class NetcdfNodeORM(Base):
 

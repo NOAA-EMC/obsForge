@@ -54,18 +54,8 @@ class DatasetField:
 
         instance = cls(dataset=dataset, obs_space=obs_space_domain)
         instance.id = orm.id
+        # logger.info(f"Field.from_orm = {instance}")
         return instance
-
-    # @classmethod
-    # def from_db_self(cls, orm: FieldORM, dataset: "Dataset") -> "DatasetField":
-        # if not orm: return None
-        # 
-        # from .obs_space import ObsSpace
-        # obs_space_domain = ObsSpace.from_orm(orm.obs_space)
-# 
-        # instance = cls(dataset=dataset, obs_space=obs_space_domain)
-        # instance.id = orm.id
-        # return instance
 
     def to_orm(self) -> FieldORM:
         return FieldORM(

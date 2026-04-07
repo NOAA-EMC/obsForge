@@ -92,7 +92,8 @@ class NetcdfStructure:
             # Ordered Dimensions
             if n_orm.node_type == "VARIABLE":
                 d_node.dim_names = [
-                    assoc.dimension.full_path for assoc in n_orm.variable_dimensions
+                    assoc.dimension.full_path.split("/")[-1]
+                    for assoc in n_orm.variable_dimensions
                 ]
 
         return cls(nodes_by_path=nodes_by_path, root=root, id=orm.id)

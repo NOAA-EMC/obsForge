@@ -41,16 +41,20 @@ class ObsSpace:
         if not orm:
             return None
 
+        # logger.info(f"ObsSpace.from_orm orm.netcdf_structure = {orm.netcdf_structure}")
         # 1. Reconstruct the NetcdfStructure domain object
         # Note: orm.netcdf_structure is the NetcdfStructureORM instance
         structure_domain = NetcdfStructure.from_orm(orm.netcdf_structure)
+        # logger.info(f"ObsSpace.from_orm reconstructed = {structure_domain}")
 
         # 2. Return the assembled ObsSpace domain object
-        return cls(
+        instance = cls(
             name=orm.name,
             netcdf_structure=structure_domain,
             id=orm.id
         )
+        # logger.info(f"ObsSpace.from_orm = {instance}")
+        return instance
 
     def compare(self, other: "ObsSpace") -> bool:
         """
@@ -86,78 +90,6 @@ class ObsSpace:
             return False
 
         return True
-
-    # methods for parsing the name
-    SEPARATOR = "."
-    EXTENSION = "nc"
-    NAME_INDEX = 2
-    EXPECTED_PARTS = 4
-
-    @classmethod
-    def old_get_search_pattern(cls, prefix: str, hour: str) -> str:
-        """Generates the glob: {prefix}.t{hour}z.*.nc"""
-        if isinstance(hour, int):
-            hour = f"{hour:02d}"
-        
-        return cls.SEPARATOR.join([prefix, f"t{hour}z", "*", cls.EXTENSION])
-
-    # prefix = name of the data set
-    @classmethod
-    def old_parse_name_from_filename(cls, path: str, prefix: Optional[str] = None) -> Optional[str]:
-        """
-        Parses the name using FILENAME_PARTS. 
-        If prefix is provided, it enforces a strict match against the first part.
-        """
-        filename = os.path.basename(path)
-        parts = filename.split(cls.SEPARATOR)
-
-        # 1. Structural & Extension Check
-        if len(parts) != cls.EXPECTED_PARTS or parts[-1] != cls.EXTENSION:
-            return None
-
-        # 2. Strict Prefix Check (Optional)
-        if prefix is not None and parts[0] != prefix:
-            return None
-
-        # 3. Cycle string validation (tNNz)
-        if not re.fullmatch(r"t\d{2}z", parts[1]):
-            return None
-
-        # 4. Extract based on the defined index
-        return parts[cls.NAME_INDEX]
-
-    @classmethod
-    def old_from_file(cls, file_path: str, prefix: Optional[str] = None) -> Optional["ObsSpace"]:
-        """
-        Static in-memory constructor.
-        Passes the optional prefix (=name of dataset) 
-            to the parser for stricter validation.
-        """
-        name = cls.parse_name_from_filename(file_path, prefix=prefix)
-        if name is None:
-            return None
-
-        structure = NetcdfStructure.from_file(file_path)
-        if structure is None:
-            return None
-
-        this_obs_space = cls(name=name, netcdf_structure=structure)
-        # logger.debug(f"constructed {this_obs_space} from {file_path}")
-        return this_obs_space
-
-
-    @classmethod
-    def deprecated_from_file(cls, file_path: str, parser: "ObsSpaceNameParser"):
-        name = parser.parse(file_path)
-        if name is None:
-            return None
-
-        structure = NetcdfStructure.from_file(file_path)
-        if structure is None:
-            return None
-
-        return cls(name=name, netcdf_structure=structure)
-
 
     def to_db(self, session: Session) -> ObsSpaceORM:
         """

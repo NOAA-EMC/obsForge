@@ -9,8 +9,6 @@ from sqlalchemy.orm import Session
 
 from .dataset_orm import CycleORM, DatasetFileORM
 
-# from .file_scanner import FileScanner, SubdirFileScanner
-
 from .obs_space import ObsSpace
 from .dataset_field import DatasetField
 from .dataset_file import DatasetFile
@@ -76,7 +74,7 @@ class DatasetCycle:
         self.files.append(file)
 
     @staticmethod
-    def cycle_dir(dataset, cycle_date, cycle_hour):
+    def old_cycle_dir(dataset, cycle_date, cycle_hour):
         """
         Compute the directory path for a cycle
         without instantiating a DatasetCycle.
@@ -87,33 +85,6 @@ class DatasetCycle:
             f"{dataset.name}.{date_str}",
             cycle_hour,
         )
-
-    '''
-    @classmethod
-    def parse_cycle_dir(cls, path: str) -> Tuple[datetime.date, str]:
-        """
-        Given a path like:
-        <root_dir>/<dataset.name>.<YYYYMMDD>/<cycle_hour>/
-
-        Return:
-            (cycle_date, cycle_hour)
-        """
-        p = Path(path).resolve()
-
-        cycle_hour = p.name                     # last component
-        date_part = p.parent.name               # dataset.name.YYYYMMDD
-
-        # Extract YYYYMMDD (everything after last dot)
-        try:
-            date_str = date_part.split(".")[-1]
-            cycle_date = datetime.strptime(date_str, "%Y%m%d").date()
-        except (IndexError, ValueError):
-            # raise ValueError(f"Invalid cycle directory format: {path}")
-            logger.error(f"Invalid cycle directory format: {path}")
-            return None
-
-        return cycle_date, cycle_hour
-    '''
 
     @classmethod
     def from_orm(cls, orm: CycleORM, dataset: "Dataset") -> "DatasetCycle":
