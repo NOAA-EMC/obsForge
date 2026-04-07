@@ -90,7 +90,7 @@ class Scanner(BaseScanner):
 
                 if (
                     os.path.isdir(hour_path)
-                    # and hour_entry in DatasetCycle.VALID_HOURS
+                    # and hour_entry in Cycle.VALID_HOURS
                     and self.is_valid_cycle_hour(hour_entry)
                 ):
                     discovered.append((cycle_date, hour_entry))

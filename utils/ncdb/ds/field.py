@@ -19,7 +19,7 @@ from .dataset_file import DatasetFile
 logger = logging.getLogger(__name__)
 
 
-class DatasetField:
+class Field:
     """
     Represents a variable of type ObsSpace within a Dataset.
     It has a list of DatasetFile objects (0 or 1 per cycle)
@@ -45,7 +45,7 @@ class DatasetField:
         self.files.append(f)
 
     @classmethod
-    def from_orm(cls, orm: FieldORM, dataset: "Dataset") -> "DatasetField":
+    def from_orm(cls, orm: FieldORM, dataset: "Dataset") -> "Field":
         if not orm:
             return None
 

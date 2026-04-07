@@ -9,11 +9,9 @@ from ds.dataset_orm import (
 )
 
 from ds.dataset import Dataset
-from ds.dataset_cycle import DatasetCycle
-from ds.dataset_field import DatasetField
-
+from ds.cycle import Cycle
+from ds.field import Field
 from ds.dataset_file import DatasetFile
-from ds.dataset_cycle import DatasetCycle
 
 
 class DatasetRepository:
@@ -72,7 +70,7 @@ class DatasetRepository:
         return cycle
 
     def load_cycle_files(self, cycle):
-        if not cycle.dataset.dataset_fields:
+        if not cycle.dataset.fields:
             logger.error("Dataset fields must be loaded before loading cycle files")
             # raise ValueError("Dataset fields must be loaded before loading cycle files")
             return
@@ -102,12 +100,12 @@ class DatasetRepository:
             cycle.add_file(ds_file)
 
     def load_cycle(self, dataset, cycle_date, cycle_hour):
-        if not dataset.dataset_fields:
+        if not dataset.fields:
             self.load_fields(dataset)
 
         # 1. Check if already in memory
         existing = next(
-            (c for c in dataset.dataset_cycles
+            (c for c in dataset.cycles
              if c.cycle_date == cycle_date and c.cycle_hour == cycle_hour),
             None
         )
@@ -128,14 +126,14 @@ class DatasetRepository:
             return None
 
         # 3. Build domain object
-        cycle = DatasetCycle.from_orm(c_orm, dataset)
+        cycle = Cycle.from_orm(c_orm, dataset)
 
         # 4. Load files
         self.load_cycle_files(cycle)
 
         # 5. Register in dataset
-        dataset.dataset_cycles.append(cycle)
-        dataset.dataset_cycles.sort()
+        dataset.cycles.append(cycle)
+        dataset.cycles.sort()
 
         return cycle
 
@@ -187,16 +185,16 @@ class DatasetRepository:
         orm = self.session.get(FieldORM, field_id)
         if not orm:
             return None
-        return DatasetField.from_orm(orm, dataset)
-        # return DatasetField.from_db_self(orm, dataset)
+        return Field.from_orm(orm, dataset)
+        # return Field.from_db_self(orm, dataset)
 
     def load_fields(self, dataset):
         stmt = select(FieldORM).where(FieldORM.dataset_id == dataset.id)
         field_orms = self.session.scalars(stmt).all()
 
-        dataset.dataset_fields = [
-            # DatasetField.from_db_self(f_orm, dataset)
-            DatasetField.from_orm(f_orm, dataset)
+        dataset.fields = [
+            # Field.from_db_self(f_orm, dataset)
+            Field.from_orm(f_orm, dataset)
             for f_orm in field_orms
         ]
 
@@ -214,7 +212,7 @@ class DatasetRepository:
         file_orms = self.session.scalars(stmt).all()
 
         for f_orm in file_orms:
-            cycle_domain = DatasetCycle._from_db_self(
+            cycle_domain = Cycle._from_db_self(
                 f_orm.dataset_cycle,
                 field.dataset
             )

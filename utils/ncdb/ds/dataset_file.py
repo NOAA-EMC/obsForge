@@ -24,8 +24,8 @@ class DatasetFile:
     def __init__(
         self,
         file: "File",
-        dataset_field: "DatasetField",
-        dataset_cycle: "DatasetCycle",
+        dataset_field: "Field",
+        dataset_cycle: "Cycle",
         id: Optional[int] = None,
         netcdf_file: Optional[NetcdfFile] = None
     ):
@@ -39,8 +39,8 @@ class DatasetFile:
     def from_file(
         cls, 
         file_obj: "File", 
-        dataset_field: "DatasetField", 
-        dataset_cycle: "DatasetCycle"
+        dataset_field: "Field", 
+        dataset_cycle: "Cycle"
     ) -> "DatasetFile":
         structure = None
         if dataset_field.obs_space:
@@ -60,8 +60,8 @@ class DatasetFile:
         cls, 
         session: Session, 
         orm: DatasetFileORM, 
-        dataset_field: "DatasetField", 
-        dataset_cycle: "DatasetCycle"
+        dataset_field: "Field", 
+        dataset_cycle: "Cycle"
     ) -> "DatasetFile":
         file_domain = File.from_orm(orm.file)
         structure = dataset_field.obs_space.netcdf_structure
@@ -114,10 +114,10 @@ class DatasetFile:
         assert self.dataset_field.id is not None
         assert self.dataset_cycle.id is not None
 
-        # Persist underlying DatasetField
+        # Persist underlying Field
         # if self.dataset_field.id is None:
             # self.dataset_field.to_db(session)
-        # Persist underlying DatasetCycle
+        # Persist underlying Cycle
         # if self.dataset_cycle.id is None:
             # self.dataset_cycle.to_db(session)
 

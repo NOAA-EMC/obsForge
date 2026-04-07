@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+logger = logging.getLogger(__name__)
 
 from datetime import datetime, date
 from typing import List, Optional, Tuple, Set
@@ -22,14 +23,9 @@ from .obs_space_orm import ObsSpaceORM
 from .file import File
 from .obs_space import ObsSpace
 from .netcdf_structure import NetcdfStructure
-from .dataset_cycle import DatasetCycle
-from .dataset_field import DatasetField
+from .cycle import Cycle
+from .field import Field
 from .dataset_file import DatasetFile
-
-# from .file_scanner import FileScanner, SubdirFileScanner, NcObsSpaceNameParser
-
-
-logger = logging.getLogger(__name__)
 
 
 class Dataset:
@@ -55,16 +51,16 @@ class Dataset:
         self.name = name
         self.root_dir = root_dir
 
-        self.dataset_fields: List[DatasetField] = []
-        self.dataset_cycles: List[DatasetCycle] = []
+        self.fields: List[Field] = []
+        self.cycles: List[Cycle] = []
 
     def __repr__(self) -> str:
         return (
             f"Dataset {self.name}, "
             f"id = {self.id}, "
             f"{self.root_dir}, \n"
-            f"{len(self.dataset_cycles)} cycles, "
-            f"{len(self.dataset_fields)} fields"
+            f"{len(self.cycles)} cycles, "
+            f"{len(self.fields)} fields"
         )
 
 
@@ -78,7 +74,7 @@ class Dataset:
         0    → read none
     """
     @staticmethod
-    def _select_cycles(cycles: list["DatasetCycle"], n: Optional[int] = None) -> list["DatasetCycle"]:
+    def _select_cycles(cycles: list["Cycle"], n: Optional[int] = None) -> list["Cycle"]:
         if not cycles:
             return []
         if n is None:
@@ -102,10 +98,9 @@ class Dataset:
         )
         return instance
 
-
-    def find_field_by_id(self, field_id: int) -> Optional[DatasetField]:
+    def find_field_by_id(self, field_id: int) -> Optional[Field]:
         """Finds a loaded Field domain object by its database ID."""
-        for field in self.dataset_fields:
+        for field in self.fields:
             if field.id == field_id:
                 return field
         return None
@@ -150,19 +145,19 @@ class Dataset:
     def to_db(self, repo, n: Optional[int] = None) -> None:
         repo.save_dataset(self)
 
-        for field in self.dataset_fields:
+        for field in self.fields:
             repo.save_field(field)
 
-        cycles = Dataset._select_cycles(self.dataset_cycles, n)
+        cycles = Dataset._select_cycles(self.cycles, n)
         for cycle in cycles:
             repo.save_cycle(cycle)
 
     def add_cycle(self, cycle):
-        self.dataset_cycles.append(cycle)
-        self.dataset_cycles.sort()
+        self.cycles.append(cycle)
+        self.cycles.sort()
 
     def build_cycle(self, cycle_date, cycle_hour, scan_results):
-        cycle = DatasetCycle(self, cycle_date, cycle_hour)
+        cycle = Cycle(self, cycle_date, cycle_hour)
         # logger.info("build_cycle:")
 
         for file, obs_space_name in scan_results:
@@ -184,8 +179,8 @@ class Dataset:
 
         return cycle
 
-    def get_or_create_field(self, obs_space: ObsSpace) -> DatasetField:
-        for f in self.dataset_fields:
+    def get_or_create_field(self, obs_space: ObsSpace) -> Field:
+        for f in self.fields:
             if f.obs_space.name == obs_space.name:
                 if not f.obs_space.compare(obs_space):
                     # raise ValueError(
@@ -195,15 +190,14 @@ class Dataset:
                     return None
                 return f
 
-        new_field = DatasetField(self, obs_space)
-        self.dataset_fields.append(new_field)
+        new_field = Field(self, obs_space)
+        self.fields.append(new_field)
         return new_field
 
 
-###################################################
-    def old_load_cycles_from_db(self, session: Session) -> None:
+    def load_cycles_from_db(self, session: Session) -> None:
         """
-        Loads all DatasetCycle identities (Date/Hour) without loading files.
+        Loads all Cycle identities (Date/Hour) without loading files.
         """
         if self.id is None:
             logger.error(f"Cannot load cycles for dataset '{self.name}': ID is missing.")
@@ -219,10 +213,9 @@ class Dataset:
         logger.info(f"QUERY: Dataset ID is {self.id}")
         logger.info(f"RESULT: Found {len(cycle_orms)} cycles in DB")
 
-        self.dataset_cycles = []
+        self.cycles = []
         for c_orm in cycle_orms:
-            cycle_domain = DatasetCycle.from_orm(c_orm, self)
-            self.dataset_cycles.append(cycle_domain)
+            cycle_domain = Cycle.from_orm(c_orm, self)
+            self.cycles.append(cycle_domain)
 
-        logger.info(f"Found {len(self.dataset_cycles)} cycles for dataset '{self.name}'")
-
+        logger.info(f"Found {len(self.cycles)} cycles for dataset '{self.name}'")

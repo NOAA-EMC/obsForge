@@ -161,7 +161,7 @@ def generate_interactive_surface_plot(
 
 def generate_file_data_products(datasets, server):
     for dataset in datasets:
-        for cycle in dataset.dataset_cycles:
+        for cycle in dataset.cycles:
             for file in cycle.files:
                 variables = file.netcdf_file.structure.list_variables("/ombg")
                 variable_path = variables[0]
@@ -193,8 +193,8 @@ def generate_db_data_products(db_path, datasets, server):
 
     with Session(engine) as session:
         for dataset in datasets:
-            current_cycle = dataset.dataset_cycles[-1]
-            for field in dataset.dataset_fields:
+            current_cycle = dataset.cycles[-1]
+            for field in dataset.fields:
                 file = field.files[0]
                 variables = file.netcdf_file.structure.list_variables("/ombg")
                 variable_path = variables[0]

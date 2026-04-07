@@ -10,19 +10,19 @@ from sqlalchemy.orm import Session
 from .dataset_orm import CycleORM, DatasetFileORM
 
 from .obs_space import ObsSpace
-from .dataset_field import DatasetField
+from .field import Field
 from .dataset_file import DatasetFile
 
 logger = logging.getLogger(__name__)
 
 
 '''
-Dataset constructs a DatasetCycle object
+Dataset constructs a Cycle object
 It holds a collection of DatasetFile objects
 where each file is already connected to the field
 and has its attributes computed
 '''
-class DatasetCycle:
+class Cycle:
     VALID_HOURS = {"00", "06", "12", "18"}
 
     def __init__(
@@ -61,8 +61,8 @@ class DatasetCycle:
         """
         comparison to allow sorting by cycle_date and cycle_hour.
         """
-        if not isinstance(other, DatasetCycle):
-            raise TypeError(f"Cannot compare DatasetCycle with {type(other)}")
+        if not isinstance(other, Cycle):
+            raise TypeError(f"Cannot compare Cycle with {type(other)}")
 
         # First compare by cycle_date, then by cycle_hour
         if self.cycle_date != other.cycle_date:
@@ -73,21 +73,8 @@ class DatasetCycle:
     def add_file(self, file):
         self.files.append(file)
 
-    @staticmethod
-    def old_cycle_dir(dataset, cycle_date, cycle_hour):
-        """
-        Compute the directory path for a cycle
-        without instantiating a DatasetCycle.
-        """
-        date_str = cycle_date.strftime("%Y%m%d")
-        return os.path.join(
-            dataset.root_dir,
-            f"{dataset.name}.{date_str}",
-            cycle_hour,
-        )
-
     @classmethod
-    def from_orm(cls, orm: CycleORM, dataset: "Dataset") -> "DatasetCycle":
+    def from_orm(cls, orm: CycleORM, dataset: "Dataset") -> "Cycle":
         if not orm:
             return None
 
@@ -105,7 +92,22 @@ class DatasetCycle:
             cycle_hour=self.cycle_hour
         )
 
+#######################################################
+
     # def to_db(self, repo):
         # repo.save_cycle(self)
         # repo.save_cycle_files(self)
         # logger.info(f"to_db {self.dataset.name} {self}")
+
+    @staticmethod
+    def old_cycle_dir(dataset, cycle_date, cycle_hour):
+        """
+        Compute the directory path for a cycle
+        without instantiating a Cycle.
+        """
+        date_str = cycle_date.strftime("%Y%m%d")
+        return os.path.join(
+            dataset.root_dir,
+            f"{dataset.name}.{date_str}",
+            cycle_hour,
+        )

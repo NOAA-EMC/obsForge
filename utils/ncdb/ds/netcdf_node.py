@@ -56,7 +56,9 @@ class NetcdfNode:
             "path": self.full_path,
             "type": self.node_type,
             "dtype": self.dtype,
-            "dims": self.dim_names,
+            # "dims": self.dim_names,
+            # "dims": sorted(d.split("/")[-1] for d in self.dim_names),
+            "dims": [d.split("/")[-1] for d in self.dim_names],  # preserve order
             "attr_names": sorted(self.attributes.keys())
         }
 

@@ -98,5 +98,6 @@ class BaseScanner(ABC):
                         cycle_date, cycle_hour, scan_results
                     )
                     repo.save_cycle(cycle)
+                    logger.info(f"scanned cycle {cycle_date} {cycle_hour}")
 
                 session.commit()

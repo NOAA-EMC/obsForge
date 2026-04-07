@@ -15,15 +15,14 @@ from ds.netcdf_structure_orm import  NetcdfNodeORM
 from ds.netcdf_file_orm import NetcdfFileDerivedAttributeORM
 
 # from ds.dataset_file import DatasetFile
-from ds.dataset_field import DatasetField
+from ds.field import Field
 
 
 class FieldDataService:
-
     def __init__(self, session):
         self.session = session
 
-    def get_variable_derived_data(self, field: DatasetField, variable_path: str, metrics: list | None = None):
+    def get_variable_derived_data(self, field: Field, variable_path: str, metrics: list | None = None):
         """
         Fetch historical derived attributes for this variable 
         and return a Pandas DataFrame

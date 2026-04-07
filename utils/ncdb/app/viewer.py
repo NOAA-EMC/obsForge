@@ -23,8 +23,8 @@ from ds.netcdf_structure_orm import NetcdfNodeORM
 from ds.obs_space_orm import ObsSpaceORM
 
 from ds.dataset import Dataset
-from ds.dataset_field import DatasetField
-from ds.dataset_cycle import DatasetCycle
+from ds.field import Field
+from ds.cycle import Cycle
 from ds.obs_space import ObsSpace
 from ds.netcdf_structure import NetcdfStructure
 
@@ -105,7 +105,7 @@ def get_fields(dataset_id: int):
         # Return the data from the domain objects
         return [
             {"id": field.id, "name": field.obs_space.name} 
-            for field in ds.dataset_fields
+            for field in ds.fields
         ]
 
 
@@ -131,16 +131,16 @@ def get_cycles(field_id: int):
         # 3. Load the Cycle Axis
         # This is where we see if the DB has cycles for this dataset
         ds.load_cycles_from_db(session)
-        print(f"[DEBUG] Cycles loaded from DB: {len(ds.dataset_cycles)} found")
+        print(f"[DEBUG] Cycles loaded from DB: {len(ds.cycles)} found")
 
         # 4. Optional: Print the first few cycles to verify date/hour formats
-        # if ds.dataset_cycles:
-            # first = ds.dataset_cycles[0]
+        # if ds.cycles:
+            # first = ds.cycles[0]
             # print(f"[DEBUG] Sample Cycle: {first.cycle_date} {first.cycle_hour}")
 
         results = [
             {"date": c.cycle_date.isoformat(), "hour": c.cycle_hour} 
-            for c in ds.dataset_cycles
+            for c in ds.cycles
         ]
         
         # print(f"[DEBUG] Returning {len(results)} cycles to the frontend\n")
@@ -155,7 +155,7 @@ def get_cycles(field_id: int):
         # field_orm = session.get(FieldORM, field_id)
         # if not field_orm:
             # return []
-        # field = DatasetField.from_db_self(field_orm, dataset=None) 
+        # field = Field.from_db_self(field_orm, dataset=None) 
 # 
         # # field = repo.load_field(ds, field_id)
         # return field.obs_space.netcdf_structure.list_variables()
@@ -274,7 +274,7 @@ def generate_plot(
         
         if plot_type == "historical":
             field = repo.load_field(ds, field_id)
-            # field = DatasetField.from_db(session, f_orm, ds)
+            # field = Field.from_db(session, f_orm, ds)
             fname = generate_history_plot(session, field, variable, plotter)
             
             if not fname:
@@ -285,10 +285,10 @@ def generate_plot(
 
         elif plot_type in ["surface", "interactive"]:
             target_date = datetime.strptime(cycle_date, "%Y-%m-%d").date()
-            # cycle_domain = DatasetCycle.from_db(session, ds, target_date, cycle_hour)
+            # cycle_domain = Cycle.from_db(session, ds, target_date, cycle_hour)
 
             # repo = DatasetRepository(session)
-            # cycle_domain = DatasetCycle.old_from_db(session, ds, target_date, cycle_hour, repo=repo)
+            # cycle_domain = Cycle.old_from_db(session, ds, target_date, cycle_hour, repo=repo)
             repo.load_fields(ds)
             cycle_domain = repo.load_cycle(ds, target_date, cycle_hour)
 
