@@ -4,7 +4,6 @@ import netCDF4
 import numpy as np
 
 from sqlalchemy.orm import Session
-# from .netcdf_structure_orm import NetcdfNodeORM, NetcdfStructureAttributeORM
 from .netcdf_structure_orm import NetcdfNodeORM
 
 # Prevents circular imports for type hinting

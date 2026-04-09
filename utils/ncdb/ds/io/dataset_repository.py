@@ -4,14 +4,14 @@ logger = logging.getLogger(__name__)
 from typing import Optional
 
 from sqlalchemy import select, and_
-from ds.dataset_orm import (
+
+from ncdb.ds.dataset_orm import (
     FieldORM, DatasetORM, CycleORM, DatasetFileORM
 )
-
-from ds.dataset import Dataset
-from ds.cycle import Cycle
-from ds.field import Field
-from ds.dataset_file import DatasetFile
+from ncdb.ds.dataset import Dataset
+from ncdb.ds.cycle import Cycle
+from ncdb.ds.field import Field
+from ncdb.ds.dataset_file import DatasetFile
 
 
 class DatasetRepository:
@@ -212,7 +212,7 @@ class DatasetRepository:
         file_orms = self.session.scalars(stmt).all()
 
         for f_orm in file_orms:
-            cycle_domain = Cycle._from_db_self(
+            cycle_domain = Cycle.from_orm(
                 f_orm.dataset_cycle,
                 field.dataset
             )

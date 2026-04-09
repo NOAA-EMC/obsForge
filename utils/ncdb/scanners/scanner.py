@@ -10,8 +10,8 @@ from typing import List, Optional
 # from ds.db_base import Base
 # from ds.io.dataset_repository import DatasetRepository
 
-from ds.file import File
-from ds.dataset import Dataset
+from ncdb.ds.file import File
+from ncdb.ds.dataset import Dataset
 
 from .base import BaseScanner
 

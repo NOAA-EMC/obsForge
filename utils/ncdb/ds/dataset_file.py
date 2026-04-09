@@ -89,6 +89,9 @@ class DatasetFile:
             f"file={self.file.path})>"
         )
 
+    def get_variable(self, path: str):
+        return self.netcdf_file.get_variable(path)
+
     def to_orm(self) -> "DatasetFileORM":
         return DatasetFileORM(
             id=self.id,

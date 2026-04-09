@@ -105,6 +105,12 @@ class Dataset:
                 return field
         return None
 
+    def find_field_by_name(self, name: str) -> Optional[Field]:
+        for field in self.fields:
+            if field.obs_space.name == name:
+                return field
+        return None
+
     # --------------------------------------------------------
     # Persistence
     # --------------------------------------------------------

@@ -1,5 +1,8 @@
 import logging
+logger = logging.getLogger(__name__)
+
 from typing import List, Optional
+from datetime import datetime
 import pandas as pd
 
 from sqlalchemy import select, and_
@@ -11,12 +14,7 @@ from .dataset_orm import (
     # DatasetFileORM
 )
 
-# from .netcdf_structure_orm import  NetcdfNodeORM
-# from .netcdf_file_orm import NetcdfFileDerivedAttributeORM
-
 from .dataset_file import DatasetFile
-
-logger = logging.getLogger(__name__)
 
 
 class Field:
@@ -63,3 +61,16 @@ class Field:
             dataset_id=self.dataset.id,
             obs_space_id=self.obs_space.id
         )
+
+    def find_file_for_time(self, time: datetime) -> Optional[DatasetFile]:
+        """
+        Finds the DatasetFile corresponding to a given datetime.
+
+        Assumes:
+        - At most one file per cycle
+        - self.files already loaded
+        """
+        for f in self.files:
+            if f.dataset_cycle.datetime == time:
+                return f
+        return None

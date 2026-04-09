@@ -1,22 +1,15 @@
 import logging
+logger = logging.getLogger(__name__)
+
 import json
 import hashlib
 from typing import List, Dict, Optional, Any
+
 from sqlalchemy.orm import Session
-# from .netcdf_structure_orm import (
-    # NetcdfStructureORM,
-    # NetcdfNodeORM,
-    # NetcdfStructureAttributeORM,
-    # NetcdfVariableDimensionORM,
-# )
-# from .netcdf_node import NetcdfNode, read_netcdf_nodes
+
 from .netcdf_structure_orm import NetcdfStructureORM, NetcdfVariableDimensionORM
 from .netcdf_scanner import NetcdfScanner
 from .netcdf_node import NetcdfNode
-
-# import netCDF4
-
-logger = logging.getLogger(__name__)
 
 
 class NetcdfStructure:
@@ -248,6 +241,27 @@ class NetcdfStructure:
             logger.debug(f"Node not found in structure for path: {path}")
         return node
 
+    def find_nodes_by_name(self, name: str, node_type: str = None):
+        return [
+            node for node in self.nodes_by_path.values()
+            if (node.name == name)
+            and (node_type is None or node.node_type == node_type)
+        ]
+
+    def check_variable_path(self, path: str) -> str:
+        node = self.find_node(path)
+        # if not node or node.node_type != "VARIABLE":
+            # raise ValueError(f"Variable '{path}' not found")
+        if not node or node.node_type != "VARIABLE":
+            return None
+        return path
+
+    def find_variable_paths_by_name(self, name: str) -> list[str]:
+        nodes = self.find_nodes_by_name(name, node_type="VARIABLE")
+        return [n.full_path for n in nodes]
+
+
+    # TO BE MOVED TO API:
     def list_variables(self, parent_path: str = "/") -> List[str]:
         """
         Returns a list of full paths for all VARIABLE nodes under the given parent path.

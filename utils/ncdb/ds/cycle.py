@@ -57,6 +57,20 @@ class Cycle:
             ">"
         )
 
+    @property
+    def datetime(self):
+        year, month, day = self._parse_date(self.cycle_date)
+        hour = int(self.cycle_hour)
+
+        return datetime(year, month, day, hour)
+
+    def _parse_date(self, cycle_date):
+        if isinstance(cycle_date, str):
+            y, m, d = map(int, cycle_date.split("-"))
+            return y, m, d
+        else:
+            return cycle_date.year, cycle_date.month, cycle_date.day
+
     def __lt__(self, other):
         """
         comparison to allow sorting by cycle_date and cycle_hour.

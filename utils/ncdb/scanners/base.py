@@ -10,11 +10,11 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from ds.db_base import Base
-from ds.io.dataset_repository import DatasetRepository
+from ncdb.ds.db_base import Base
+from ncdb.ds.io.dataset_repository import DatasetRepository
 
-from ds.file import File
-from ds.dataset import Dataset
+from ncdb.ds.file import File
+from ncdb.ds.dataset import Dataset
 
 
 class BaseScanner(ABC):

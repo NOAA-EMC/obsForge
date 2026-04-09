@@ -251,6 +251,24 @@ class NetcdfFile:
                 except Exception as e:
                     logger.error(f"Failed to persist derived stat '{name}' for node '{path}': {e}")
 
+    def new_get_variable(self, path: str) -> np.ndarray:
+        """
+        Retrieves raw numeric data for a variable at the given path.
+        """
+        node = self.structure.find_node(path)
+        if not node or node.node_type != "VARIABLE":
+            raise ValueError(f"Path '{path}' is not a valid VARIABLE node")
+
+        try:
+            with netCDF4.Dataset(self.file.path, 'r') as ds:
+                values = ds[path][:]
+                return values
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read variable '{path}' from {self.file.path}: {e}"
+            )
+
     def get_variable(self, path: str, filter_out_masked: bool = True) -> Optional[np.ndarray]:
         """
         Retrieves the numeric data for a variable at the given path.
