@@ -181,3 +181,10 @@ class DatasetFile:
             "lats": nc_file.get_variable("/MetaData/latitude"),
             "units": nc_file.get_node_attribute(variable_path, "units")
         }
+
+    # derived attributes
+    # def get_derived(self, path: str, name: str):
+        # return self.netcdf_file.get_derived(path, name)
+
+    def has_derived(self, path: str, name: str):
+        return self.netcdf_file.has_derived(path, name)

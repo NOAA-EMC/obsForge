@@ -327,3 +327,14 @@ class NetcdfFile:
 
         # 2. Return the specific attribute value
         return node_attrs.get(attr_name)
+
+
+
+    def has_derived(self, path: str, name: str) -> bool:
+        return name in self.derived_values.get(path, {})
+
+    # def get_derived(self, path: str, name: str) -> Optional[float]:
+        # return self.derived_values.get(path, {}).get(name)
+
+    # def list_derived(self, path: str) -> List[str]:
+        # return list(self.derived_values.get(path, {}).keys())

@@ -56,7 +56,5 @@ class ObsSpace:
 
         return Variable(self._field, paths[0], self._repo)
 
-    '''
     def list_variables(self):
-        return self._field.obs_space.netcdf_structure.list_variable_paths()
-    '''
+        return self._field.obs_space.netcdf_structure.list_variables()

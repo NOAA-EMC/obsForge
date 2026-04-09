@@ -21,7 +21,7 @@ class Dataset:
     def name(self):
         return self._ds.name
 
-    def list_obsspaces(self):
+    def list_obsspaces(self) -> list[str]:
         return [f.obs_space.name for f in self._ds.fields]
 
     def obsspace(self, name: str) -> ObsSpace:

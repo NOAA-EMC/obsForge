@@ -29,8 +29,20 @@ def main():
 
     print("\n=== Dataset loaded ===\n")
 
+    obsspace_names = gdas.list_obsspaces()
+    # print(f"{obsspace_names}\n")
+    print(f"{len(obsspace_names)} obs spaces:")
+    for name in sorted(obsspace_names):
+        print(f"- {name}")
+
     sst = gdas.obsspace("sst_viirs_n20_l3u")
     print(f"Obs space: {sst.name}\n")
+
+    variable_names = sst.list_variables()
+    # print(f"{variable_names}\n")
+    print(f"{len(variable_names)} for {sst.name}:\n")
+    for name in sorted(variable_names):
+        print(f"- {name}")
 
     lon  = sst.variable("longitude")
     lat  = sst.variable("latitude")
@@ -51,6 +63,14 @@ def main():
     print(f"  temp shape: {getattr(temp0, 'shape', 'unknown')}")
 
     # plot(lon0, lat0, temp0)
+
+    temp_max = temp.max
+    tmax = temp_max[t]
+    temp_min = temp.min
+    tmin = temp_min[t]
+
+    print(f"max temp at {t} = {tmax}")
+    print(f"min temp at {t} = {tmin}")
 
 
 if __name__ == "__main__":

@@ -74,3 +74,11 @@ class Field:
             if f.dataset_cycle.datetime == time:
                 return f
         return None
+
+    # checking derived attribute:
+    # very inefficient.... to be improved
+    def has_derived(self, variable_path: str, name: str) -> bool:
+        for f in self.files:
+            if f.has_derived(variable_path, name):
+                return True
+        return False
