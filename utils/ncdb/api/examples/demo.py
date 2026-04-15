@@ -44,25 +44,30 @@ def main():
     for name in sorted(variable_names):
         print(f"- {name}")
 
-    lon  = sst.variable("longitude")
-    lat  = sst.variable("latitude")
-    temp = sst.variable("/ObsValue/seaSurfaceTemperature")
-    # ice = sst.variable("ombg/seaIceFraction")
+    lon  = sst.field("longitude")
+    lat  = sst.field("latitude")
+    temp = sst.field("/ObsValue/seaSurfaceTemperature")
+    # ice = sst.field("ombg/seaIceFraction")
 
     t = datetime(2026, 4, 7, 6)
 
     print(f"Requesting data at time: {t}\n")
 
-    lon0  = lon[t]
-    lat0  = lat[t]
+    # lon0  = lon[t]
+    # lat0  = lat[t]
     temp0 = temp[t]
 
     print("Data loaded:")
-    print(f"  lon shape:  {getattr(lon0, 'shape', 'unknown')}")
-    print(f"  lat shape:  {getattr(lat0, 'shape', 'unknown')}")
-    print(f"  temp shape: {getattr(temp0, 'shape', 'unknown')}")
+    # print(f"  lon shape:  {getattr(lon0.data, 'shape', 'unknown')}")
+    # print(f"  lat shape:  {getattr(lat0.data, 'shape', 'unknown')}")
+    print(f"  temp0 shape: {getattr(temp0.data, 'shape', 'unknown')}")
+    lon0 = temp0.coords['longitude']
+    lat0 = temp0.coords['latitude']
+    print(f"  temp0 coordinates: {getattr(lon0, 'shape', 'unknown')}")
+    print(f"  temp0 coordinates: {getattr(lat0, 'shape', 'unknown')}")
 
-    # plot(lon0, lat0, temp0)
+    plot_path = temp0.plot("jtemp0.png")
+    print(f"Plot generated at {plot_path}")
 
     temp_max = temp.max
     tmax = temp_max[t]
@@ -70,7 +75,43 @@ def main():
     tmin = temp_min[t]
 
     print(f"max temp at {t} = {tmax}")
-    print(f"min temp at {t} = {tmin}")
+    print(f"200 + min temp at {t} = {tmin + 200.0}")
+
+    plot_path = temp_max.plot("jtemp_max.png")
+    print(f"History plot generated at {plot_path}")
+
+'''
+    fields 
+        lazy-evaluation;
+        hold no data; encode computation graph
+        are DB aware
+        may trigger DB or netcdf read
+    values
+        in memory data
+
+    # aggregation:
+    temp = gdas.field("ObsValue/seaSurfaceTemperature", obsspaces="sst_*")
+
+    # temporal selection may be useful for plotting, etc
+    # historic plot:
+    temp.between(t1, t2)
+    max_temp = temp.max
+    max_temp.plot("temp.png")
+
+    # value at a given time:
+    # triggers evaluation!
+    # the field encodes the union; evaluation involves
+    # a db query
+    temp0 = temp[t]
+    temp0.plot("temp0.png")
+
+    temp1 = temp0.subset(lat=(0, 30), lon=(-80, -20))
+    temp2 = temp1.where(temp1 > 300)
+
+    # algebra:
+    dt = temp0 - temp00
+    max_dt = dt.max
+'''
 
 
 if __name__ == "__main__":
