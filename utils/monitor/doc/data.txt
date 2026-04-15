@@ -1,0 +1,36 @@
+the data is organized in a dir tree
+the data comes in cycles - 4 times per day; 00, 06, 12, 18
+it may be static historical data or live data being streamed into
+the dir tree
+there are multiple data sets in the dir tree
+Abstractly, a data set is a collection of obs spaces
+and an obs space is a collection of ioda (netcdf) files, one per cycle
+The obs spaces are classified into obs space categories
+which belong to a domain, which is either atmos or ocean
+
+dataset
+  └── date
+        └── cycle
+              └── domain           (atmos, ocean)
+                    └── obs_space_category (optional)
+                          └── obs space file instance (.nc file)
+
+definitions:
+------------
+an obs_space is a datatype determined by the ioda structure of a file
+an instance of type obs_space is a collection of nc files with the same
+ioda_structure, with one file per cycle
+a dataset is a collection of obs_space instances
+
+
+--------------------------------------------------------------------
+
+all tasks generate logs in a single directory
+there is a master log for all tasks for every cycle
+each task has a log file
+
+the monitoring system has several top level scripts
+that run as a pipeline
+they can be run also in a cron job
+the intention is that it will run every 6 hours
+

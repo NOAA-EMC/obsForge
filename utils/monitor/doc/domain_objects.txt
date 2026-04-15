@@ -1,0 +1,98 @@
+The data arrives in cycles.
+Each cycle contains a list of files.
+The dataset object is constructed/updated.
+A status report of the scan is produced.
+------------------------------------------------------------
+
+The method Dataset.read_cycle(cycle_dir) 
+
+1. 
+We inspect the cycle dir.
+If the dir exists, 
+a new DatasetCycle object new_cycle is added to Dataset.
+(the cycle may turn out to be empty)
+execute 
+    new_cycle.read_cycle(self, cycle_dir)
+
+2.
+The following is a method on the new DatasetCycle object.
+The method DatasetCycle.read_cycle(dataset, cycle_dir) 
+
+scan all files
+select files with good names
+for each file create its ObsSpace
+for each file, obs_space 
+    field = dataset.add_file(file, cycle, obs_space)
+    this_cycle.add_field(field)
+
+
+2. 
+method:     directory files --> File objects
+    The directory is scanned and a File object is created for each file.
+    The initial status is DECLARED.
+method:     list of File objects --> select by name format
+    If a filename does not conform to the obs space format,
+    the file is marked as IGNORED.
+
+3.
+for every file
+    extract ioda structure,
+    If the ioda structure is not valid, the file is marked as CORRUPTED.
+    extract the obs space name from the filename
+    create an ObsSpace instance for this name with the extracted IodaStructure   
+
+3. 
+method:     Determine the ObsSpace for every file
+For every file we examine its ioda structure.
+If the ioda structure is not valid, the file is marked as CORRUPTED.
+If the ioda structure is new, we create a new IodaStructure object.
+(This may end up being an object with no corresponding obs spaces)
+If there is no ioda structure associated with the obs space derived
+from the filename, then we create a new ObsSpace and it points to the
+new IodaStructure.
+We have identified the ObsSpace for the current file from ioda structure.
+If the structure of this ObsSpace is not the same as the structure of
+the ObsSpace indicated by the filename, we report ERROR.
+Else, mark the status of the file as VALID.
+
+4. 
+Add the new file to Dataset:
+Check if DatasetField object corresponding to the new file exists.
+If not, create it.
+    Add the new DatasetField object (to this DatasetCycle object).
+    Add the new DatasetField object to Dataset.
+Create a new DatasetFile object
+    add it to the corresponding DatasetField object
+    set its back pointers: (DatasetField, DatasetCycle).
+
+Result:
+for every valid ioda file a DatasetFile object is created.
+each such object is assigned to a DatasetField object
+the DatasetCycle object contains all DatasetField objects present in this cycle
+the Dataset object is updated with all new DatasetField objects
+the Dataset object is updated with all new DatasetFile objects
+
+Report:
+The list of all scanned invalid files 
+
+
+------------------------------------------------------------
+dataset:
+collection of cycles
+collection of fields
+
+cycle:
+date
+time
+# collection of files?
+collection of fields
+
+field:
+an obs space (i.e. the type)
+dict: cycle --> dataset file
+
+dataset file:
+a file which belongs to a dataset,
+so it belongs to a field and a cycle
+
+------------------------------------------------------------

@@ -1,0 +1,26 @@
+Computations
+
+A data set is a collection of obs spaces.
+An obs space contains a description of several Lagrangian fields.
+
+The fields can be undersampled or oversampled and they have stochastic
+components, etc.
+
+A Lagrangian field consists of a scalar or vector variables 
+with the corresponding coordinates on the manifold (spherical shell).
+
+Data set Operations:
+move, copy, diff
+view
+
+
+Computational workflow:
+-----------------------
+A. scan and register the dataset in the database
+B. compute derived products
+    1. tables in the database
+    2. files on disk, which are recorded in the database (e.g. images)
+C. use the derived products to perform complex computations which
+query the database
+
+Examples of computations:

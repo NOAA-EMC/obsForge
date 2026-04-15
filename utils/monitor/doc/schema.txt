@@ -1,0 +1,91 @@
+-------------------------------------------
+schema for computations with obs space data
+-------------------------------------------
+needs to describe:
+	monitored workflow entities
+	abstract data: obs spaces
+	abstract physics concepts
+	physical data: file inventory/OS info
+	computing system state
+
+----------------------------------------------------------------
+
+files
+-----
+    id PK
+    path UNIQUE
+    size INT
+    mtime DATETIME
+    # hash TEXT (optional)
+    # dir?
+
+obs_spaces
+----------
+    id PK
+    name UNIQUE
+    ioda_structure_id FK -> ioda_structures.id
+
+datasets
+---------
+    id PK
+    name UNIQUE
+    root_dir
+
+dataset_cycles
+--------------
+    id PK
+    dataset_id FK -> datasets.id
+    cycle_date DATE
+    cycle_hour TEXT
+    UNIQUE(dataset_id, cycle_date, cycle_hour)
+
+# fields are variables of type obs_space in a dataset
+dataset_fields
+--------------
+    id PK
+    dataset_id FK -> datasets.id
+    obs_space_id FK -> obs_spaces.id
+    UNIQUE(dataset_id, obs_space_id)
+
+# the data files for the variables of type obs_space,
+# one file per cycle
+dataset_files
+----------------------
+    id PK
+    dataset_field_id FK -> dataset_field.id
+    dataset_cycle_id FK -> dataset_cycles.id
+    file_id FK -> files.id
+    UNIQUE(dataset_obs_space_id, dataset_cycle_id)
+
+-----------------------------
+
+
+
+
+
+
+
+
+
+
+workflow entities:
+are described by a collection of log files
+	run_types (gfs, gdas, ...)
+Each run_type consists of a collection of tasks
+	tasks
+	task runs
+
+each file has OS info 
+and it has derived data which is computed from inspecting its content
+
+ioda structure is flat (attributes, MetaData, ObsValue, ObsError, PreQC)
+each group contains variables
+MetaData contains coordinates (lon, lat, depth...) which should be data, not metadata
+in marine data there is only one variable in ObsValue
+for each variable in ObsValue there should be a corresponding variable in ObsError and PreQC
+marine data has either 2 or 3 coordinates 
+for atmos data we may have different groups and different relationships
+
+variables are described by standardized names (e.g. seaSurfaceTemperature)
+each physical variable can be assigned physics metadata:
+dimensionality, physical range of values, etc.
