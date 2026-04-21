@@ -10,14 +10,9 @@ depth: 1099, float32    min, max = 1.0, 125.0
 depth hash = 6ef37bf230c01f0eae403cd32791b123fcc0872d705541f783e0cb1f88ce02fa
 stationID: 1099, <U7
 stationID hash = 9d3e372e5a86bb03bf8dab3129078844ef5e07984609b6005983dacfc497eb18
-temp: 1099, float32    min, max = 13.939996719360352, 30.920007705688477
-temp hash = 639de68d0ff3e8bac095d4fccb6d795cb141dbe258eeb6dabdb286e8da0d9ef4
 saln: 1099, float32    min, max = 33.4900016784668, 35.720001220703125
 saln hash = 3e9e0d07152a1c474f344846b083da4ce004d737ae37cb1b869936a99eb6f0dc
-seqNum: 1099, int32    min, max = 0, 24
-seqNum hash = 3514ae002c05cf31a7e93ce2967dbfae7994212b5c64439525b3bcc72ed6f875
 PreQC: 1099, int32    min, max = 0, 0
-ObsError_temp: 1099, float32    min, max = 0.019999999552965164, 0.019999999552965164
 ObsError_saln: 1099, float32    min, max = 0.009999999776482582, 0.009999999776482582
 OceanBasin: 1099, int32    min, max = 2, 2
 OceanBasin hash = 83e3b9656f7d2686df6085f5c6735e298e6499a4078a2b673712b97a51f2625f
