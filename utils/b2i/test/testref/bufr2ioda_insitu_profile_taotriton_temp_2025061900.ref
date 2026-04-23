@@ -1,0 +1,18 @@
+dateTime: 13352, int64    min, max = 1750280400, 1750305000
+dateTime hash = 0a111abc09b3ae5eac0f675f9e6a6e8b3d272d812ac3a23ac6a9ed1486b97098
+rcptdateTime: 13352, int64    min, max = 1750280940, 1750306260
+rcptdateTime hash = f81132d2a5af89236b8a2739cec277b2fce859fd5545b693644c20b49ae5fa6b
+lon: 13352, float32    min, max = -179.89999389648438, 165.1999969482422
+lon hash = 9a694b542b4c3477c5dc51951a5e7fe53d9fbf1bc93b4130e6f582ee60c8b04e
+lat: 13352, float32    min, max = -8.0, 8.0
+lat hash = 69342954eee4e8b5ec955a030e58cac8b1e53caa84695328e9199a4bc59c1068
+depth: 13352, float32    min, max = 1.0, 500.0
+depth hash = d9b82f85ca5311e257b6263e4f8b68b0cafa742c5e7464b3c86a0eec996f5076
+stationID: 13352, <U7
+stationID hash = 17ea1e561b9f9bee6dbd3ddef6c495f89ae96da8542787e4c750cd2bd70c0d78
+temp: 13352, float32    min, max = 7.390008449554443, 30.920007705688477
+temp hash = f665d31d535304db71d435a1655ef71eda735391a4e818e7d6e71bc0ca94343e
+PreQC: 13352, int32    min, max = 0, 0
+ObsError_temp: 13352, float32    min, max = 0.019999999552965164, 0.019999999552965164
+OceanBasin: 13352, int32    min, max = 2, 2
+OceanBasin hash = c4826a738c8da676775fd54a3fbb7f352168a2e8372492bec41eccc4cd43439b
