@@ -1,0 +1,39 @@
+suite obsforge_v1
+  family primary
+    edit PACKAGEHOME '/lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/git/release/obsforge.v1.0.0'
+    edit OUTPUTDIR '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/output'
+    edit obsforge_ver 'v1.0.0'
+    edit QUEUE 'dev'
+    edit QUEUE_ARCH 'dev_transfer'
+    edit PROJENVIR 'DEV'
+    edit MACHINE_SITE 'development'
+    edit ENVIR 'para'
+    edit EXPDIR '%PACKAGEHOME%/parm/config/obsforge'
+    edit DATAROOT '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/dataroot'
+    edit ECF_INCLUDE '/lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/git/release/obsforge.v1.0.0/ecf/include'
+    edit DBNLOGDIR '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/com/dbnlog'
+    family 00
+      edit CYC '00'
+      family obsforge
+        family gfs
+          family marine
+            task jobsforge_gfs_marine_dump
+              trigger :TIME >= 0237 and :TIME <= 0837
+            task jobsforge_gfs_marine_bufr_dump
+              trigger :TIME >= 0559 and :TIME <= 1140
+              # trigger: /prod/primary/00/obsproc/v1.2/gfs/atmos/prep/jobsproc_gfs_atmos_dump == complete
+          endfamily # marine
+        endfamily # gfs
+        family gdas
+          family marine
+            task jobsforge_gdas_marine_dump
+              trigger :TIME >= 0540 and :TIME <= 1140
+            task jobsforge_gdas_marine_bufr_dump
+              trigger :TIME >= 0559 and :TIME <= 1140
+              # trigger: /prod/primary/00/obsproc/v1.2/gdas/atmos/prep/jobsproc_gdas_atmos_dump == complete
+          endfamily # marine
+        endfamily # gdas
+      endfamily # obsforge
+    endfamily # 00
+  endfamily # primary
+endsuite
