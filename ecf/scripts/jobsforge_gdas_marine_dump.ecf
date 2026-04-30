@@ -1,10 +1,10 @@
 #PBS -S /bin/bash
-#PBS -N jobsforge_gdas_marine_dump_%CYC%
+#PBS -N jobsforge_gfs_marine_dump_%CYC%
 #PBS -j oe
 #PBS -q %QUEUE%
 #PBS -A %PROJ%-%PROJENVIR%
-#PBS -l walltime=00:20:00
-#PBS -l select=1:mpiprocs=80:ompthreads=1:ncpus=80
+#PBS -l walltime=00:10:00
+#PBS -l select=1:mpiprocs=20:ompthreads=2:ncpus=40
 #PBS -l place=vscatter:exclhost
 #PBS -l debug=true
 
