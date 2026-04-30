@@ -16,6 +16,8 @@ suite obsforge_v1
       edit CYC '00'
       family obsforge
         family gfs
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit JTYP 'gfs'
           family marine
             task jobsforge_gfs_marine_dump
               trigger :TIME >= 0237 and :TIME <= 0837
@@ -25,6 +27,8 @@ suite obsforge_v1
           endfamily # marine
         endfamily # gfs
         family gdas
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gdas'
+          edit JTYP 'gdas'
           family marine
             task jobsforge_gdas_marine_dump
               trigger :TIME >= 0540 and :TIME <= 1140
@@ -35,5 +39,86 @@ suite obsforge_v1
         endfamily # gdas
       endfamily # obsforge
     endfamily # 00
+    family 06
+      edit CYC '06'
+      family obsforge
+        family gfs
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit JTYP 'gfs'
+          family marine
+            task jobsforge_gfs_marine_dump
+              trigger :TIME >= 0837 and :TIME <= 1437
+            task jobsforge_gfs_marine_bufr_dump
+              trigger :TIME >= 1159 and :TIME <= 1740
+              # trigger: /prod/primary/06/obsproc/v1.2/gfs/atmos/prep/jobsproc_gfs_atmos_dump == complete
+          endfamily # marine
+        endfamily # gfs
+        family gdas
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit JTYP 'gdas'
+          family marine
+            task jobsforge_gdas_marine_dump
+              trigger :TIME >= 1140 and :TIME <= 1740
+            task jobsforge_gdas_marine_bufr_dump
+              trigger :TIME >= 1159 and :TIME <= 1740
+              # trigger: /prod/primary/06/obsproc/v1.2/gdas/atmos/prep/jobsproc_gdas_atmos_dump == complete
+          endfamily # marine
+        endfamily # gdas
+      endfamily # obsforge
+    endfamily # 06
+    family 12
+      edit CYC '12'
+      family obsforge
+        family gfs
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit JTYP 'gfs'
+          family marine
+            task jobsforge_gfs_marine_dump
+              trigger :TIME >= 1437 and :TIME <= 2037
+            task jobsforge_gfs_marine_bufr_dump
+              trigger :TIME >= 1759 and :TIME <= 2340
+              # trigger: /prod/primary/12/obsproc/v1.2/gfs/atmos/prep/jobsproc_gfs_atmos_dump == complete
+          endfamily # marine
+        endfamily # gfs
+        family gdas
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gdas'
+          edit JTYP 'gdas'
+          family marine
+            task jobsforge_gdas_marine_dump
+              trigger :TIME >= 1740 and :TIME <= 2340
+            task jobsforge_gdas_marine_bufr_dump
+              trigger :TIME >= 1759 and :TIME <= 2340
+              # trigger: /prod/primary/12/obsproc/v1.2/gdas/atmos/prep/jobsproc_gdas_atmos_dump == complete
+          endfamily # marine
+        endfamily # gdas
+      endfamily # obsforge
+    endfamily # 12
+    family 18
+      edit CYC '18'
+      family obsforge
+        family gfs
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit JTYP 'gfs'
+          family marine
+            task jobsforge_gfs_marine_dump
+              trigger :TIME >= 2037 and :TIME <= 2637
+            task jobsforge_gfs_marine_bufr_dump
+              trigger :TIME >= 2359 and :TIME <= 2940
+              # trigger: /prod/primary/18/obsproc/v1.2/gfs/atmos/prep/jobsproc_gfs_atmos_dump == complete
+          endfamily # marine
+        endfamily # gfs
+        family gdas
+          edit ECF_FILES '%PACKAGEHOME%/ecf/gdas'
+          edit JTYP 'gdas'
+          family marine
+            task jobsforge_gdas_marine_dump
+              trigger :TIME >= 2340 and :TIME <= 2940
+            task jobsforge_gdas_marine_bufr_dump
+              trigger :TIME >= 2359 and :TIME <= 2940
+              # trigger: /prod/primary/18/obsproc/v1.2/gdas/atmos/prep/jobsproc_gdas_atmos_dump == complete
+          endfamily # marine
+        endfamily # gdas
+      endfamily # obsforge
+    endfamily # 18
   endfamily # primary
 endsuite
