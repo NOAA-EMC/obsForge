@@ -263,6 +263,26 @@ class DatasetRepository:
     def save_file(self, file):
         return file.to_db(self.session)
 
+    def load_cycles(self, ds: "Dataset"):
+        if ds.id is None:
+            raise ValueError(f"Dataset '{ds.name}' has no id")
+
+        stmt = (
+            select(CycleORM)
+            .where(CycleORM.dataset_id == ds.id)
+            .order_by(
+                CycleORM.cycle_date.desc(),
+                CycleORM.cycle_hour.desc()
+            )
+        )
+
+        cycle_orms = self.session.scalars(stmt).all()
+
+        ds.cycles = [
+            Cycle.from_orm(c_orm, ds)
+            for c_orm in cycle_orms
+        ]
+
     '''
     def save_netcdf_file(self, nc_file):
         nc_file.structure.to_db(self.session)

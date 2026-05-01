@@ -16,14 +16,23 @@ from ncdb.ds.io.dataset_repository import DatasetRepository
 from ncdb.ds.file import File
 from ncdb.ds.dataset import Dataset
 
+class ScanRecord:
+    def __init__(self, dataset, cycle_date, cycle_hour, file, obs_space):
+        self.dataset = dataset
+        self.cycle_date = cycle_date
+        self.cycle_hour = cycle_hour
+        self.file = file
+        self.obs_space = obs_space
+
 
 class BaseScanner(ABC):
-    def __init__(self, db_path: str, root_dir: str):
+    def __init__(self, db_path: str, root_dir: str, repo=None):
         self.db_path = db_path
         self.root_dir = root_dir
 
-        self.engine = create_engine(f"sqlite:///{db_path}")
-        Base.metadata.create_all(self.engine)
+        self._external_repo = repo
+
+        self.engine = None
 
         self.datasets: List[Dataset] = []
 
@@ -74,30 +83,16 @@ class BaseScanner(ABC):
                     all_files.append(File.from_path(full_path))
         return all_files
 
-    def run(self, n_cycles: Optional[int] = None):
+    def scan_dataset_cycles(self, n_cycles: Optional[int] = None):
         self.discover_datasets()
 
-        with Session(self.engine) as session:
-            repo = DatasetRepository(session)
+        for ds in self.datasets:
+            cycles = self.discover_cycles(ds)
+            selected = Dataset._select_cycles(cycles, n_cycles)
 
-            for ds in self.datasets:
-                repo.save_dataset(ds)
-                repo.load_fields(ds)
-                # logger.info(f"loaded fields for {ds}")
-                # for f in ds.dataset_fields:
-                    # logger.info(f"-->  {f}")
+            for cycle_date, cycle_hour in selected:
+                scan_results = self.scan_cycle(
+                    ds.name, cycle_date, cycle_hour
+                )
 
-                cycles = self.discover_cycles(ds)
-                selected = Dataset._select_cycles(cycles, n_cycles)
-
-                for cycle_date, cycle_hour in selected:
-                    scan_results = self.scan_cycle(
-                        ds.name, cycle_date, cycle_hour
-                    )
-                    cycle = ds.build_cycle(
-                        cycle_date, cycle_hour, scan_results
-                    )
-                    repo.save_cycle(cycle)
-                    logger.info(f"scanned cycle {cycle_date} {cycle_hour}")
-
-                session.commit()
+                yield ds, cycle_date, cycle_hour, scan_results

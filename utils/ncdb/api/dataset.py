@@ -14,12 +14,21 @@ class Dataset:
         if not self._ds.fields:
             logger.error(f"Failed loading fields for dataset '{self.name}'")
 
+        self._cycles = None   # instead of []
+
     def __repr__(self):
         return f"<Dataset name={self._ds.name}>"
 
     @property
     def name(self):
         return self._ds.name
+
+    @property
+    def cycles(self):
+        if self._cycles is None:
+            self._repo.load_cycles(self._ds)
+            self._cycles = self._ds.cycles
+        return self._cycles
 
     def list_obsspaces(self) -> list[str]:
         return [f.obs_space.name for f in self._ds.fields]

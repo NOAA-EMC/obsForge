@@ -46,6 +46,7 @@ REQUIRED_PACKAGES=(
     "matplotlib"
     "cartopy"
     "plotly"
+    "streamlit"
 	"fastapi"
 	"uvicorn"
 	"jinja2"

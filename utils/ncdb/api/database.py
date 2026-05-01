@@ -5,13 +5,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from ncdb.ds.io.dataset_repository import DatasetRepository
+from ncdb.scanners.marine_da_scanner import MarineDAScanner as DefaultScanner
 from .dataset import Dataset
 
 logger = logging.getLogger(__name__)
 
 
 class Database:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, scanner=None):
         self.db_path = db_path
 
         self._engine = create_engine(f"sqlite:///{db_path}")
@@ -19,21 +20,27 @@ class Database:
 
         self._repo = DatasetRepository(self._session)
 
+        self._scanner_cls = scanner or DefaultScanner
+
+    def _ingest_scan(self, scanner, n_cycles):
+        for ds, cycle_date, cycle_hour, scan_results in scanner.scan_dataset_cycles(n_cycles):
+            self._repo.save_dataset(ds)
+            self._repo.load_fields(ds)
+
+            cycle = ds.build_cycle(
+                cycle_date, cycle_hour, scan_results
+            )
+
+            self._repo.save_cycle(cycle)
+
+        self._session.commit()
+
     def scan(self, data_root: str, n_cycles: Optional[int]) -> None:
-        """
-        Scan a directory and ingest data into the database.
-        """
         logger.info(f"Scanning data root: {data_root}")
 
-        from ncdb.scanners.scanner import Scanner
+        scanner = self._scanner_cls(self.db_path, data_root)
 
-        scanner = Scanner(self.db_path, data_root)
-        datasets = scanner.run(n_cycles)
-
-        # for ds in datasets:
-            # ds.to_db(self._repo)
-
-        # self._session.commit()
+        self._ingest_scan(scanner, n_cycles)
 
         logger.info("Scan complete")
 
