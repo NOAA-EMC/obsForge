@@ -7,92 +7,58 @@ from typing import List, Tuple, Optional
 from abc import ABC, abstractmethod
 from datetime import date
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-
-from ncdb.ds.db_base import Base
-from ncdb.ds.io.dataset_repository import DatasetRepository
-
 from ncdb.ds.file import File
 from ncdb.ds.dataset import Dataset
 
-class ScanRecord:
-    def __init__(self, dataset, cycle_date, cycle_hour, file, obs_space):
+# the following should be moved out and refactored
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from ncdb.ds.db_base import Base
+from ncdb.ds.io.dataset_repository import DatasetRepository
+
+
+class ScanCycle:
+    def __init__(self, dataset, cycle_date, cycle_hour, scan_results):
         self.dataset = dataset
         self.cycle_date = cycle_date
         self.cycle_hour = cycle_hour
-        self.file = file
-        self.obs_space = obs_space
+        self.scan_results = scan_results
 
 
 class BaseScanner(ABC):
-    def __init__(self, db_path: str, root_dir: str, repo=None):
-        self.db_path = db_path
-        self.root_dir = root_dir
-
-        self._external_repo = repo
-
-        self.engine = None
-
+    def __init__(self):
         self.datasets: List[Dataset] = []
 
     @abstractmethod
-    def discover_datasets(self) -> List[Dataset]:
-        """Find datasets in root_dir"""
+    def discover_datasets(self, root_dir: str) -> List[Dataset]:
         pass
 
     @abstractmethod
-    def discover_cycles(self, dataset: Dataset) -> List[Tuple[date, str]]:
-        """Find available cycles for a dataset"""
+    def discover_cycles(self, dataset: Dataset, root_dir: str):
         pass
 
-    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
-        cycle_dir = self.build_cycle_dir(
-            dataset_name, cycle_date, cycle_hour
-        )
+    @abstractmethod
+    def scan_cycle(self, dataset: Dataset, root_dir: str, cycle_date, cycle_hour):
+        pass
 
-        files = self._scan_files(cycle_dir)
-        selected = self.select_files(files, dataset_name, cycle_hour)
+    def select_cycles(self, cycles, n_cycles: Optional[int]):
+        if n_cycles is None:
+            return cycles
 
-        results = []
-        for f in selected:
-            name = self.parse_obs_space(f.path)
-            if name:
-                results.append((f, name))
+        if n_cycles < 0:
+            return cycles[n_cycles:]  # last N cycles
 
-        return results
+        return cycles[:n_cycles]
 
-    def build_cycle_dir(self, dataset_name, cycle_date, cycle_hour):
-        raise NotImplementedError
+    def scan_dataset_cycles(self, data_root: str, n_cycles: Optional[int]):
+        self.datasets = self.discover_datasets(data_root)
 
-    def parse_obs_space(self, file_path):
-        raise NotImplementedError
-
-    def select_files(self, files, dataset_name, cycle_hour):
-        raise NotImplementedError
-
-    def is_valid_cycle_hour(self, hour: str) -> bool:
-        return hour in {"00", "06", "12", "18"}
-
-    def _scan_files(self, root_path):
-        all_files = []
-        for dirpath, dirnames, filenames in os.walk(root_path):
-            if not dirnames:
-                for filename in filenames:
-                    full_path = os.path.join(dirpath, filename)
-                    all_files.append(File.from_path(full_path))
-        return all_files
-
-    def scan_dataset_cycles(self, n_cycles: Optional[int] = None):
-        self.discover_datasets()
-
-        for ds in self.datasets:
-            cycles = self.discover_cycles(ds)
-            selected = Dataset._select_cycles(cycles, n_cycles)
+        for dataset in self.datasets:
+            cycles = self.discover_cycles(dataset, data_root)
+            selected = self.select_cycles(cycles, n_cycles)
 
             for cycle_date, cycle_hour in selected:
                 scan_results = self.scan_cycle(
-                    ds.name, cycle_date, cycle_hour
+                    dataset, data_root, cycle_date, cycle_hour
                 )
-
-                yield ds, cycle_date, cycle_hour, scan_results
+                yield ScanCycle(dataset, cycle_date, cycle_hour, scan_results)

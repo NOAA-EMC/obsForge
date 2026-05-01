@@ -85,6 +85,22 @@ class MarineDAScanner(BaseScanner):
 
         return discovered
 
+    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
+        cycle_dir = self.build_cycle_dir(
+            dataset_name, cycle_date, cycle_hour
+        )
+
+        files = self._scan_files(cycle_dir)
+        selected = self.select_files(files, dataset_name, cycle_hour)
+
+        results = []
+        for f in selected:
+            name = self.parse_obs_space(f.path)
+            if name:
+                results.append((f, name))
+
+        return results
+
     def select_files(self, files, dataset_name, cycle_hour):
         return [
             f for f in files
@@ -105,3 +121,15 @@ class MarineDAScanner(BaseScanner):
             return None
 
         return filename.removesuffix(".nc")
+
+    def is_valid_cycle_hour(self, hour: str) -> bool:
+        return hour in {"00", "06", "12", "18"}
+
+    def _scan_files(self, root_path):
+        all_files = []
+        for dirpath, dirnames, filenames in os.walk(root_path):
+            if not dirnames:
+                for filename in filenames:
+                    full_path = os.path.join(dirpath, filename)
+                    all_files.append(File.from_path(full_path))
+        return all_files
