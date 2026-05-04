@@ -2,6 +2,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
+import re
+from datetime import datetime
 from typing import List, Optional
 
 from ncdb.ds.file import File
@@ -11,7 +13,35 @@ from .base import BaseScanner
 
 
 class MarineDAScanner(BaseScanner):
-    def discover_datasets(self) -> None:
+
+    def discover_datasets(self) -> List[Dataset]:
+        if not os.path.exists(self.root_dir):
+            logger.error(f"Data root not found: {self.root_dir}")
+            return []
+
+        dataset_names = set()
+
+        for entry in os.listdir(self.root_dir):
+            full_path = os.path.join(self.root_dir, entry)
+
+            if not os.path.isdir(full_path):
+                continue
+
+            if "." in entry:
+                prefix = entry.split(".")[0]
+                dataset_names.add(prefix)
+
+        datasets = [
+            Dataset(name=name, root_dir=self.root_dir)
+            for name in sorted(dataset_names)
+        ]
+
+        logger.info(f"Discovered {len(datasets)} datasets {[d.name for d in datasets]}")
+
+        return datasets
+
+    
+    def old_discover_datasets(self) -> None:
         if not os.path.exists(self.root_dir):
             logger.error(
                 f"Data root not found: {self.root_dir}"
@@ -38,10 +68,8 @@ class MarineDAScanner(BaseScanner):
         logger.info(f"Discovered {len(self.datasets)} datasets {[d.name for d in self.datasets]}")
 
     def discover_cycles(self, dataset: Dataset):
-        import re
-        from datetime import datetime
 
-        if not dataset.root_dir or not os.path.isdir(dataset.root_dir):
+        if not self.root_dir or not os.path.isdir(self.root_dir):
             logger.warning(f"Invalid root_dir for dataset '{dataset.name}'")
             return []
 
@@ -49,8 +77,8 @@ class MarineDAScanner(BaseScanner):
 
         discovered = []
 
-        for entry in os.listdir(dataset.root_dir):
-            entry_path = os.path.join(dataset.root_dir, entry)
+        for entry in os.listdir(self.root_dir):
+            entry_path = os.path.join(self.root_dir, entry)
 
             if not os.path.isdir(entry_path):
                 continue
@@ -85,13 +113,13 @@ class MarineDAScanner(BaseScanner):
 
         return discovered
 
-    def scan_cycle(self, dataset_name, cycle_date, cycle_hour):
+    def scan_cycle(self, dataset: Dataset, cycle_date, cycle_hour):
         cycle_dir = self.build_cycle_dir(
-            dataset_name, cycle_date, cycle_hour
+            dataset.name, cycle_date, cycle_hour
         )
 
         files = self._scan_files(cycle_dir)
-        selected = self.select_files(files, dataset_name, cycle_hour)
+        selected = self.select_files(files, dataset.name, cycle_hour)
 
         results = []
         for f in selected:
@@ -126,6 +154,9 @@ class MarineDAScanner(BaseScanner):
         return hour in {"00", "06", "12", "18"}
 
     def _scan_files(self, root_path):
+        if not os.path.isdir(root_path):
+            return []
+
         all_files = []
         for dirpath, dirnames, filenames in os.walk(root_path):
             if not dirnames:

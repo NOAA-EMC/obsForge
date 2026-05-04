@@ -25,20 +25,33 @@ class ScanCycle:
         self.scan_results = scan_results
 
 
+# scanner is configured with root_dir
+# datasets are discovered at init
+# we assume that the dataset does not own root_dir,
+# so dataset.root_dir is not used (to be deprecated)
 class BaseScanner(ABC):
-    def __init__(self):
-        self.datasets: List[Dataset] = []
+    def __init__(self, root_dir: str):
+        self.root_dir = root_dir
+        self.datasets = self._init_datasets()
+
+    # avoids calling virtual method inside constructor
+    def _init_datasets(self):
+        return self.discover_datasets()
 
     @abstractmethod
-    def discover_datasets(self, root_dir: str) -> List[Dataset]:
+    def discover_datasets(self):
         pass
 
     @abstractmethod
-    def discover_cycles(self, dataset: Dataset, root_dir: str):
+    def discover_datasets(self) -> List[Dataset]:
         pass
 
     @abstractmethod
-    def scan_cycle(self, dataset: Dataset, root_dir: str, cycle_date, cycle_hour):
+    def discover_cycles(self, dataset: Dataset):
+        pass
+
+    @abstractmethod
+    def scan_cycle(self, dataset: Dataset, cycle_date, cycle_hour):
         pass
 
     def select_cycles(self, cycles, n_cycles: Optional[int]):
@@ -50,15 +63,13 @@ class BaseScanner(ABC):
 
         return cycles[:n_cycles]
 
-    def scan_dataset_cycles(self, data_root: str, n_cycles: Optional[int]):
-        self.datasets = self.discover_datasets(data_root)
-
+    def scan_dataset_cycles(self, n_cycles: Optional[int]):
         for dataset in self.datasets:
-            cycles = self.discover_cycles(dataset, data_root)
+            cycles = self.discover_cycles(dataset)
             selected = self.select_cycles(cycles, n_cycles)
 
             for cycle_date, cycle_hour in selected:
                 scan_results = self.scan_cycle(
-                    dataset, data_root, cycle_date, cycle_hour
+                    dataset, cycle_date, cycle_hour
                 )
                 yield ScanCycle(dataset, cycle_date, cycle_hour, scan_results)

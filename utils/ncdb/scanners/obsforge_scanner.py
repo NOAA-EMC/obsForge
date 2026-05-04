@@ -17,11 +17,11 @@ class ObsForgeScanner(BaseScanner):
 
         return parts[2]
 
-    def discover_datasets(self, root_dir):
+    def discover_datasets(self):
         datasets = []
 
-        for entry in os.listdir(root_dir):
-            full = os.path.join(root_dir, entry)
+        for entry in os.listdir(self.root_dir):
+            full = os.path.join(self.root_dir, entry)
 
             if not os.path.isdir(full):
                 continue
@@ -37,16 +37,16 @@ class ObsForgeScanner(BaseScanner):
             datasets.append(name)
 
         self.datasets = [
-            Dataset(name=d, root_dir=root_dir)
+            Dataset(name=d, self.root_dir=root_dir)
             for d in sorted(set(datasets))
         ]
 
         return self.datasets
 
-    def discover_cycles(self, dataset, root_dir):
+    def discover_cycles(self, dataset):
         cycles = set()
 
-        for entry in os.listdir(root_dir):
+        for entry in os.listdir(self.root_dir):
             if not entry.startswith(dataset.name + "."):
                 continue
 
@@ -57,7 +57,7 @@ class ObsForgeScanner(BaseScanner):
             except ValueError:
                 continue
 
-            ds_dir = os.path.join(root_dir, entry)
+            ds_dir = os.path.join(self.root_dir, entry)
 
             for hour in os.listdir(ds_dir):
                 if hour in {"00", "06", "12", "18"}:
@@ -65,9 +65,9 @@ class ObsForgeScanner(BaseScanner):
 
         return sorted(cycles)
 
-    def scan_cycle(self, dataset, root_dir, cycle_date, cycle_hour):
+    def scan_cycle(self, dataset, cycle_date, cycle_hour):
         ds_dir = os.path.join(
-            root_dir,
+            self.root_dir,
             f"{dataset.name}.{cycle_date.strftime('%Y%m%d')}",
             cycle_hour
         )

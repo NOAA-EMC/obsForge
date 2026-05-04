@@ -44,9 +44,9 @@ class Database:
     def scan(self, data_root: str, n_cycles: Optional[int], scanner_cls=DefaultScanner):
         logger.info(f"Scanning data root: {data_root}")
 
-        scanner = scanner_cls()
+        scanner = scanner_cls(data_root)
 
-        for cycle in scanner.scan_dataset_cycles(data_root, n_cycles):
+        for cycle in scanner.scan_dataset_cycles(n_cycles):
             self._repo.save_dataset(cycle.dataset)
             self._repo.load_fields(cycle.dataset)
 
