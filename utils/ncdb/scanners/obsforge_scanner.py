@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import os
 from datetime import datetime
 
@@ -37,7 +40,7 @@ class ObsForgeScanner(BaseScanner):
             datasets.append(name)
 
         self.datasets = [
-            Dataset(name=d, self.root_dir=root_dir)
+            Dataset(name=d, root_dir=self.root_dir)
             for d in sorted(set(datasets))
         ]
 
@@ -66,6 +69,7 @@ class ObsForgeScanner(BaseScanner):
         return sorted(cycles)
 
     def scan_cycle(self, dataset, cycle_date, cycle_hour):
+        logger.info(f"Scanning {dataset.name} cycle {cycle_date}, {cycle_hour}")
         ds_dir = os.path.join(
             self.root_dir,
             f"{dataset.name}.{cycle_date.strftime('%Y%m%d')}",
