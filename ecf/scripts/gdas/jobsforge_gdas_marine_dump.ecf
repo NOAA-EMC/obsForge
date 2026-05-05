@@ -2,7 +2,7 @@
 #PBS -N jobsforge_gfs_marine_dump_%CYC%
 #PBS -j oe
 #PBS -q %QUEUE%
-#PBS -A %PROJ%-%PROJENVIR%
+#PBS -A GFS-DEV 
 #PBS -l walltime=00:10:00
 #PBS -l select=1:mpiprocs=20:ompthreads=2:ncpus=40
 #PBS -l place=vscatter:exclhost
@@ -81,10 +81,12 @@ module list
 export cyc=%CYC%
 export cycle=t%CYC%z
 
+export COMPATH="/lfs/h1/ops/prod/com/gfs:/lfs/h1/ops/prod/com/ukmet:/lfs/h1/ops/prod/com/emwf:/lfs/h1/ops/prod/com/nam:/lfs/h1/ops/prod/com/rtofs:/lfs/h1/ops/prod/com/obsproc:/lfs/h2/emc/ptmp/${USER}/obsforge/ops/para/com/obsforge" 
+
 ############################################################
 # CALL executable job script here
 ############################################################
-${HOMEobsforge}/jobs/JOBSFORGE_GDAS_MARINE_DUMP
+${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_MARINE_DUMP
 
 if [ $? -ne 0 ]; then
    ecflow_client --msg="***JOB ${ECF_NAME} ERROR RUNNING J-SCRIPT ***"
