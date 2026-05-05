@@ -82,6 +82,11 @@ esac
 
 CMAKE_OPTS+=" -DMACHINE=$BUILD_TARGET"
 
+# Default to skipping test-data downloads unless explicitly overridden.
+if [[ " ${CMAKE_OPTS} " != *" -DSKIP_DOWNLOAD_TEST_DATA="* ]]; then
+  CMAKE_OPTS+=" -DSKIP_DOWNLOAD_TEST_DATA=ON"
+fi
+
 # TODO: Remove LD_LIBRARY_PATH line as soon as permanent solution is available
 if [[ $BUILD_TARGET == 'wcoss2' ]]; then
   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/8.1.29/ofi/intel/2022.1/lib"
