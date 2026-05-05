@@ -10,8 +10,8 @@ suite obsforge_v1
     edit ENVIR 'para'
     edit EXPDIR '%PACKAGEHOME%/parm/config/obsforge'
     edit DATAROOT '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/dataroot'
-    edit ECF_INCLUDE '/lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/git/release/obsforge.v1.0.0/ecf/include'
     edit DBNLOGDIR '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/com/dbnlog'
+    edit ECF_INCLUDE '/lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/git/release/obsforge.v1.0.0/ecf/include'
     family 00
       edit CYC '00'
       family obsforge
@@ -54,7 +54,7 @@ suite obsforge_v1
           endfamily # marine
         endfamily # gfs
         family gdas
-          edit ECF_FILES '%PACKAGEHOME%/ecf/scripts/gfs'
+          edit ECF_FILES '%PACKAGEHOME%/ecf/scripts/gdas'
           edit JTYP 'gdas'
           family marine
             task jobsforge_gdas_marine_dump
