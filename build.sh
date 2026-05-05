@@ -92,6 +92,11 @@ if [[ $BUILD_TARGET == 'wcoss2' ]] && [[ " ${CMAKE_OPTS} " != *" -DBUILD_TESTING
   CMAKE_OPTS+=" -DBUILD_TESTING=OFF"
 fi
 
+# Default to C++17 (required by ioda code using std::exclusive_scan) unless overridden.
+if [[ " ${CMAKE_OPTS} " != *" -DCMAKE_CXX_STANDARD="* ]]; then
+  CMAKE_OPTS+=" -DCMAKE_CXX_STANDARD=17"
+fi
+
 # TODO: Remove LD_LIBRARY_PATH line as soon as permanent solution is available
 if [[ $BUILD_TARGET == 'wcoss2' ]]; then
   mpich_ver_for_env="${cray_mpich_ver:-8.1.19}"
