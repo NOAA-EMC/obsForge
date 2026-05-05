@@ -65,6 +65,7 @@ done
 case ${BUILD_TARGET} in
   ursa | hera | orion | hercules | wcoss2 | noaacloud | gaeac5 | gaeac6 )
     echo "Building obsForge on $BUILD_TARGET"
+    [[ -f $dir_root/versions/build.${BUILD_TARGET}.ver ]] && source $dir_root/versions/build.${BUILD_TARGET}.ver
     source $dir_root/ush/module-setup.sh
     module use $dir_root/modulefiles
     module load obsforge/$BUILD_TARGET.$COMPILER
