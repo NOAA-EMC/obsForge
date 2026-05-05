@@ -89,9 +89,10 @@ fi
 
 # TODO: Remove LD_LIBRARY_PATH line as soon as permanent solution is available
 if [[ $BUILD_TARGET == 'wcoss2' ]]; then
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/8.1.29/ofi/intel/2022.1/lib"
+  mpich_ver_for_env="${cray_mpich_ver:-8.1.19}"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/${mpich_ver_for_env}/ofi/intel/2022.1/lib"
   export LMOD_MPI_NAME=cray-mpich
-  export LMOD_MPI_VERSION=8.1.29-xhbciau
+  export LMOD_MPI_VERSION="${mpich_ver_for_env}"
 fi
 
 BUILD_DIR=${BUILD_DIR:-$dir_root/build}
