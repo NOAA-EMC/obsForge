@@ -87,6 +87,11 @@ if [[ " ${CMAKE_OPTS} " != *" -DSKIP_DOWNLOAD_TEST_DATA="* ]]; then
   CMAKE_OPTS+=" -DSKIP_DOWNLOAD_TEST_DATA=ON"
 fi
 
+# Default to disabling tests (including ioda tests) on wcoss2 unless explicitly overridden.
+if [[ $BUILD_TARGET == 'wcoss2' ]] && [[ " ${CMAKE_OPTS} " != *" -DBUILD_TESTING="* ]]; then
+  CMAKE_OPTS+=" -DBUILD_TESTING=OFF"
+fi
+
 # TODO: Remove LD_LIBRARY_PATH line as soon as permanent solution is available
 if [[ $BUILD_TARGET == 'wcoss2' ]]; then
   mpich_ver_for_env="${cray_mpich_ver:-8.1.19}"
