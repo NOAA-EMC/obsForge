@@ -15,6 +15,6 @@ export jobid="${job}.$$"
 
 ###############################################################
 # Execute the JJOB
-"${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP"
+"${HOMEobsforge}/dev/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP"
 status=$?
 exit "${status}"

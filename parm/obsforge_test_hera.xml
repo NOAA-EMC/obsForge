@@ -8,7 +8,7 @@
 	-->
 	<!ENTITY PSLOT "obsforge">
 	<!ENTITY ROTDIR "/scratch2/NCEPDEV/stmp1/Cory.R.Martin/obsforge/COMROOT/obsforge">
-	<!ENTITY JOBS_DIR "/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/jobs/rocoto">
+	<!ENTITY JOBS_DIR "/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/dev/job_cards/rocoto">
 	<!ENTITY MAXTRIES "2">
 ]>
 
@@ -22,7 +22,7 @@
 
 <task name="gfs_aod_dump" cycledefs="gfs" maxtries="&MAXTRIES;">
 
-	<command>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/jobs/rocoto/aoddump.sh</command>
+	<command>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/dev/job_cards/rocoto/aoddump.sh</command>
 
 	<jobname><cyclestr>obsforge_gfs_aod_dump_@H</cyclestr></jobname>
 	<account>da-cpu</account>
@@ -56,7 +56,7 @@
 
 <task name="gdas_aod_dump" cycledefs="gdas" maxtries="&MAXTRIES;">
 
-	<command>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/jobs/rocoto/aoddump.sh</command>
+	<command>/scratch2/NCEPDEV/stmp1/Cory.R.Martin/mar2025/obsforge/dev/job_cards/rocoto/aoddump.sh</command>
 
 	<jobname><cyclestr>obsforge_gdas_aod_dump_@H</cyclestr></jobname>
 	<account>da-cpu</account>
