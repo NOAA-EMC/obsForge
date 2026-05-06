@@ -12,7 +12,15 @@ if ! ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null); then
     ROTDIR="${COMROOT}"
 fi
 export ROTDIR
-export COMIN_OBSPROC="${ROTDIR}/${RUN}.${PDY}/${cyc}/ocean/insitu"
+
+obsproc_ver=${obsproc_ver:-v1.2}
+if ! COMIN_OBSPROC=$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null); then
+    echo "WARNING: compath.py failed for obsproc; falling back to OBSPROC_COMROOT=${OBSPROC_COMROOT}"
+    COMIN_OBSPROC="${OBSPROC_COMROOT}"
+fi
+export COMIN_OBSPROC
+
+export COMOUT_OCEAN_OBS="${ROTDIR}/${RUN}.${PDY}/${cyc}/ocean/insitu"
 
 ##############################################
 # Begin JOB SPECIFIC work
