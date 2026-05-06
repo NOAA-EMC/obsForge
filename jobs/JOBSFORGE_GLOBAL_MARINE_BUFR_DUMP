@@ -11,7 +11,8 @@ _combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase
 export COMOUT_OCEAN_OBS="${_combase}/${RUN}.${PDY}/${cyc}/ocean/insitu"
 
 obsproc_ver=${obsproc_ver:-v1.2}
-export COMIN_OBSPROC="$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null || echo "${OBSPROC_COMROOT}")"
+_obsproc_base=$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null) || _obsproc_base="${OBSPROC_COMROOT}"
+export COMIN_OBSPROC="${_obsproc_base}/${RUN}.${PDY}/${cyc}"
 
 ##############################################
 # Begin JOB SPECIFIC work
