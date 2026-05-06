@@ -7,7 +7,10 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 # Set variables used in the script
 ##############################################
 obsforge_ver=${obsforge_ver:-v1.0}
-ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || ROTDIR="${COMROOT}"
+if ! ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null); then
+    echo "WARNING: compath.py failed; falling back to COMROOT=${COMROOT}"
+    ROTDIR="${COMROOT}"
+fi
 export ROTDIR
 export COMOUT_ATMOS="${ROTDIR}/${RUN}.${PDY}/${cyc}/atmos"
 
