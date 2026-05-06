@@ -7,20 +7,11 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 # Set variables used in the script
 ##############################################
 obsforge_ver=${obsforge_ver:-v1.0}
-if ! ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null); then
-    echo "WARNING: compath.py failed; falling back to COMROOT=${COMROOT}"
-    ROTDIR="${COMROOT}"
-fi
-export ROTDIR
+_combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase="${COMROOT}"
+export COMOUT_OCEAN_OBS="${_combase}/${RUN}.${PDY}/${cyc}/ocean/insitu"
 
 obsproc_ver=${obsproc_ver:-v1.2}
-if ! COMIN_OBSPROC=$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null); then
-    echo "WARNING: compath.py failed for obsproc; falling back to OBSPROC_COMROOT=${OBSPROC_COMROOT}"
-    COMIN_OBSPROC="${OBSPROC_COMROOT}"
-fi
-export COMIN_OBSPROC
-
-export COMOUT_OCEAN_OBS="${ROTDIR}/${RUN}.${PDY}/${cyc}/ocean/insitu"
+export COMIN_OBSPROC="$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null || echo "${OBSPROC_COMROOT}")"
 
 ##############################################
 # Begin JOB SPECIFIC work

@@ -7,12 +7,8 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 # Set variables used in the script
 ##############################################
 obsforge_ver=${obsforge_ver:-v1.0}
-if ! ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null); then
-    echo "WARNING: compath.py failed; falling back to COMROOT=${COMROOT}"
-    ROTDIR="${COMROOT}"
-fi
-export ROTDIR
-export COMOUT_ATMOS_GSI="${ROTDIR}/${RUN}.${PDY}/${cyc}/atmos_gsi"
+_combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase="${COMROOT}"
+export COMOUT_ATMOS_GSI="${_combase}/${RUN}.${PDY}/${cyc}/atmos_gsi"
 
 ##############################################
 # Begin JOB SPECIFIC work
