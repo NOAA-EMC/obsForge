@@ -85,14 +85,8 @@ class AerosolObsPrep(Task):
         """
         """
         # Copy the processed ioda files to the destination directory
-        logger.info("Copying ioda files to destination COMROOT directory")
-        yyyymmdd = self.task_config['PDY'].strftime('%Y%m%d')
-
-        comout = os.path.join(self.task_config['COMROOT'],
-                              self.task_config['PSLOT'],
-                              f"{self.task_config['RUN']}.{yyyymmdd}",
-                              f"{self.task_config['cyc']:02d}",
-                              'chem')
+        logger.info("Copying ioda files to COMOUT_OBS directory")
+        comout = self.task_config['COMOUT_OBS']
 
         # Loop through the observation types
         obs_types = ['viirs']
@@ -107,7 +101,7 @@ class AerosolObsPrep(Task):
                 dst_file = os.path.join(comout, os.path.basename(ioda_file))
                 src_dst_obs_list.append([src_file, dst_file])
 
-        logger.info("Copying ioda files to destination COMROOT directory")
+        logger.info("Copying ioda files to COMOUT_OBS directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
         FileHandler({'mkdir': [comout]}).sync()

@@ -6,6 +6,13 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ##############################################
 # Set variables used in the script
 ##############################################
+obsforge_ver=${obsforge_ver:-v1.0}
+ROTDIR=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || ROTDIR="${COMROOT}"
+export ROTDIR
+export COMIN_ATMOS_GSI="${ROTDIR}/${RUN}.${PDY}/${cyc}/atmos_gsi"
+export COMIN_ATMOS_OBSFORGE="${ROTDIR}/${RUN}.${PDY}/${cyc}/atmos"
+export COMOUT_ATMOS_OBS="${ROTDIR}/output_obs/${RUN}.${PDY}/${cyc}/atmos"
+export COMOUT_ATMOS_BC="${ROTDIR}/output_bc/${RUN}.${PDY}/${cyc}/analysis/atmos"
 
 ##############################################
 # Begin JOB SPECIFIC work
