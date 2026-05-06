@@ -249,8 +249,8 @@ class MarineObsPrep(Task):
         """
         """
         # Copy the processed ioda files to the destination directory
-        logger.info("Copying ioda files to COMOUT_OCEAN directory")
-        comout = self.task_config['COMOUT_OCEAN']
+        logger.info("Copying ioda files to COMOUT_OBSFORGE_MARINE_OBS directory")
+        comout = self.task_config['COMOUT_OBSFORGE_MARINE_OBS']
 
         # Loop through the observation types
         obs_types = ['sst', 'adt', 'icec', 'sss']
@@ -269,7 +269,7 @@ class MarineObsPrep(Task):
                 dst_file = join(comout_tmp, basename(ioda_file))
                 src_dst_obs_list.append([src_file, dst_file])
 
-        logger.info("Copying ioda files to COMOUT_OCEAN directory")
+        logger.info("Copying ioda files to COMOUT_OBSFORGE_MARINE_OBS directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
         FileHandler({'copy': src_dst_obs_list}).sync()

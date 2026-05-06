@@ -157,9 +157,9 @@ class MarineBufrObsPrep(Task):
 
         save_as_yaml(providers, "providers.yaml")
 
-        # fetch available bufr files and make COMOUT_OCEAN_OBS
+        # fetch available bufr files and make COMOUT_OBSFORGE_MARINE_OBS
         FileHandler({'copy_opt': bufr_files_to_copy}).sync()
-        FileHandler({'mkdir': [self.task_config.COMOUT_OCEAN_OBS]}).sync()
+        FileHandler({'mkdir': [self.task_config.COMOUT_OBSFORGE_MARINE_OBS]}).sync()
 
     @logit(logger)
     def execute(self) -> None:
@@ -227,7 +227,7 @@ class MarineBufrObsPrep(Task):
                 logger.info(f"ioda_filename: {ioda_filename}")
                 source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
                 if path.exists(source_ioda_filename):
-                    destination_ioda_filename = path.join(self.task_config.COMOUT_OCEAN_OBS, concat_config['save file'])
+                    destination_ioda_filename = path.join(self.task_config.COMOUT_OBSFORGE_MARINE_OBS, concat_config['save file'])
                     # Only append if source_ioda_filename is a valid NetCDF4 file
                     try:
                         with netCDF4.Dataset(source_ioda_filename, 'r'):
@@ -238,6 +238,6 @@ class MarineBufrObsPrep(Task):
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(path.join(self.task_config.COMOUT_OCEAN_OBS,
+        ready_file = pathlib.Path(path.join(self.task_config.COMOUT_OBSFORGE_MARINE_OBS,
                                             f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
         ready_file.touch()

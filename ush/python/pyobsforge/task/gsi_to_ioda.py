@@ -171,7 +171,7 @@ class GsiToIoda(Task):
 
         # Copy the output IODA files to COMOUT
         # define output COMOUT path
-        comout = self.task_config['COMOUT_ATMOS_GSI']
+        comout = self.task_config['COMOUT_OBSFORGE_ATMOS_GSI']
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
         copy_ioda_files = []
@@ -309,7 +309,7 @@ class GsiToIoda(Task):
             raise WorkflowException(f"An error occurred during execution of {exec_cmd}:\n{e}") from e
 
         # Create satellite tarball and copy to COMOUT
-        comout = self.task_config['COMOUT_ATMOS_GSI']
+        comout = self.task_config['COMOUT_OBSFORGE_ATMOS_GSI']
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
         tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")

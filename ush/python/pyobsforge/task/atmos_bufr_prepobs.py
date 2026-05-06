@@ -230,7 +230,7 @@ class AtmosBufrObsPrep(Task):
         - Copying output IODA files to COMOUT
         - Creating a "ready" file in COMOUT to signal that the observations are ready
         """
-        comout = self.task_config['COMOUT_ATMOS']
+        comout = self.task_config['COMOUT_OBSFORGE_ATMOS']
         # get a list of files to copy out
         output_files = glob.glob(os.path.join(self.task_config.DATA, "*.nc"))
         copy_list = []
