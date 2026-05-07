@@ -8,7 +8,7 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ##############################################
 obsforge_ver=${obsforge_ver:-v1.0}
 _combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase="${COMROOT}"
-export COMOUT_OBSFORGE_ATMOS_GSI="${_combase}/${RUN}.${PDY}/${cyc}/atmos_gsi"
+export COMOUT_OBSFORGE_ATMOS_GSI_OBS="${_combase}/${RUN}.${PDY}/${cyc}/atmos_gsi"
 
 ##############################################
 # Begin JOB SPECIFIC work
