@@ -2,7 +2,7 @@
 #PBS -N jobsforge_gfs_marine_bufr_dump_%CYC%
 #PBS -j oe
 #PBS -q %QUEUE%
-#PBS -A GFS-DEV 
+#PBS -A GFS-DEV
 #PBS -l walltime=00:10:00
 #PBS -l select=1:mpiprocs=1:ompthreads=1:ncpus=1
 #PBS -l place=vscatter:exclhost
@@ -15,6 +15,7 @@ model=obsforge
 set -x
 
 export RUN=%JTYP%
+export NET="obsforge"
 
 ############################################################
 # Load modules
@@ -26,7 +27,6 @@ module load cray-mpich/${cray_mpich_ver}
 module load cray-pals/${cray_pals_ver}
 
 module load hdf5-D/${hdf5D_ver}
-module load pnetcdf/${pnetcdfD_ver}
 module load netcdf-D/${netcdfD_ver}
 module load boost/${boost_ver}
 module load eigen/${eigen_ver}
