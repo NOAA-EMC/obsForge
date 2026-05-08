@@ -1,4 +1,5 @@
 suite obsforge_v1
+  repeat day 1
   family primary
     edit PACKAGEHOME '/lfs/h2/emc/da/noscrub/cory.r.martin/obsforge/git/release/obsforge.v1.0.0'
     edit OUTPUTDIR '/lfs/h2/emc/ptmp/cory.r.martin/obsforge/output'
