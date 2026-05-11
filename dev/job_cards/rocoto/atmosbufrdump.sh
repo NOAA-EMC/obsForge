@@ -10,11 +10,11 @@ if [[ ${status} -ne 0 ]]; then
     exit "${status}"
 fi
 
-export job="marinebufrdump"
+export job="atmosbufrdump"
 export jobid="${job}.$$"
 
 ###############################################################
 # Execute the JJOB
-"${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_MARINE_BUFR_DUMP"
+"${HOMEobsforge}/dev/jobs/JOBSFORGE_GLOBAL_ATMOS_BUFR_DUMP"
 status=$?
 exit "${status}"

@@ -15,6 +15,6 @@ export jobid="${job}.$$"
 
 ###############################################################
 # Execute the JJOB
-"${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_STAGE_OUTPUT"
+"${HOMEobsforge}/dev/jobs/JOBSFORGE_GLOBAL_STAGE_OUTPUT"
 status=$?
 exit "${status}"
