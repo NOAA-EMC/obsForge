@@ -8,7 +8,7 @@
 	-->
 	<!ENTITY PSLOT "{{ PSLOT }}">
 	<!ENTITY ROTDIR "{{ COMROOT }}/{{ PSLOT }}">
-	<!ENTITY JOBS_DIR "{{ HOMEobsforge }}/jobs/rocoto">
+	<!ENTITY JOBS_DIR "{{ HOMEobsforge }}/dev/job_cards/rocoto">
 	<!ENTITY MAXTRIES "2">
 ]>
 
@@ -27,7 +27,7 @@
 -->
 <task name="gcdas_aod_dump" cycledefs="gcdas" maxtries="&MAXTRIES;">
 
-	<command>{{ HOMEobsforge }}/jobs/rocoto/aoddump.sh</command>
+	<command>{{ HOMEobsforge }}/dev/job_cards/rocoto/aoddump.sh</command>
 
 	<jobname><cyclestr>obsforge_gcdas_aod_dump_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
@@ -65,7 +65,7 @@
 -->
 <task name="gdas_atmos_bufr_dump" cycledefs="gdas" maxtries="&MAXTRIES;">
 
-	<command>{{ HOMEobsforge }}/jobs/rocoto/atmosbufrdump.sh</command>
+	<command>{{ HOMEobsforge }}/dev/job_cards/rocoto/atmosbufrdump.sh</command>
 
 	<jobname><cyclestr>obsforge_gdas_atmos_bufr_dump_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
@@ -103,7 +103,7 @@
 -->
 <task name="gdas_marine_dump" cycledefs="gdas" maxtries="&MAXTRIES;">
 
-        <command>{{ HOMEobsforge }}/jobs/rocoto/marinedump.sh</command>
+		<command>{{ HOMEobsforge }}/dev/job_cards/rocoto/marinedump.sh</command>
 
         <jobname><cyclestr>obsforge_gdas_marine_dump_@H</cyclestr></jobname>
         <account>{{ ACCOUNT }}</account>
@@ -141,7 +141,7 @@
 -->
 <task name="gdas_marine_bufr_dump" cycledefs="gdas" maxtries="&MAXTRIES;">
 
-        <command>{{ HOMEobsforge }}/jobs/rocoto/marinebufrdump.sh</command>
+		<command>{{ HOMEobsforge }}/dev/job_cards/rocoto/marinebufrdump.sh</command>
 
         <jobname><cyclestr>obsforge_gdas_marine_bufr_dump_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>

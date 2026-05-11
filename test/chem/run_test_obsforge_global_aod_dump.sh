@@ -68,7 +68,7 @@ nodes: 1
 ntasks_per_node: 24
 threads_per_task: 1
 memory: ${memory}
-command: ${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_AOD_DUMP
+command: ${HOMEobsforge}/dev/jobs/JOBSFORGE_GLOBAL_AOD_DUMP
 filename: submit_${type}.sh
 EOF
 
@@ -84,5 +84,5 @@ elif [[ $SCHEDULER = 'pbspro' ]]; then
     $HOMEobsforge/test/generate_job_script.py ${config_yaml}
     qsub -V -W block=true submit_${type}.sh
 else
-    ${HOMEobsforge}/jobs/JOBSFORGE_GLOBAL_AOD_DUMP
+    ${HOMEobsforge}/dev/jobs/JOBSFORGE_GLOBAL_AOD_DUMP
 fi
