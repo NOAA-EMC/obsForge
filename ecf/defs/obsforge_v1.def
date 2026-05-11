@@ -17,7 +17,7 @@ suite obsforge_v1
       edit CYC '00'
       family obsforge
         family gfs
-          edit ECF_FILES '%PACKAGEHOME%/ecf/gfs'
+          edit ECF_FILES '%PACKAGEHOME%/ecf/scripts/gfs'
           edit JTYP 'gfs'
           family marine
             task jobsforge_gfs_marine_dump
