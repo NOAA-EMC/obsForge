@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+#include <sstream>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -272,42 +275,46 @@ namespace obsforge {
           oops::Log::info() << "IodaVars::IodaVars done redating & adjsting errors." << std::endl;
         }
 
-        // Removing duplicated in-sutu obs
+        // Removing duplicated in-situ obs
         void removeDuplicates() {
-                  std::unordered_map<std::string, int> seen;
-                  int nDups = 0;
-           
-          // true = keep, false = duplicate trim 
+               std::unordered_map<std::string, int> seen;
+               int nDups = 0;
+
           Eigen::Array<bool, Eigen::Dynamic, 1> keepMask(location_);
           keepMask.setConstant(true);
-                
+
+          bool hasDepth = (!floatMetadataName_.empty() && floatMetadata_.cols() > 0);
+
           for (int i = 0; i < location_; i++) {
-          // Fingerprint key
-          std::ostringstream oss;
-          oss << std::fixed
-              << std::setprecision(6) << latitude_(i)         << "|"
-              << std::setprecision(6) << longitude_(i)        << "|"
-              << std::setprecision(2) << floatMetadata_(i, 0) << "|"  // depth (col 0)
-              <<                         datetime_(i)         << "|"  // int64_t
-              << std::setprecision(6) << obsVal_(i);               // salinity or waterTemp
+            std::ostringstream oss;
+            oss << std::fixed
+                << std::setprecision(6) << latitude_(i)  << "|"
+                << std::setprecision(6) << longitude_(i) << "|";
 
-          std::string key = oss.str();
+            if (hasDepth) {
+              oss << std::setprecision(2) << floatMetadata_(i, 0) << "|";
+            }
 
-          if (seen.find(key) == seen.end()) {
-            seen[key] = i;
+            oss << datetime_(i)                          << "|"
+                << std::setprecision(6) << obsVal_(i);
+
+            std::string key = oss.str();
+
+            if (seen.find(key) == seen.end()) {
+              seen[key] = i;
             } else {
-              keepMask(i) = false;   // mark as duplicate
-              nDups++;
-              oops::Log::debug() << "removeDuplicates: duplicate at index " << i
-                                 << " (first seen at index " << seen[key] << ")"
-                                 << std::endl;
+            keepMask(i) = false;
+            nDups++;
+            oops::Log::debug() << "removeDuplicates: duplicate at index " << i
+                               << " (first seen at index " << seen[key] << ")"
+                               << std::endl;
             }
           }
 
           if (nDups == 0) {
             oops::Log::info() << "IodaVars::removeDuplicates: no duplicates found."
-                              << std::endl;
-          return;
+                      << std::endl;
+            return;
           }
 
           trim(keepMask);
@@ -315,7 +322,7 @@ namespace obsforge {
           oops::Log::info() << "IodaVars::removeDuplicates: removed " << nDups
                             << " duplicates, " << location_ << " obs remaining."
                             << std::endl;
-          }
+        }
       };
     }  // namespace iodavars
 
