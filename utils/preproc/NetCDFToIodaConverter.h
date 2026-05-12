@@ -91,7 +91,7 @@ namespace obsforge {
       gatherObs(iodaVars.obsError_, iodaVarsAll.obsError_);
       gatherObs(iodaVars.preQc_, iodaVarsAll.preQc_);
 
-      // gather floatMetadata_ (depth) — Matrix → Array 변환
+      // Gather floatMetadata_ (depth)
       for (int col = 0; col < iodaVars.floatMetadata_.cols(); col++) {
         Eigen::Array<float, Eigen::Dynamic, 1> srcCol =
             iodaVars.floatMetadata_.col(col).array();
@@ -100,7 +100,7 @@ namespace obsforge {
         iodaVarsAll.floatMetadata_.col(col) = dstCol.matrix();
       }
 
-      // gather intMetadata_ (oceanbasin, rcptdateTime, stationID)
+      // Gather intMetadata_ (oceanbasin, rcptdateTime, stationID)
       for (int col = 0; col < iodaVars.intMetadata_.cols(); col++) {
         Eigen::Array<int, Eigen::Dynamic, 1> srcCol =
             iodaVars.intMetadata_.col(col).array();
@@ -109,9 +109,9 @@ namespace obsforge {
         iodaVarsAll.intMetadata_.col(col) = dstCol.matrix();
       }
 
-      // ── removeDuplicates on root PE only ─────────────────────────────────
+      // RemoveDuplicates on root PE only
       if (oops::mpi::world().rank() == 0) {
-        iodaVarsAll.removeDuplicates();   // void — int 로 받지 않음
+        iodaVarsAll.removeDuplicates();
       }
 
       // Create empty group backed by HDF file
