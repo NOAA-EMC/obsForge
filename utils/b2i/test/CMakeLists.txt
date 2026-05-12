@@ -3,35 +3,55 @@ find_package(Python REQUIRED)
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+).*" "\\1" PYTHON_MAJOR_MINOR ${Python_VERSION})
 set(PYIODACONV_DIR "${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}:${CMAKE_BINARY_DIR}/lib/python${PYTHON_MAJOR_MINOR}/site-packages")
 
-# Define test input YAML files
-list(APPEND b2i_test_input
-    testinput/bufr2ioda_insitu_profile_argo_2021063006.yaml.in
-    testinput/bufr2ioda_insitu_profile_bathy_2021063006.yaml.in
-    testinput/bufr2ioda_insitu_profile_glider_2021063006.yaml.in
-    testinput/bufr2ioda_insitu_profile_tesac_2021063006.yaml.in
-    testinput/bufr2ioda_insitu_profile_xbtctd_2021063006.yaml.in
-    testinput/bufr2ioda_insitu_surface_trkob_2021063006.yaml.in
-	testinput/bufr2ioda_insitu_profile_taotriton_2025061900.yaml.in
-	testinput/bufr2ioda_insitu_profile_pirata_2025061900.yaml.in
-	testinput/bufr2ioda_insitu_profile_rama_2025061900.yaml.in
-	testinput/bufr2ioda_insitu_surface_ndbc_2025061900.yaml.in
-	testinput/bufr2ioda_insitu_surface_dbuoyb_drifter_2019010700.yaml.in
+set(B2I_TEST_TABLE
+    profile argo        subpfl  2021063006 06
+    profile glider      subpfl  2021063006 06
+
+    profile bathy       bathy   2021063006 06
+    profile tesac       tesac   2021063006 06
+    profile xbtctd      xbtctd  2021063006 06
+
+    profile taotriton_temp   mbuoyb  2025061900 00
+    profile taotriton_saln   mbuoyb  2025061900 00
+    profile pirata_temp      mbuoyb  2025061900 00
+    profile pirata_saln      mbuoyb  2025061900 00
+    profile rama_temp        mbuoyb  2025061900 00
+    profile rama_saln        mbuoyb  2025061900 00
+    surface ndbc             mbuoyb  2025061900 00
+
+    surface trkob            trkob   2021063006 06
+    surface dbuoyb_drifter   dbuoyb 2019010700 00
 )
 
-# Define reference output files
-list(APPEND b2i_test_ref
-    testref/bufr2ioda_insitu_profile_argo_2021063006.ref
-    testref/bufr2ioda_insitu_profile_bathy_2021063006.ref
-    testref/bufr2ioda_insitu_profile_glider_2021063006.ref
-    testref/bufr2ioda_insitu_profile_tesac_2021063006.ref
-    testref/bufr2ioda_insitu_profile_xbtctd_2021063006.ref
-    testref/bufr2ioda_insitu_surface_trkob_2021063006.ref
-	testref/bufr2ioda_insitu_profile_taotriton_2025061900.ref
-	testref/bufr2ioda_insitu_profile_pirata_2025061900.ref
-	testref/bufr2ioda_insitu_profile_rama_2025061900.ref
-	testref/bufr2ioda_insitu_surface_ndbc_2025061900.ref
-	testref/bufr2ioda_insitu_surface_dbuoyb_drifter_2019010700.ref
-)
+set(b2i_test_input "")
+set(b2i_test_ref "")
+
+list(LENGTH B2I_TEST_TABLE TABLE_LEN)
+
+math(EXPR NROWS "${TABLE_LEN} / 5")
+math(EXPR TEST_TABLE_LAST_ROW "${NROWS} - 1")
+
+foreach(i RANGE 0 ${TEST_TABLE_LAST_ROW})
+    math(EXPR idx0 "5*${i}")
+    math(EXPR idx1 "5*${i} + 1")
+    math(EXPR idx2 "5*${i} + 2")
+    math(EXPR idx3 "5*${i} + 3")
+
+    list(GET B2I_TEST_TABLE ${idx0} category)
+    list(GET B2I_TEST_TABLE ${idx1} name)
+    list(GET B2I_TEST_TABLE ${idx2} bufr)
+    list(GET B2I_TEST_TABLE ${idx3} date)
+
+    set(test "bufr2ioda_insitu_${category}_${name}_${date}")
+
+    list(APPEND b2i_test_input
+        "testinput/${test}.yaml.in"
+    )
+
+    list(APPEND b2i_test_ref
+        "testref/${test}.ref"
+    )
+endforeach()
 
 # Set up b2i-specific test directories
 set(B2I_TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/b2i/test)
@@ -134,68 +154,63 @@ else()
 endif()
 
 
-# Function to add b2i tests
-function(ADD_B2I_TEST testname testbufr)
-	# set(CONFIG_TYPE "json")
-    set(CONFIG_TYPE "yaml")
+function(ADD_B2I_TEST category name bufr date cycle)
 
-    if (testbufr STREQUAL "mbuoyb") 
-        set(DATE "2025061900")
-        set(CYCLE "00")
-    else()
-        if (testbufr STREQUAL "dbuoyb")
-            set(DATE "2019010700")
-            set(CYCLE "00")
-        else()
-            set(DATE "2021063006")                                              
-            set(CYCLE "06")
-        endif()
-    endif()
+    set(TEST "bufr2ioda_insitu_${category}_${name}")
+    set(TESTREF_FILE "${TEST}_${date}.ref")
 
-    set(TEST "bufr2ioda_insitu_${testname}")
-    set(TESTREF_FILE "${TEST}_${DATE}.ref")
     set(BUFR_INPUT_DIR ${B2I_TEST_DIR})
     set(IODA_OUTPUT_DIR ${B2I_TESTOUTPUT_DIR})
-    set(BUFR_TEST_FILE "${DATE}-gdas.t${CYCLE}z.${testbufr}.tm00.bufr_d")
+
+    set(BUFR_TEST_FILE "${date}-gdas.t${cycle}z.${bufr}.tm00.bufr_d")
     set(BUFR_FILE "${BUFR_TEST_DIR}/${BUFR_TEST_FILE}")
 
     if(NOT EXISTS ${BUFR_FILE})
         message(WARNING "BUFR file ${BUFR_FILE} not found; skipping test ${TEST}")
         return()
     endif()
+
     file(COPY ${BUFR_FILE} DESTINATION ${BUFR_INPUT_DIR})
 
-    set(CONFIG_FILE_NAME "${TEST}_${DATE}.${CONFIG_TYPE}")
-    set(CONFIG_FILE_IN "${B2I_TESTINPUT_DIR}/${TEST}_${DATE}.${CONFIG_TYPE}.in")
+    set(CONFIG_FILE_NAME "${TEST}_${date}.yaml")
+    set(CONFIG_FILE_IN "${B2I_TESTINPUT_DIR}/${TEST}_${date}.yaml.in")
     set(CONFIG_FILE "${B2I_TEST_DIR}/${CONFIG_FILE_NAME}")
+
     CREATE_CONFIG_FILE(
-		${CONFIG_FILE_IN} 
-		${CONFIG_FILE} 
-		${BUFR_INPUT_DIR} 
-		${IODA_OUTPUT_DIR} 
-		${OCEAN_BASIN_FILE}
-	)
+        ${CONFIG_FILE_IN}
+        ${CONFIG_FILE}
+        ${BUFR_INPUT_DIR}
+        ${IODA_OUTPUT_DIR}
+        ${OCEAN_BASIN_FILE}
+    )
 
     add_test(NAME test_b2i_${TEST}
-             COMMAND ${B2I_SCRIPT_DIR}/${TEST}.py -c ${CONFIG_FILE} -t ${B2I_TESTREF_DIR}/${TESTREF_FILE}
-             WORKING_DIRECTORY ${B2I_TEST_DIR})
+        COMMAND ${B2I_SCRIPT_DIR}/${TEST}.py
+                -c ${CONFIG_FILE}
+                -t ${B2I_TESTREF_DIR}/${TESTREF_FILE}
+        WORKING_DIRECTORY ${B2I_TEST_DIR})
+
     set_property(TEST test_b2i_${TEST}
-                 APPEND PROPERTY 
-					ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
-	# message("Created test test_b2i_${TEST}")
+        APPEND PROPERTY
+        ENVIRONMENT "PYTHONPATH=${PYIODACONV_DIR}:$ENV{PYTHONPATH}")
 endfunction()
 
-# Add tests if prerequisites are met
 if(GENERATE_B2I_TESTS)
-    ADD_B2I_TEST("profile_argo" "subpfl")
-    ADD_B2I_TEST("profile_bathy" "bathy")
-    ADD_B2I_TEST("profile_glider" "subpfl")
-    ADD_B2I_TEST("profile_tesac" "tesac")
-    ADD_B2I_TEST("profile_rama" "mbuoyb")
-    ADD_B2I_TEST("profile_pirata" "mbuoyb")
-    ADD_B2I_TEST("profile_taotriton" "mbuoyb")
-    ADD_B2I_TEST("profile_xbtctd" "xbtctd")
-    ADD_B2I_TEST("surface_ndbc" "mbuoyb")
-    ADD_B2I_TEST("surface_trkob" "trkob")
-	ADD_B2I_TEST("surface_dbuoyb_drifter" "dbuoyb")
+
+    foreach(i RANGE 0 ${TEST_TABLE_LAST_ROW})
+        math(EXPR idx0 "5*${i}")
+        math(EXPR idx1 "5*${i} + 1")
+        math(EXPR idx2 "5*${i} + 2")
+        math(EXPR idx3 "5*${i} + 3")
+        math(EXPR idx4 "5*${i} + 4")
+
+        list(GET B2I_TEST_TABLE ${idx0} category)
+        list(GET B2I_TEST_TABLE ${idx1} name)
+        list(GET B2I_TEST_TABLE ${idx2} bufr)
+        list(GET B2I_TEST_TABLE ${idx3} date)
+        list(GET B2I_TEST_TABLE ${idx4} cycle)
+
+        ADD_B2I_TEST(${category} ${name} ${bufr} ${date} ${cycle})
+    endforeach()
+
 endif()
