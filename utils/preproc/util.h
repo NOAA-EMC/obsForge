@@ -271,6 +271,51 @@ namespace obsforge {
           }
           oops::Log::info() << "IodaVars::IodaVars done redating & adjsting errors." << std::endl;
         }
+
+        // Removing duplicated in-sutu obs
+        void removeDuplicates() {
+                  std::unordered_map<std::string, int> seen;
+                  int nDups = 0;
+           
+          // true = keep, false = duplicate trim 
+          Eigen::Array<bool, Eigen::Dynamic, 1> keepMask(location_);
+          keepMask.setConstant(true);
+                
+          for (int i = 0; i < location_; i++) {
+          // Fingerprint key
+          std::ostringstream oss;
+          oss << std::fixed
+              << std::setprecision(6) << latitude_(i)         << "|"
+              << std::setprecision(6) << longitude_(i)        << "|"
+              << std::setprecision(2) << floatMetadata_(i, 0) << "|"  // depth (col 0)
+              <<                         datetime_(i)         << "|"  // int64_t
+              << std::setprecision(6) << obsVal_(i);               // salinity or waterTemp
+
+          std::string key = oss.str();
+
+          if (seen.find(key) == seen.end()) {
+            seen[key] = i;
+            } else {
+              keepMask(i) = false;   // mark as duplicate
+              nDups++;
+              oops::Log::debug() << "removeDuplicates: duplicate at index " << i
+                                 << " (first seen at index " << seen[key] << ")"
+                                 << std::endl;
+            }
+          }
+
+          if (nDups == 0) {
+            oops::Log::info() << "IodaVars::removeDuplicates: no duplicates found."
+                              << std::endl;
+          return;
+          }
+
+          trim(keepMask);
+
+          oops::Log::info() << "IodaVars::removeDuplicates: removed " << nDups
+                            << " duplicates, " << location_ << " obs remaining."
+                            << std::endl;
+          }
       };
     }  // namespace iodavars
 
