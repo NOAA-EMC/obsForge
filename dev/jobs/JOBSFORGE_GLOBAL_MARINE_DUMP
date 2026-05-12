@@ -6,6 +6,8 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ##############################################
 # Set variables used in the script
 ##############################################
+PYTHONPATH="${HOMEobsforge}/ush/python${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH
 
 
 ##############################################
