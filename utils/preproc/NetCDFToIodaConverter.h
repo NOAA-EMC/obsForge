@@ -91,6 +91,28 @@ namespace obsforge {
       gatherObs(iodaVars.obsError_, iodaVarsAll.obsError_);
       gatherObs(iodaVars.preQc_, iodaVarsAll.preQc_);
 
+      // Gather floatMetadata_ (depth)
+      for (int col = 0; col < iodaVars.floatMetadata_.cols(); col++) {
+        Eigen::Array<float, Eigen::Dynamic, 1> srcCol =
+            iodaVars.floatMetadata_.col(col).array();
+        Eigen::Array<float, Eigen::Dynamic, 1> dstCol(iodaVarsAll.location_);
+        gatherObs(srcCol, dstCol);
+        iodaVarsAll.floatMetadata_.col(col) = dstCol.matrix();
+      }
+
+      // Gather intMetadata_ (oceanbasin, rcptdateTime, stationID)
+      for (int col = 0; col < iodaVars.intMetadata_.cols(); col++) {
+        Eigen::Array<int, Eigen::Dynamic, 1> srcCol =
+            iodaVars.intMetadata_.col(col).array();
+        Eigen::Array<int, Eigen::Dynamic, 1> dstCol(iodaVarsAll.location_);
+        gatherObs(srcCol, dstCol);
+        iodaVarsAll.intMetadata_.col(col) = dstCol.matrix();
+      }
+
+      // RemoveDuplicates on root PE only
+      if (oops::mpi::world().rank() == 0) {
+        iodaVarsAll.removeDuplicates();
+      }
 
       // Create empty group backed by HDF file
       if (oops::mpi::world().rank() == 0) {
