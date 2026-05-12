@@ -6,7 +6,13 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ##############################################
 # Set variables used in the script
 ##############################################
+obsforge_ver=${obsforge_ver:-v1.0}
+_combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase="${COMROOT}"
+export COMOUT_OBSFORGE_MARINE_OBS="${_combase}/${RUN}.${PDY}/${cyc}/ocean/insitu"
 
+obsproc_ver=${obsproc_ver:-v1.2}
+_obsproc_base=$(compath.py "${envir}/obsproc/${obsproc_ver}" 2>/dev/null) || _obsproc_base="${OBSPROC_COMROOT}"
+export COMIN_OBSPROC="${_obsproc_base}/${RUN}.${PDY}/${cyc}"
 
 ##############################################
 # Begin JOB SPECIFIC work

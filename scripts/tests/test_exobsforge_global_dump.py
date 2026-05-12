@@ -12,6 +12,17 @@ def script_env(tmp_path):
     env["current_cycle"] = "20250301600"
     env["PDY"] = "20250316"
     env["RUN"] = "gdas"
+
+    # Required runtime output directories
+    env["DCOMROOT"] = str(tmp_path / "dcom")
+    env["COMOUT_OBSFORGE_MARINE_OBS"] = str(tmp_path / "com" / "marine_obs")
+    env["COMOUT_OBSFORGE_CHEM_OBS"] = str(tmp_path / "com" / "chem_obs")
+
+    # Ensure directories exist before scripts run
+    Path(env["DCOMROOT"]).mkdir(parents=True, exist_ok=True)
+    Path(env["COMOUT_OBSFORGE_MARINE_OBS"]).mkdir(parents=True, exist_ok=True)
+    Path(env["COMOUT_OBSFORGE_CHEM_OBS"]).mkdir(parents=True, exist_ok=True)
+
     return env
 
 
@@ -57,7 +68,7 @@ def test_run_exobsforge_script(script_env):
     env = script_env
 
     # Prepare a mocked dcom directory
-    create_dcom(output_root=os.getenv("DCOMROOT"),
+    create_dcom(output_root=env["DCOMROOT"],
                 dcom_tree_file=Path(__file__).parent / "dcom_tree.txt")
 
     # List of scripts to run

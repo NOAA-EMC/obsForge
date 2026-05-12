@@ -6,7 +6,9 @@ source "${HOMEobsforge}/ush/jjob_header.sh"
 ##############################################
 # Set variables used in the script
 ##############################################
-
+obsforge_ver=${obsforge_ver:-v1.0}
+_combase=$(compath.py "${envir}/${NET}/${obsforge_ver}" 2>/dev/null) || _combase="${COMROOT}"
+export COMOUT_OBSFORGE_MARINE_OBS="${_combase}/${RUN}.${PDY}/${cyc}/ocean"
 
 ##############################################
 # Begin JOB SPECIFIC work

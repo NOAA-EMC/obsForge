@@ -27,28 +27,6 @@ class StageOutput(Task):
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
-                'COMIN_ATMOS_GSI': os.path.join(self.task_config['COMROOT'],
-                                                self.task_config['PSLOT'],
-                                                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                                                f"{self.task_config.cyc:02d}",
-                                                'atmos_gsi'),
-                'COMIN_ATMOS_OBSFORGE': os.path.join(self.task_config['COMROOT'],
-                                                     self.task_config['PSLOT'],
-                                                     f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                                                     f"{self.task_config.cyc:02d}",
-                                                     'atmos'),
-                'COMOUT_ATMOS_OBS': os.path.join(self.task_config['COMROOT'],
-                                                 self.task_config['PSLOT'],
-                                                 'output_obs',
-                                                 f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                                                 f"{self.task_config.cyc:02d}",
-                                                 'atmos'),
-                'COMOUT_ATMOS_BC': os.path.join(self.task_config['COMROOT'],
-                                                self.task_config['PSLOT'],
-                                                'output_bc',
-                                                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                                                f"{self.task_config.cyc:02d}",
-                                                'analysis', 'atmos'),
             }
         )
 
@@ -62,9 +40,9 @@ class StageOutput(Task):
 
         This method loops through all observations defined in self.task_config.observations
         and copies them from a source location to a destination:
-        - If source is GSI: source directory is COMIN_ATMOS_GSI, files have suffix .gsi.nc
-        - If source is BUFR: source directory is COMIN_ATMOS_OBSFORGE, files have suffix .nc
-        - Destination is COMOUT_ATMOS_OBS with suffix .nc
+        - If source is GSI: source directory is COMIN_OBSFORGE_ATMOS_GSI_OBS, files have suffix .gsi.nc
+        - If source is BUFR: source directory is COMIN_OBSFORGE_ATMOS_OBS, files have suffix .nc
+        - Destination is COMOUT_OBSFORGE_ATMOS_STAGE_OBS with suffix .nc
         """
         logger.info("Starting the staging of output files.")
 
@@ -76,17 +54,17 @@ class StageOutput(Task):
             obs_source = obs.get('source')
 
             if obs_source == 'GSI':
-                src_dir = self.task_config.COMIN_ATMOS_GSI
+                src_dir = self.task_config.COMIN_OBSFORGE_ATMOS_GSI_OBS
                 src_suffix = '.gsi.nc'
             elif obs_source == 'BUFR':
-                src_dir = self.task_config.COMIN_ATMOS_OBSFORGE
+                src_dir = self.task_config.COMIN_OBSFORGE_ATMOS_OBS
                 src_suffix = '.nc'
             else:
                 logger.warning(f"Unknown source type '{obs_source}' for observation '{obs_name}'. Skipping.")
                 continue
 
             src_file = os.path.join(src_dir, f"{self.task_config.OPREFIX}{obs_name}{src_suffix}")
-            dest_file = os.path.join(self.task_config.COMOUT_ATMOS_OBS, f"{self.task_config.OPREFIX}{obs_name}.nc")
+            dest_file = os.path.join(self.task_config.COMOUT_OBSFORGE_ATMOS_STAGE_OBS, f"{self.task_config.OPREFIX}{obs_name}.nc")
 
             if os.path.exists(src_file):
                 copy_list.append([src_file, dest_file])
@@ -96,11 +74,11 @@ class StageOutput(Task):
                 logger.warning(f"Source file not found for observation '{obs_name}': {src_file}")
 
         if copy_list:
-            FileHandler({'mkdir': [self.task_config.COMOUT_ATMOS_OBS], 'copy': copy_list}).sync()
-            logger.info(f"Copied {len(copy_list)} observation files to {self.task_config.COMOUT_ATMOS_OBS}")
+            FileHandler({'mkdir': [self.task_config.COMOUT_OBSFORGE_ATMOS_STAGE_OBS], 'copy': copy_list}).sync()
+            logger.info(f"Copied {len(copy_list)} observation files to {self.task_config.COMOUT_OBSFORGE_ATMOS_STAGE_OBS}")
 
             # Write observation source log file
-            log_file_path = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
+            log_file_path = os.path.join(self.task_config.COMOUT_OBSFORGE_ATMOS_STAGE_OBS,
                                          f"{self.task_config.OPREFIX}observation_source.log")
             with open(log_file_path, 'w') as log_file:
                 log_file.write("# Observation Source Log\n")
@@ -113,9 +91,9 @@ class StageOutput(Task):
             logger.warning("No observation files were copied.")
 
         # Copy obsforge BUFR status log file
-        bufr_status_log_src = os.path.join(self.task_config.COMIN_ATMOS_OBSFORGE,
+        bufr_status_log_src = os.path.join(self.task_config.COMIN_OBSFORGE_ATMOS_OBS,
                                            "obsforge_atmos_bufr_status.log")
-        bufr_status_log_dest = os.path.join(self.task_config.COMOUT_ATMOS_OBS,
+        bufr_status_log_dest = os.path.join(self.task_config.COMOUT_OBSFORGE_ATMOS_STAGE_OBS,
                                             "obsforge_atmos_bufr_status.log")
         if os.path.exists(bufr_status_log_src):
             FileHandler({'copy': [[bufr_status_log_src, bufr_status_log_dest]]}).sync()
@@ -126,12 +104,12 @@ class StageOutput(Task):
         # Copy bias correction files if source is GSI
         bias_correction_config = self.task_config.get('bias correction', {})
         if bias_correction_config.get('source') == 'GSI':
-            bc_src_file = os.path.join(self.task_config.COMIN_ATMOS_GSI,
+            bc_src_file = os.path.join(self.task_config.COMIN_OBSFORGE_ATMOS_GSI_OBS,
                                        f"{self.task_config.OPREFIX}rad_varbc_params.tar")
-            bc_dest_file = os.path.join(self.task_config.COMOUT_ATMOS_BC,
+            bc_dest_file = os.path.join(self.task_config.COMOUT_OBSFORGE_ATMOS_BC,
                                         f"{self.task_config.OPREFIX}rad_varbc_params.tar")
             if os.path.exists(bc_src_file):
-                FileHandler({'mkdir': [self.task_config.COMOUT_ATMOS_BC],
+                FileHandler({'mkdir': [self.task_config.COMOUT_OBSFORGE_ATMOS_BC],
                              'copy': [[bc_src_file, bc_dest_file]]}).sync()
                 logger.info(f"Copied bias correction file from {bc_src_file} to {bc_dest_file}")
             else:
