@@ -63,7 +63,7 @@ class Bufr2ioda_Converter:
             sys.exit(0)
 
         self.logger.debug(f"ExecuteQuery: BUFR file = {bufrfile_path}")
-        try
+        try:
             with bufr.File(bufrfile_path) as f:
                 r = f.execute(q)
         except Exception as e:
