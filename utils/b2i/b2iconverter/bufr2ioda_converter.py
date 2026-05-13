@@ -57,9 +57,22 @@ class Bufr2ioda_Converter:
         q = self.ioda_vars.build_query()
 
         bufrfile_path = self.bufr2ioda_config.bufr_filepath()
+
+        if not os.path.exists(bufrfile_path) or os.path.getsize(bufrfile_path) < 100:
+            self.logger.error(f"BUFR file {bufrfile_path} is missing or too small.")
+            sys.exit(0)
+
         self.logger.debug(f"ExecuteQuery: BUFR file = {bufrfile_path}")
-        with bufr.File(bufrfile_path) as f:
-            r = f.execute(q)
+        try:
+            with bufr.File(bufrfile_path) as f:
+                r = f.execute(q)
+        except Exception as e:
+            self.logger.error(f"ExecuteQuery: BUFR file failed with {e}")
+            sys.exit(0)
+
+        if r is None:
+            self.logger.error(f"Invalid query result from {bufrfile_path}")
+            sys.exit(0)
 
         # process query results and set ioda variables
         self.ioda_vars.set_from_query_result(r)
