@@ -41,7 +41,8 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
+#                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
@@ -242,3 +243,34 @@ class MarineBufrObsPrep(Task):
         ready_file = pathlib.Path(path.join(self.task_config.COMIN_OBSPROC,
                                             f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
         ready_file.touch()
+
+# block below is for symlinks [Hyundeok Choi]
+        # -------------------------------------------------------------
+        # Create legacy ocean subdirectory symlinks for backward compatibility
+        # -------------------------------------------------------------
+        import shutil
+
+        # COMIN_OBSPROC now points to the merged ocean directory
+        comout = self.task_config.COMIN_OBSPROC
+
+        # Legacy subdirectories to recreate as symlinks
+        legacy_dirs = ["insitu", "sst", "sss", "adt", "icec"]
+
+        for d in legacy_dirs:
+            link_path = pathlib.Path(path.join(comout, d))
+            target = pathlib.Path(comout)
+
+            # Remove existing directory or symlink
+            if link_path.exists() or link_path.is_symlink():
+                try:
+                    link_path.unlink()
+                except IsADirectoryError:
+                    shutil.rmtree(link_path)
+
+            # Create symlink
+            try:
+                link_path.symlink_to(target)
+                logger.info(f"Created symlink: {link_path} -> {target}")
+            except Exception as e:
+                logger.warning(f"Failed to create symlink {link_path}: {e}")
+

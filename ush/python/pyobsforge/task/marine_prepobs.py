@@ -263,8 +263,11 @@ class MarineObsPrep(Task):
         src_dst_obs_list = []  # list of [src_file, dst_file]
         for obs_type in obs_types:
             # Create the destination directory
-            comout_tmp = join(comout, obs_type)
-            FileHandler({'mkdir': [comout_tmp]}).sync()
+#            comout_tmp = join(comout, obs_type)
+#            FileHandler({'mkdir': [comout_tmp]}).sync()
+
+            # Hyundeok.Choi
+            comout_tmp = comout   # everything goes into ocean/
 
             # Glob the ioda files
             ioda_files = glob.glob(join(self.task_config['DATA'],
@@ -272,7 +275,10 @@ class MarineObsPrep(Task):
             for ioda_file in ioda_files:
                 logger.info(f"ioda_file: {ioda_file}")
                 src_file = ioda_file
-                dst_file = join(comout_tmp, basename(ioda_file))
+#                dst_file = join(comout_tmp, basename(ioda_file))
+                # Hyundeok.Choi
+                dst_file = join(comout, basename(ioda_file))
+
                 src_dst_obs_list.append([src_file, dst_file])
 
         logger.info("Copying ioda files to destination COMROOT directory")
@@ -283,3 +289,27 @@ class MarineObsPrep(Task):
         # create an empty file to tell external processes the obs are ready
         ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_marine_status.log"))
         ready_file.touch()
+
+        # Hyundeok.Choi
+
+        # Create legacy subdirectory symlinks for backward compatibility
+        legacy_dirs = ["sst", "adt", "icec", "sss", "insitu"]
+
+        for d in legacy_dirs:
+            link_path = join(comout, d)
+            target = comout  # all symlinks point to the merged ocean directory
+
+            # Remove existing directory or symlink if present
+            if pathlib.Path(link_path).exists() or pathlib.Path(link_path).is_symlink():
+                try:
+                    pathlib.Path(link_path).unlink()
+                except IsADirectoryError:
+                    shutil.rmtree(link_path)
+
+            # Create symlink
+            try:
+                pathlib.Path(link_path).symlink_to(target)
+                logger.info(f"Created symlink: {link_path} -> {target}")
+            except Exception as e:
+                logger.warning(f"Failed to create symlink {link_path}: {e}")
+
