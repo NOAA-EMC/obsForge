@@ -41,7 +41,6 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-#                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
                 'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
@@ -244,7 +243,6 @@ class MarineBufrObsPrep(Task):
                                             f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
         ready_file.touch()
 
-# block below is for symlinks [Hyundeok Choi]
         # -------------------------------------------------------------
         # Create legacy ocean subdirectory symlinks for backward compatibility
         # -------------------------------------------------------------
