@@ -264,7 +264,6 @@ class MarineObsPrep(Task):
         src_dst_obs_list = []  # list of [src_file, dst_file]
         for obs_type in obs_types:
             # Create the destination directory
-#            comout_tmp = comout   # everything goes into ocean/
 
             # Glob the ioda files
             ioda_files = glob.glob(join(self.task_config['DATA'],
@@ -305,4 +304,3 @@ class MarineObsPrep(Task):
                 logger.info(f"Created symlink: {link_path} -> {target}")
             except Exception as e:
                 logger.warning(f"Failed to create symlink {link_path}: {e}")
-
