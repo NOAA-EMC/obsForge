@@ -2,8 +2,9 @@
 
 from logging import getLogger
 from os import path
+import pathlib
 from typing import Dict, Any
-from wxflow import 
+from wxflow import (
     AttrDict
     Executable,
     FileHandler,
@@ -19,7 +20,6 @@ from wxflow import
 from pyobsforge.task.sfcshp import SfcShp
 import netCDF4
 import shutil
-import pathlib
 
 logger = getLogger(__name__.split('.')[-1])
 
