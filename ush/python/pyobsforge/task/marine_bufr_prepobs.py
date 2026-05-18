@@ -268,4 +268,3 @@ class MarineBufrObsPrep(Task):
                 logger.info(f"Created symlink: {link_path} -> {target}")
             except Exception as e:
                 logger.warning(f"Failed to create symlink {link_path}: {e}")
-
