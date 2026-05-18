@@ -5,7 +5,7 @@ from os import path
 import pathlib
 from typing import Dict, Any
 from wxflow import (
-    AttrDict
+    AttrDict,
     Executable,
     FileHandler,
     Task,
