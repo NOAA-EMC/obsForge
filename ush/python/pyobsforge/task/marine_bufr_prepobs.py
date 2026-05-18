@@ -19,6 +19,8 @@ from wxflow import (
 )
 from pyobsforge.task.sfcshp import SfcShp
 import netCDF4
+import shutil   
+import pathlib  
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -116,10 +118,8 @@ class MarineBufrObsPrep(Task):
                     else:
                         logger.warning(f"sfcshp not found: {sfcshp_filename}")
 
-                # if the bufr file exists in OBSPROC_COMROOT, set it up for copy
-                # and conversion
-                # if the bufr file exists in RUNDIR (because it was split from
-                # sfcshp in OBSPROC_COMROOT), set it up for conversion
+                # if the bufr file exists in OBSPROC_COMROOT, set it up for copy and conversion
+                # if the bufr file exists in RUNDIR (because it was split from sfcshp in OBSPROC_COMROOT), set it up for conversion
                 logger.debug(f"Looking for {obs_cycle_config.dump_filename}...")
                 if path.exists(obs_cycle_config.dump_filename):
                     save_as_yaml(obs_cycle_config, obs_cycle_config.bufr2ioda_yaml)
@@ -192,8 +192,7 @@ class MarineBufrObsPrep(Task):
                     logger.debug("Exception details", exc_info=True)
                     continue  # skip to the next obs_cycle_config
 
-            # for each variable in the converted ioda file, concat all of the
-            # converted ioda files in the window
+            # for each variable in the converted ioda file, concat all of the converted ioda files in the window
             for concat_config in provider['concat_configs']:
                 final_input_files = []
                 for input_file in concat_config['input files']:
@@ -246,7 +245,6 @@ class MarineBufrObsPrep(Task):
         # -------------------------------------------------------------
         # Create legacy ocean subdirectory symlinks for backward compatibility
         # -------------------------------------------------------------
-        import shutil
 
         # COMIN_OBSPROC now points to the merged ocean directory
         comout = self.task_config.COMIN_OBSPROC
