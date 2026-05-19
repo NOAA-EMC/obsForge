@@ -242,6 +242,7 @@ class MarineBufrObsPrep(Task):
         # create an empty file to tell external processes the obs are ready
         ready_file = pathlib.Path(path.join(self.task_config.COMIN_OBSPROC,
                                             f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
+        pathlib.Path(self.task_config.COMIN_OBSPROC).mkdir(parents=True, exist_ok=True)
         ready_file.touch()
 
         # -------------------------------------------------------------

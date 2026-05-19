@@ -282,6 +282,7 @@ class MarineObsPrep(Task):
 
         # create an empty file to tell external processes the obs are ready
         ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_marine_status.log"))
+        pathlib.Path(comout).mkdir(parents=True, exist_ok=True)
         ready_file.touch()
 
         # Create legacy subdirectory symlinks for backward compatibility
