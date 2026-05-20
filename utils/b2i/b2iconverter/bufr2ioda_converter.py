@@ -57,12 +57,33 @@ class Bufr2ioda_Converter:
         q = self.ioda_vars.build_query()
 
         bufrfile_path = self.bufr2ioda_config.bufr_filepath()
-        self.logger.debug(f"ExecuteQuery: BUFR file = {bufrfile_path}")
-        with bufr.File(bufrfile_path) as f:
-            r = f.execute(q)
 
-        # process query results and set ioda variables
-        self.ioda_vars.set_from_query_result(r)
+        if not os.path.exists(bufrfile_path) or os.path.getsize(bufrfile_path) < 100:
+            self.logger.error(f"BUFR file {bufrfile_path} is missing or too small.")
+            sys.exit(0)
+
+        self.logger.debug(f"ExecuteQuery: BUFR file = {bufrfile_path}")
+        try:
+            with bufr.File(bufrfile_path) as f:
+                r = f.execute(q)
+        except Exception as e:
+            self.logger.error(f"ExecuteQuery: BUFR file failed with {e}")
+            sys.exit(0)
+
+        # self.logger.debug(f"Query result type: {type(r)}, representation: {repr(r)}")
+        # self.logger.debug(f"Available ResultSet attributes: {dir(r)}")
+
+        if r is None:
+            self.logger.error(f"Invalid query result from {bufrfile_path}")
+            sys.exit(0)
+
+        # the result set may be empty:
+        try:
+            self.ioda_vars.set_from_query_result(r)
+        except Exception as e:
+            # This acts as your safety net if it somehow sneaks past r.get()
+            self.logger.error(f"Failed to process BUFR query into IODA variables: {e}")
+            sys.exit(0)
 
         n_obs = self.ioda_vars.number_of_obs()
         self.logger.debug(f"Query result has {n_obs} obs")
