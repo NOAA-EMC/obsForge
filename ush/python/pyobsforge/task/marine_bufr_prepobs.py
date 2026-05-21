@@ -229,7 +229,10 @@ class MarineBufrObsPrep(Task):
                 logger.info(f"ioda_filename: {ioda_filename}")
                 source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
                 if path.exists(source_ioda_filename):
-                    destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
+                    destination_ioda_filename = path.join(
+                        self.task_config.COMIN_OBSPROC,
+                        concat_config['save file']
+                    )
                     # Only append if source_ioda_filename is a valid NetCDF4 file
                     try:
                         with netCDF4.Dataset(source_ioda_filename, 'r'):
@@ -237,38 +240,48 @@ class MarineBufrObsPrep(Task):
                     except Exception:
                         logger.warning(f"Skipping invalid file: {source_ioda_filename}")
 
+        # -------------------------------------------------------------
+        # FIX: Ensure COMIN_OBSPROC exists BEFORE copying
+        # -------------------------------------------------------------
+        FileHandler({'mkdir': [self.task_config.COMIN_OBSPROC]}).sync()
+
+        # Now perform the copy
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(path.join(self.task_config.COMIN_OBSPROC,
-                                            f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
-        pathlib.Path(self.task_config.COMIN_OBSPROC).mkdir(parents=True, exist_ok=True)
+        ready_file = pathlib.Path(path.join(
+            self.task_config.COMIN_OBSPROC,
+            f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"
+        ))
         ready_file.touch()
 
         # -------------------------------------------------------------
-        # Create legacy ocean subdirectory symlinks for backward compatibility
+        # Create legacy ocean subdirectory structure without cycles
         # -------------------------------------------------------------
-
-        # COMIN_OBSPROC now points to the merged ocean directory
-        comout = self.task_config.COMIN_OBSPROC
-
-        # Legacy subdirectories to recreate as symlinks
+        comout = pathlib.Path(self.task_config.COMIN_OBSPROC)
         legacy_dirs = ["insitu", "sst", "sss", "adt", "icec"]
 
+        # Gather all .nc files in the merged ocean directory
+        all_nc_files = list(comout.glob("*.nc"))
+
         for d in legacy_dirs:
-            link_path = pathlib.Path(path.join(comout, d))
-            target = pathlib.Path(comout)
+            legacy_dir = comout / d
 
             # Remove existing directory or symlink
-            if link_path.exists() or link_path.is_symlink():
+            if legacy_dir.exists() or legacy_dir.is_symlink():
                 try:
-                    link_path.unlink()
+                    legacy_dir.unlink()
                 except IsADirectoryError:
-                    shutil.rmtree(link_path)
+                    shutil.rmtree(legacy_dir)
 
-            # Create symlink
-            try:
-                link_path.symlink_to(target)
-                logger.info(f"Created symlink: {link_path} -> {target}")
-            except Exception as e:
-                logger.warning(f"Failed to create symlink {link_path}: {e}")
+            # Create a real directory
+            legacy_dir.mkdir(parents=True, exist_ok=True)
+ 
+            # Create per-file symlinks inside it
+            for nc_file in all_nc_files:
+                link_path = legacy_dir / nc_file.name
+                try:
+                    link_path.symlink_to(nc_file)
+                    logger.info(f"Created file symlink: {link_path} -> {nc_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to create file symlink {link_path}: {e}")
