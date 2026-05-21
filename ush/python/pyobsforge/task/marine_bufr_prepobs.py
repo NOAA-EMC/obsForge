@@ -276,7 +276,6 @@ class MarineBufrObsPrep(Task):
 
             # Create a real directory
             legacy_dir.mkdir(parents=True, exist_ok=True)
- 
             # Create per-file symlinks inside it
             for nc_file in all_nc_files:
                 link_path = legacy_dir / nc_file.name
