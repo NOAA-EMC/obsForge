@@ -276,8 +276,10 @@ class MarineObsPrep(Task):
 
         for obs_type in obs_types:
             ioda_files = glob.glob(
-                    join(self.task_config['DATA'],
-                         f"{self.task_config['PREFIX']}*{obs_type}_*.nc")
+                join(
+                    self.task_config['DATA'],
+                    f"{self.task_config['PREFIX']}*{obs_type}_*.nc"
+                )
             )
             for ioda_file in ioda_files:
                 logger.info(f"ioda_file: {ioda_file}")
