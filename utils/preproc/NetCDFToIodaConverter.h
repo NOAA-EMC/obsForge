@@ -87,7 +87,7 @@ namespace obsforge {
                              << ") for " << outputFilename_
                              << " — excess PEs will be idle." << std::endl;
       }
-      
+
 
       // Read the provider's netcdf file
       obsforge::preproc::iodavars::IodaVars iodaVars;
@@ -100,14 +100,6 @@ namespace obsforge {
         oops::Log::info() << " obs count: " << iodaVars.location_ << std::endl;
         oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
         }
-      }
-      
-
-      for (int i = myrank + comm_.size(); i < inputFilenames_.size(); i += comm_.size()) {
-        iodaVars.append(providerToIodaVars(inputFilenames_[i]));
-        oops::Log::info() << " appending: " << inputFilenames_[i] << std::endl;
-        oops::Log::info() << " obs count: " << iodaVars.location_ << std::endl;
-        oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
       }
 
       nobs = iodaVars.location_;
