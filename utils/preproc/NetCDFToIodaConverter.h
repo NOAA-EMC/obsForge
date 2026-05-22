@@ -60,7 +60,7 @@ namespace obsforge {
       int nchan(0);
 
       // Handle empty input file list gracefully
-      // Some obs types (e.g. BATHY, RAMA) may have zero input files when concatinating
+      // Some obs types (e.g. BATHY, RAMA) may have zero input files when concatenating
       if (inputFilenames_.empty()) {
        oops::Log::warning() << "writeToIoda: No input files found for "
                              << outputFilename_
