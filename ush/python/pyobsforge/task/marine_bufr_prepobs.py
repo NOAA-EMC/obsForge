@@ -261,9 +261,6 @@ class MarineBufrObsPrep(Task):
         comout = pathlib.Path(self.task_config.COMIN_OBSPROC)
         legacy_dirs = ["insitu", "sst", "sss", "adt", "icec"]
 
-        # Gather all .nc files in the merged ocean directory
-        all_nc_files = list(comout.glob("*.nc"))
-
         for d in legacy_dirs:
             legacy_dir = comout / d
 
@@ -276,8 +273,13 @@ class MarineBufrObsPrep(Task):
 
             # Create a real directory
             legacy_dir.mkdir(parents=True, exist_ok=True)
-            # Create per-file symlinks inside it
-            for nc_file in all_nc_files:
+
+            # Filter files by obs-type (e.g., *sst_*.nc)
+            pattern = f"*{d}_*.nc"
+            matching_files = comout.glob(pattern)
+
+            # Create per-file symlinks
+            for nc_file in matching_files:
                 link_path = legacy_dir / nc_file.name
                 try:
                     link_path.symlink_to(nc_file)

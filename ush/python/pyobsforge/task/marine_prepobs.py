@@ -307,9 +307,6 @@ class MarineObsPrep(Task):
         legacy_dirs = ["sst", "adt", "icec", "sss", "insitu"]
         comout_path = pathlib.Path(comout)
 
-        # Gather all .nc files in the merged ocean directory
-        all_nc_files = list(comout_path.glob("*.nc"))
-
         for d in legacy_dirs:
             legacy_dir = comout_path / d
 
@@ -320,11 +317,14 @@ class MarineObsPrep(Task):
                 except IsADirectoryError:
                     shutil.rmtree(legacy_dir)
 
-            # Create a real directory
+            # Create real directory
             legacy_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create per-file symlinks inside it
-            for nc_file in all_nc_files:
+            # Filter files by obs-type
+            pattern = f"*{d}_*.nc"
+            matching_files = comout_path.glob(pattern)
+
+            for nc_file in matching_files:
                 link_path = legacy_dir / nc_file.name
                 try:
                     link_path.symlink_to(nc_file)
