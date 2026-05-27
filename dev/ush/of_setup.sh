@@ -8,7 +8,7 @@
 # This script should be SOURCED to properly setup the environment.
 #
 
-HOMEobsforge="$(cd "$(dirname  "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd )"
+HOMEobsforge="$(cd "$(dirname  "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd )"
 source "${HOMEobsforge}/ush/detect_machine.sh"
 source "${HOMEobsforge}/ush/module-setup.sh"
 module use "${HOMEobsforge}/modulefiles"
