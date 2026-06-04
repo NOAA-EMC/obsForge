@@ -19,6 +19,7 @@ from wxflow import (
 )
 from pyobsforge.task.sfcshp import SfcShp
 import netCDF4
+import shutil
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -41,7 +42,7 @@ class MarineBufrObsPrep(Task):
 
         local_dict = AttrDict(
             {
-                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean/insitu",
+                'COMIN_OBSPROC': f"{self.task_config.COMROOT}/{self.task_config.PSLOT}/{RUN}.{yyyymmdd}/{cycstr}/ocean",
                 'window_begin': to_isotime(_window_begin),
                 'window_end': to_isotime(_window_end),
                 'OCNOBS2IODAEXEC': OCNOBS2IODAEXEC,
@@ -228,7 +229,10 @@ class MarineBufrObsPrep(Task):
                 logger.info(f"ioda_filename: {ioda_filename}")
                 source_ioda_filename = path.join(self.task_config.DATA, ioda_filename)
                 if path.exists(source_ioda_filename):
-                    destination_ioda_filename = path.join(self.task_config.COMIN_OBSPROC, concat_config['save file'])
+                    destination_ioda_filename = path.join(
+                        self.task_config.COMIN_OBSPROC,
+                        concat_config['save file']
+                    )
                     # Only append if source_ioda_filename is a valid NetCDF4 file
                     try:
                         with netCDF4.Dataset(source_ioda_filename, 'r'):
@@ -236,9 +240,49 @@ class MarineBufrObsPrep(Task):
                     except Exception:
                         logger.warning(f"Skipping invalid file: {source_ioda_filename}")
 
+        # -------------------------------------------------------------
+        # FIX: Ensure COMIN_OBSPROC exists BEFORE copying
+        # -------------------------------------------------------------
+        FileHandler({'mkdir': [self.task_config.COMIN_OBSPROC]}).sync()
+
+        # Now perform the copy
         FileHandler({'copy_opt': ioda_files_to_copy}).sync()
 
         # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(path.join(self.task_config.COMIN_OBSPROC,
-                                            f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"))
+        ready_file = pathlib.Path(path.join(
+            self.task_config.COMIN_OBSPROC,
+            f"{self.task_config['PREFIX']}obsforge_marine_bufr_status.log"
+        ))
         ready_file.touch()
+
+        # -------------------------------------------------------------
+        # Create legacy ocean subdirectory structure without cycles
+        # -------------------------------------------------------------
+        comout = pathlib.Path(self.task_config.COMIN_OBSPROC)
+        legacy_dirs = ["insitu", "sst", "sss", "adt", "icec"]
+
+        for d in legacy_dirs:
+            legacy_dir = comout / d
+
+            # Remove existing directory or symlink
+            if legacy_dir.exists() or legacy_dir.is_symlink():
+                try:
+                    legacy_dir.unlink()
+                except IsADirectoryError:
+                    shutil.rmtree(legacy_dir)
+
+            # Create a real directory
+            legacy_dir.mkdir(parents=True, exist_ok=True)
+
+            # Filter files by obs-type (e.g., *sst_*.nc)
+            pattern = f"*{d}_*.nc"
+            matching_files = comout.glob(pattern)
+
+            # Create per-file symlinks
+            for nc_file in matching_files:
+                link_path = legacy_dir / nc_file.name
+                try:
+                    link_path.symlink_to(nc_file)
+                    logger.info(f"Created file symlink: {link_path} -> {nc_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to create file symlink {link_path}: {e}")

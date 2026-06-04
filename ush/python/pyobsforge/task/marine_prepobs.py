@@ -10,6 +10,7 @@ from datetime import timedelta
 import glob
 from os.path import basename
 import pathlib
+import shutil
 
 logger = getLogger(__name__.split('.')[-1])
 
@@ -247,8 +248,12 @@ class MarineObsPrep(Task):
     @logit(logger)
     def finalize(self) -> None:
         """
+        Finalize marine obsForge processing:
+          - Ensure COMOUT exists
+          - Copy IODA files
+          - Create ready-file flag
+          - Create legacy directories with per-file symlinks (no directory cycles)
         """
-        # Copy the processed ioda files to the destination directory
         logger.info("Copying ioda files to destination COMROOT directory")
         yyyymmdd = self.task_config['PDY'].strftime('%Y%m%d')
 
@@ -258,28 +263,71 @@ class MarineObsPrep(Task):
                       f"{self.task_config['cyc']:02d}",
                       'ocean')
 
-        # Loop through the observation types
-        obs_types = ['sst', 'adt', 'icec', 'sss']
-        src_dst_obs_list = []  # list of [src_file, dst_file]
-        for obs_type in obs_types:
-            # Create the destination directory
-            comout_tmp = join(comout, obs_type)
-            FileHandler({'mkdir': [comout_tmp]}).sync()
+        # ----------------------------------------------------------------------
+        # Ensure comout exists BEFORE any copy operations
+        # ----------------------------------------------------------------------
+        FileHandler({'mkdir': [comout]}).sync()
 
-            # Glob the ioda files
-            ioda_files = glob.glob(join(self.task_config['DATA'],
-                                        f"{self.task_config['PREFIX']}*{obs_type}_*.nc"))
+        # ----------------------------------------------------------------------
+        # Build list of IODA files to copy
+        # ----------------------------------------------------------------------
+        obs_types = ['sst', 'adt', 'icec', 'sss']
+        src_dst_obs_list = []
+
+        for obs_type in obs_types:
+            ioda_files = glob.glob(
+                join(
+                    self.task_config['DATA'],
+                    f"{self.task_config['PREFIX']}*{obs_type}_*.nc"
+                )
+            )
             for ioda_file in ioda_files:
                 logger.info(f"ioda_file: {ioda_file}")
                 src_file = ioda_file
-                dst_file = join(comout_tmp, basename(ioda_file))
+                dst_file = join(comout, basename(ioda_file))
                 src_dst_obs_list.append([src_file, dst_file])
 
-        logger.info("Copying ioda files to destination COMROOT directory")
         logger.info(f"src_dst_obs_list: {src_dst_obs_list}")
 
+        # Copy IODA files
         FileHandler({'copy': src_dst_obs_list}).sync()
 
-        # create an empty file to tell external processes the obs are ready
-        ready_file = pathlib.Path(join(comout, f"{self.task_config['PREFIX']}obsforge_marine_status.log"))
+        # ----------------------------------------------------------------------
+        # Create ready-file flag
+        # ----------------------------------------------------------------------
+        ready_file = pathlib.Path(join(
+            comout,
+            f"{self.task_config['PREFIX']}obsforge_marine_status.log"
+        ))
         ready_file.touch()
+
+        # ----------------------------------------------------------------------
+        # Create legacy subdirectories WITHOUT directory cycles
+        # ----------------------------------------------------------------------
+        legacy_dirs = ["sst", "adt", "icec", "sss", "insitu"]
+        comout_path = pathlib.Path(comout)
+
+        for d in legacy_dirs:
+            legacy_dir = comout_path / d
+
+            # Remove existing directory or symlink
+            if legacy_dir.exists() or legacy_dir.is_symlink():
+                try:
+                    legacy_dir.unlink()
+                except IsADirectoryError:
+                    shutil.rmtree(legacy_dir)
+
+            # Create real directory
+            legacy_dir.mkdir(parents=True, exist_ok=True)
+
+            # Filter files by obs-type
+            pattern = f"*{d}_*.nc"
+            matching_files = comout_path.glob(pattern)
+
+            for nc_file in matching_files:
+                link_path = legacy_dir / nc_file.name
+                try:
+                    link_path.symlink_to(nc_file)
+                    logger.info(f"Created file symlink: {link_path} -> {nc_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to create file symlink {link_path}: {e}")
