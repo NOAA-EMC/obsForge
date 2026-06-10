@@ -144,7 +144,7 @@ pytest ush/python/pyobsforge/tests/ --disable-warnings -v
 cd dev/ush
 source of_setup.sh
 cd ../../ush
-setup_xml.py --config ../parm/config.yaml  --template ../parm/obsforge_rocoto_template.xml.j2 --output obsforge.xml
+./setup_xml.py --config ../parm/config.yaml  --template ../parm/obsforge_rocoto_template.xml.j2 --output obsforge.xml
 rocotorun -d obsforge.db -w obsforge.xml
 ```
 
