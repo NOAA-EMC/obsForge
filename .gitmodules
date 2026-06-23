@@ -19,8 +19,8 @@
 	url = https://github.com/JCSDA/jedi-cmake/
 [submodule "sorc/spoc"]
 	path = sorc/spoc
-	url = https://github.com/NOAA-EMC/spoc
-	branch = develop
+	url = https://github.com/ClaraDraper-NOAA/spoc
+	branch = feature/rename2m
 [submodule "sorc/wxflow"]
 	path = sorc/wxflow
 	url = https://github.com/noaa-emc/wxflow
