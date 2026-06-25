@@ -68,6 +68,34 @@ class AtmosBufrObsPrep(Task):
         for ob_name, ob_data in self.task_config.observations.items():
             logger.debug(f"Processing observation: {ob_name}: {ob_data}")
 
+            # Check BUFR files (missing or empty) before copying to RUNDIRS
+            input_files = ob_data.get('input_file', [])
+            if isinstance(input_files, str):
+                input_files = [input_files]
+
+            skip_this_observation = False
+            for f in input_files:
+                src = os.path.join(self.task_config.COMIN_OBSPROC,
+                                   f"{self.task_config.OPREFIX}{f}")
+
+                if not os.path.exists(src):
+                    logger.warning(f"[{ob_name}] BUFR file missing: {src}. Skipping observation.")
+                    skip_this_observation = True
+                    break
+
+                try:
+                    if os.path.getsize(src) == 0:
+                        logger.warning(f"[{ob_name}] BUFR file is empty: {src}. Skipping observation.")
+                        skip_this_observation = True
+                        break
+                except Exception as e:
+                    logger.warning(f"[{ob_name}] Failed to stat BUFR file {src}: {e}. Skipping observation.")
+                    skip_this_observation = True
+                    break
+
+            if skip_this_observation:
+                continue
+
             # Normalize fields to lists
             input_files = ob_data.get('input_file', [])
             mapping_files = ob_data.get('mapping_file', [])
