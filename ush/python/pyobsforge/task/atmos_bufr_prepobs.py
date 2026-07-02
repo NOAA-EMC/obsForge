@@ -35,16 +35,31 @@ class AtmosBufrObsPrep(Task):
         _window_begin = add_to_datetime(self.task_config.current_cycle, -to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
         _window_end = add_to_datetime(self.task_config.current_cycle, +to_timedelta(f"{self.task_config['assim_freq']}H") / 2)
 
+        # Determine COMIN_OBSPROC structure based on RUN
+        run_mod = self.task_config.RUN.lower()
+
+        if run_mod in ("gfs", "gdas"):
+            # Global systems use cycle + component directory
+            comin_obsproc = os.path.join(
+                self.task_config.OBSPROC_COMROOT,
+                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                f"{self.task_config.cyc:02d}",
+                "atmos",
+            )
+        else:
+            # Regional systems use simpler directory
+            comin_obsproc = os.path.join(
+                self.task_config.OBSPROC_COMROOT,
+                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+            )
+
         local_dict = AttrDict(
             {
                 'window_begin': _window_begin,
                 'window_end': _window_end,
                 'OPREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
                 'APREFIX': f"{self.task_config.RUN}.t{self.task_config.cyc:02d}z.",
-                'COMIN_OBSPROC': os.path.join(self.task_config.OBSPROC_COMROOT,
-                                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                                              f"{self.task_config.cyc:02d}",
-                                              'atmos'),
+                'COMIN_OBSPROC': comin_obsproc,
             }
         )
 
@@ -258,11 +273,28 @@ class AtmosBufrObsPrep(Task):
         - Copying output IODA files to COMOUT
         - Creating a "ready" file in COMOUT to signal that the observations are ready
         """
-        comout = os.path.join(self.task_config['COMROOT'],
-                              self.task_config['PSLOT'],
-                              f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
-                              f"{self.task_config.cyc:02d}",
-                              'atmos')
+        # Determine COMOUT structure based on RUN
+        run_mod = self.task_config.RUN.lower()
+
+        if run_mod in ("gfs", "gdas"):
+            # Global systems: include cycle + atmos directory
+            comout = os.path.join(
+                self.task_config['COMROOT'],
+                self.task_config['PSLOT'],
+                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                f"{self.task_config.cyc:02d}",
+                "atmos",
+            )
+        else:
+            # Regional systems: simpler directory, no atmos subdir
+            comout = os.path.join(
+                self.task_config['COMROOT'],
+                self.task_config['PSLOT'],
+                f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
+                f"{self.task_config.cyc:02d}",
+            )
+
+
         # get a list of files to copy out
         output_files = glob.glob(os.path.join(self.task_config.DATA, "*.nc"))
         copy_list = []
