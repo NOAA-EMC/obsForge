@@ -11,7 +11,7 @@ obsforge:
   ACCOUNT: GFS-DEV
   QUEUE: dev
   PARTITION: dev 
-  KEEPDATA: YES
+  KEEPDATA: NO
   assim_freq: 6
   ocean_basin: "/lfs/h2/emc/da/noscrub/common/validation/RECCAP2_region_masks_all_v20221025.nc"
   MPI_LAUNCHER: mpiexec

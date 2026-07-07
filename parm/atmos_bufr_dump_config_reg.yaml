@@ -187,29 +187,20 @@ atmosbufrdump:
         - prepbufr_adpupa.py
         - prepbufr_obs_builder.py
       preserve_rel_path: True
-    prepbufr_sfcshp:
-      input_file: prepbufr.tm00
-      output_file: prepbufr_sfcshp.nc
-      mapping_file: prepbufr_sfcshp.yaml
-      script_file: 
-        - prepbufr_sfcshp.py
-        - prepbufr_obs_builder.py
-      preserve_rel_path: True
 
+# for regional      
     retrieval_lghtng:
       input_file: lghtng.tm00.bufr_d
-      output_file: lghtng_vaisala.nc
+      output_file: retrieval_lghtng_vaisala.nc
       mapping_file: retrieval_lghtng_vaisala.yaml
       script_file: retrieval_lghtng_vaisala.py
-
     retrieval_lgycld:
       input_file: lgycld.tm00.bufr_d
-      output_file: lgycld.nc
+      output_file: retrieval_lgycld.nc
       mapping_file: retrieval_lgycld.yaml
       script_file: retrieval_lgycld.py
-
     retrieval_efclam:
       input_file: efclam.tm00.bufr_d
-      output_file: efclam.nc
+      output_file: retrieval_efclam.nc
       mapping_file: retrieval_efclam.yaml
       script_file: retrieval_efclam.py       
