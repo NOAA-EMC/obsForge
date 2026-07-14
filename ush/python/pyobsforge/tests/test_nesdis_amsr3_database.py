@@ -92,7 +92,7 @@ def test_parse_valid_filename(db):
 
     assert parsed is not None
     assert parsed[0] == fname
-    assert parsed[1] == datetime(2026, 6, 25, 2, 55, 07)
+    assert parsed[1] == datetime(2026, 6, 25, 2, 55, 7)
     assert parsed[2] == creation_time
     assert parsed[3] == "AMSR3"
     assert parsed[4] == "ggw"
