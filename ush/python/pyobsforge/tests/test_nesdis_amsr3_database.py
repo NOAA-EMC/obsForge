@@ -127,14 +127,14 @@ def test_get_valid_files(db):
                                            dst_dir=dst_dir,
                                            instrument="AMSR3",
                                            satellite="ggw",
-                                           obs_type="icec_amsr2_north")
+                                           obs_type="icec_amsr3_north")
 
     valid_files_south = db.get_valid_files(window_begin=window_begin,
                                            window_end=window_end,
                                            dst_dir=dst_dir,
                                            instrument="AMSR3",
                                            satellite="ggw",
-                                           obs_type="icec_amsr2_south")
+                                           obs_type="icec_amsr3_south")
 
     valid_files = valid_files_north + valid_files_south
 
@@ -162,7 +162,7 @@ def test_get_valid_files_receipt(db):
                                            dst_dir=dst_dir,
                                            instrument="AMSR3",
                                            satellite="ggw",
-                                           obs_type="icec_amsr2_north",
+                                           obs_type="icec_amsr3_north",
                                            check_receipt="gfs")
 
     valid_files_south = db.get_valid_files(window_begin=window_begin,
@@ -170,7 +170,7 @@ def test_get_valid_files_receipt(db):
                                            dst_dir=dst_dir,
                                            instrument="AMSR3",
                                            satellite="ggw",
-                                           obs_type="icec_amsr2_south",
+                                           obs_type="icec_amsr3_south",
                                            check_receipt="gfs")
 
     valid_files = valid_files_north + valid_files_south
