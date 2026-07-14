@@ -66,7 +66,7 @@ def temp_obs_dir():
 def db(temp_obs_dir):
     """Initialize test database."""
     db_path = os.path.join(temp_obs_dir, "nesdis_amsr3_test.db")
-    database = NesdisAmsr2Database(
+    database = NesdisAmsr3Database(
         db_name=db_path,
         dcom_dir=temp_obs_dir,
         obs_dir="seaice/pda"
