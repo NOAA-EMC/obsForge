@@ -85,14 +85,14 @@ def test_create_database(db):
 
 def test_parse_valid_filename(db):
     print(glob.glob(os.path.join(db.base_dir, "*")))
-    fname = "AMSR3-SEAICE-NH_v1r0_ggw_s202606250117246_e202606260327311_c202606260345590.nc"
+    fname = "AMSR3-SEAICE-NH_v1r0_ggw_s202606250255070_e202606260504285_c202606260524550.nc"
     fname = glob.glob(os.path.join(db.base_dir, fname))[0]
     parsed = db.parse_filename(fname)
     creation_time = datetime.fromtimestamp(os.path.getctime(fname))
 
     assert parsed is not None
     assert parsed[0] == fname
-    assert parsed[1] == datetime(2026, 6, 25, 1, 17, 24)
+    assert parsed[1] == datetime(2026, 6, 25, 2, 55, 07)
     assert parsed[2] == creation_time
     assert parsed[3] == "AMSR3"
     assert parsed[4] == "ggw"
