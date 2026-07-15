@@ -1,11 +1,11 @@
 obsforge:
   PSLOT: obsforge
-  HOMEobsforge: /lfs/h2/emc/da/noscrub/Hyundeok.Choi/obsForge_reg 
+  HOMEobsforge: /lfs/h2/emc/obsproc/noscrub/Hyundeok.Choi/obsForge_regional 
   SDATE: 202606010000
   EDATE: 202612311800
-  COMROOT: /lfs/h2/emc/da/noscrub/Hyundeok.Choi/obsForge_reg/COMROOT
+  COMROOT: /lfs/h2/emc/obsproc/noscrub/Hyundeok.Choi/obsForge_regional/COMROOT
   DCOMROOT: /lfs/h1/ops/prod/dcom/
-  DATAROOT: /lfs/h2/emc/da/noscrub/Hyundeok.Choi/obsForge_reg/RUNDIRS 
+  DATAROOT: /lfs/h2/emc/obsproc/noscrub/Hyundeok.Choi/obsForge_regional/RUNDIRS 
   OBSPROC_COMROOT: /lfs/h1/ops/prod/com/obsproc/v1.2
   SCHEDULER: pbspro
   ACCOUNT: GFS-DEV
