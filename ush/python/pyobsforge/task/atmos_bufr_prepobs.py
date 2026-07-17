@@ -294,7 +294,6 @@ class AtmosBufrObsPrep(Task):
                 f"{self.task_config.cyc:02d}",
             )
 
-
         # get a list of files to copy out
         output_files = glob.glob(os.path.join(self.task_config.DATA, "*.nc"))
         copy_list = []
