@@ -82,27 +82,6 @@ atmosbufrdump:
         - mhs_metop-c_v2.ACCoeff.nc
         - mhs_n18.ACCoeff.nc
         - mhs_n19.ACCoeff.nc
-#    retrieval_ozone_omi:
-#      input_file: omi.tm00.bufr_d
-#      output_file: retrieval_ozone_omi_{splits/satId}.nc
-#      mapping_file: retrieval_ozone_omi.yaml
-#      script_file:
-#        - retrieval_ozone_omi.py
-#        - retrieval_ozone_obs_builder.py
-#    retrieval_ozone_ompsnp:
-#      input_file: ompsn8.tm00.bufr_d
-#      output_file: retrieval_ozone_ompsnp_{splits/satId}.nc
-#      mapping_file: retrieval_ozone_ompsnp.yaml
-#      script_file:
-#        - retrieval_ozone_ompsnp.py
-#        - retrieval_ozone_obs_builder.py
-#    retrieval_ozone_ompstc:
-#      input_file: ompst8.tm00.bufr_d
-#      output_file: retrieval_ozone_ompstc_{splits/satId}.nc
-#      mapping_file: retrieval_ozone_ompstc.yaml
-#      script_file:
-#        - retrieval_ozone_ompstc.py
-#        - retrieval_ozone_obs_builder.py
     retrieval_amv_abi:
       input_file: satwnd.tm00.bufr_d
       output_file: retrieval_amv_abi_{splits/satId}.nc
