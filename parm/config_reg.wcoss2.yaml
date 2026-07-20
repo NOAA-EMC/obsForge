@@ -1,5 +1,6 @@
 obsforge:
   PSLOT: obsforge
+  #HOMEobsforge: COMROOT/obsforge/{obsforge_ver}
   HOMEobsforge: /lfs/h2/emc/obsproc/noscrub/Hyundeok.Choi/obsForge_regional 
   SDATE: 202606010000
   EDATE: 202612311800

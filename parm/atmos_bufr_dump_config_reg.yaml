@@ -167,7 +167,7 @@ atmosbufrdump:
         - prepbufr_obs_builder.py
       preserve_rel_path: True
 
-# for regional      
+# only for regional      
     retrieval_lghtng:
       input_file: lghtng.tm00.bufr_d
       output_file: retrieval_lghtng_vaisala.nc
