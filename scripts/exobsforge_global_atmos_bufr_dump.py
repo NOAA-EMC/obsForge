@@ -78,7 +78,16 @@ if __name__ == '__main__':
         if key not in config_env.keys():
             obsforge_dict[key] = value
 
-    task_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', 'atmos_bufr_dump_config.yaml'), config_env)
+    # Determine RUN type (global vs regional)
+    run_mod = config_env["RUN"].lower()
+
+    # Select correct config file
+    if run_mod in ("gfs", "gdas"):
+        config_file = "atmos_bufr_dump_config.yaml"
+    else:
+        config_file = "atmos_bufr_dump_config_reg.yaml"
+
+    task_yaml = parse_j2yaml(os.path.join(config_env['HOMEobsforge'], 'parm', config_file), config_env)
 
     # Merge defaults for the 'atmosbufrdump' section
     task_yaml = merge_observation_defaults(task_yaml, 'atmosbufrdump')

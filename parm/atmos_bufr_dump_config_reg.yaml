@@ -1,0 +1,185 @@
+atmosbufrdump:
+  observations:
+    # an example of default observation type
+    # NOTE: only special cases are needed to fill in
+    # obstype:
+    #   method: script2netcdf
+    #   input_file: obstype
+    #   input: [optional input settings]
+    #   output_file: obstype.nc
+    #   mapping_file: obstype.yaml
+    #   script_file: obstype.py
+    #   mpi: [optional mpi settings]
+    #   aux_files: [optional auxiliary files]  
+    gnssro:
+      input_file: gpsro.tm00.bufr_d
+      output_file: gnssro_{splits/satId}.nc
+      mapping_file: gnssro.yaml
+      script_file: 
+        - gnssro.py
+        - gnssro_obs_builder.py
+    radiance_atms: 
+      input_file: atms.tm00.bufr_d
+      output_file: radiance_atms_{splits/satId}.nc
+      mapping_file: radiance_atms.yaml
+      script_file: radiance_atms.py
+      aux_file:
+        - atms_beamwidth.txt
+    radiance_amsua:
+      input_file:
+        - 1bamua.tm00.bufr_d
+        - esamua.tm00.bufr_d
+      input:
+        1b: 0
+        es: 1
+      mapping_file:
+        - radiance_amsua_1bamua.yaml
+        - radiance_amsua_esamua.yaml
+      output_file: radiance_amsua_{splits/satId}.nc
+      script_file:
+        - radiance_amsua.py
+        - radiance_atovs_obs_builder.py
+      aux_file:
+        - amsua_metop-a.ACCoeff.nc
+        - amsua_metop-b.ACCoeff.nc
+        - amsua_metop-c.ACCoeff.nc
+        - amsua_n15.ACCoeff.nc
+        - amsua_n16.ACCoeff.nc
+        - amsua_n17.ACCoeff.nc
+        - amsua_n18.ACCoeff.nc
+        - amsua_n19.ACCoeff.nc
+    radiance_cris-fsr:
+      input_file: crisf4.tm00.bufr_d
+      output_file: radiance_cris_fsr_{splits/satId}.nc
+      mapping_file: radiance_cris-fsr.yaml
+      script_file: radiance_cris-fsr.py
+      mpi: 8
+    radiance_iasi:
+      input_file: mtiasi.tm00.bufr_d
+      output_file: radiance_iasi_{splits/satId}.nc
+      mapping_file: radiance_iasi.yaml
+      script_file: radiance_iasi.py
+      mpi: 8
+    radiance_mhs:
+      input_file:
+        - 1bmhs.tm00.bufr_d
+        - esmhs.tm00.bufr_d
+      input:
+        1b: 0
+        es: 1
+      output_file: radiance_mhs_{splits/satId}.nc
+      mapping_file:
+        - radiance_mhs_1bmhs.yaml
+        - radiance_mhs_esmhs.yaml
+      script_file:
+        - radiance_mhs.py
+        - radiance_atovs_obs_builder.py
+      aux_file:
+        - mhs_metop-a.ACCoeff.nc
+        - mhs_metop-b.ACCoeff.nc
+        - mhs_metop-c.ACCoeff.nc
+        - mhs_metop-c.SpcCoeff.nc
+        - mhs_metop-c_v2.ACCoeff.nc
+        - mhs_n18.ACCoeff.nc
+        - mhs_n19.ACCoeff.nc
+    retrieval_amv_abi:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_abi_{splits/satId}.nc
+      mapping_file: retrieval_amv_abi.yaml
+      script_file:
+        - retrieval_amv_abi.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_ahi:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_ahi_{splits/satId}.nc
+      mapping_file: retrieval_amv_ahi.yaml
+      script_file:
+        - retrieval_amv_ahi.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_avhrr:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_avhrr_{splits/satId}.nc
+      mapping_file: retrieval_amv_avhrr.yaml
+      script_file:
+        - retrieval_amv_avhrr.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_modis:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_modis_{splits/satId}.nc
+      mapping_file: retrieval_amv_modis.yaml
+      script_file:
+        - retrieval_amv_modis.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_seviri:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_seviri_{splits/satId}.nc
+      mapping_file: retrieval_amv_seviri.yaml
+      script_file:
+        - retrieval_amv_seviri.py
+        - retrieval_amv_obs_builder.py
+    retrieval_amv_viirs:
+      input_file: satwnd.tm00.bufr_d
+      output_file: retrieval_amv_viirs_{splits/satId}.nc
+      mapping_file: retrieval_amv_viirs.yaml
+      script_file:
+        - retrieval_amv_viirs.py
+        - retrieval_amv_obs_builder.py
+    retrieval_osw_ascat:
+      input_file: ascatw.tm00.bufr_d
+      output_file: retrieval_osw_ascat_{splits/satId}.nc
+      mapping_file: retrieval_osw_ascat.yaml
+      script_file: retrieval_osw_ascat.py
+    ssmis: 
+      input_file: ssmisu.tm00.bufr_d
+      output_file: radiance_ssmis_{splits/satId}.nc
+      mapping_file: radiance_ssmis.yaml
+      script_file: radiance_ssmis.py
+    prepbufr_adpsfc:
+      input_file: prepbufr.tm00
+      output_file: prepbufr_adpsfc.nc
+      mapping_file: prepbufr_adpsfc.yaml
+      script_file: 
+        - prepbufr_adpsfc.py
+        - prepbufr_obs_builder.py
+      preserve_rel_path: True
+    prepbufr_acft_profiles:
+      input_file: prepbufr.acft_profiles.tm00
+      output_file: prepbufr_aircraft.nc
+      mapping_file: prepbufr_aircraft.yaml
+      script_file: 
+        - prepbufr_aircraft.py
+        - prepbufr_obs_builder.py
+      preserve_rel_path: True
+    prepbufr_sfcshp:
+      input_file: prepbufr.tm00
+      output_file: prepbufr_sfcshp.nc
+      mapping_file: prepbufr_sfcshp.yaml
+      script_file: 
+        - prepbufr_sfcshp.py
+        - prepbufr_obs_builder.py
+      preserve_rel_path: True
+    prepbufr_adpupa:
+      input_file: prepbufr.tm00
+      output_file: prepbufr_adpupa.nc
+      mapping_file: prepbufr_adpupa.yaml
+      script_file: 
+        - prepbufr_adpupa.py
+        - prepbufr_obs_builder.py
+      preserve_rel_path: True
+
+# only for regional      
+    retrieval_lghtng:
+      input_file: lghtng.tm00.bufr_d
+      output_file: retrieval_lghtng_vaisala.nc
+      mapping_file: retrieval_lghtng_vaisala.yaml
+      script_file: retrieval_lghtng_vaisala.py
+    retrieval_lgycld:
+      input_file: lgycld.tm00.bufr_d
+      output_file: retrieval_lgycld.nc
+      mapping_file: retrieval_lgycld.yaml
+      script_file: retrieval_lgycld.py
+    retrieval_efclam:
+      input_file: efclam.tm00.bufr_d
+      output_file: retrieval_efclam.nc
+      mapping_file: retrieval_efclam.yaml
+      script_file: retrieval_efclam.py       
