@@ -1,0 +1,33 @@
+website for monitoring system on hpc; 
+
+the website must be static;
+the website does not generate data
+all of the displayed data is taken from its data cache.
+the data cache contains data products generated during the past 4 cycles,
+
+for each cycle in the cache
+    data products contain info about
+        the current cycle
+        historical info over previous 7 days 
+        historical info over previous entire history
+
+
+the website reflects the state of the db
+
+the web site is organized with run type switch at the top
+we basically want to have a website per run type
+
+for each run type we display 
+	all tasks for this run type (last cycle)
+	for each task its task info (cycle timing graph over past 7 days and all history)
+inventory info (an overview description of all cycles in the db)
+obs categories processed by all the tasks in the run type (last cycle)
+for each category we display 
+	aggregate info for all its obs spaces (last cycle)
+	all its obs spaces
+		for each obs space we display
+			general info
+			graph with history of the number of obs
+			graph with the history of obs content (mean, std dev)
+			plots for the past 4 cycles of the main variable(s) in the obs space
+

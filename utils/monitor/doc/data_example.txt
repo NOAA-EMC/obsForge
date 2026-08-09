@@ -1,0 +1,40 @@
+Obsforge data
+-------------
+example:
+
+ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime
+total 104
+ 4 gcdas.20260201/   4 gcdas.20260207/   4 gdas.20260206/   4 gfs.20260205/
+ 4 gcdas.20260202/   4 gdas.20260201/    4 gdas.20260207/   4 gfs.20260206/
+ 4 gcdas.20260203/   4 gdas.20260202/    4 gfs.20260201/    4 gfs.20260207/
+ 4 gcdas.20260204/   4 gdas.20260203/    4 gfs.20260202/   20 logs/
+ 4 gcdas.20260205/   4 gdas.20260204/    4 gfs.20260203/
+ 4 gcdas.20260206/   4 gdas.20260205/    4 gfs.20260204/
+
+ ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/logs/
+total 1404
+  4 2025111718/       4 2025112706/       4 2025120618/       4 2025121606/
+  4 2025111718.log    4 2025112706.log    4 2025120618.log  160 2025121606.log
+  4 2025111800/       4 2025112712/       4 2025120700/       4 2025121612/
+  4 2025111800.log    4 2025112712.log    4 2025120700.log   24 2025121612.log
+....
+
+ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/logs/2025121600/
+total 4828
+ 388 gcdas_aod_dump_prep.log          212 gfs_marine_bufr_dump_prep.log
+ 212 gdas_marine_bufr_dump_prep.log  1856 gfs_marine_dump_prep.log
+2160 gdas_marine_dump_prep.log
+
+ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gfs.20260204/
+total 16
+4 00/  4 06/  4 12/  4 18/
+[clogin02 ~/ns/monitoring/obsForge/utils/monitor/doc]$ ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gfs.20260204/06
+total 4
+4 ocean/
+[clogin02 ~/ns/monitoring/obsForge/utils/monitor/doc]$ ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gfs.20260204/06/ocean/
+total 20
+4 adt/  0 gfs.t06z.obsforge_marine_status.log  4 icec/  4 insitu/  4 sss/  4 sst/
+[clogin02 ~/ns/monitoring/obsForge/utils/monitor/doc]$ ls /lfs/h2/emc/da/noscrub/emc.da/obsForge/COMROOT/realtime/gfs.20260204/06/ocean/adt/
+total 9576
+2676 gfs.t06z.rads_adt_6a.nc  2608 gfs.t06z.rads_adt_j3.nc  1964 gfs.t06z.rads_adt_sw.nc
+1352 gfs.t06z.rads_adt_c2.nc   976 gfs.t06z.rads_adt_sa.nc
