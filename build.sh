@@ -65,6 +65,7 @@ done
 case ${BUILD_TARGET} in
   ursa | hera | orion | hercules | wcoss2 | noaacloud | gaeac5 | gaeac6 )
     echo "Building obsForge on $BUILD_TARGET"
+    [[ -f $dir_root/versions/build.${BUILD_TARGET}.ver ]] && source $dir_root/versions/build.${BUILD_TARGET}.ver
     source $dir_root/ush/module-setup.sh
     module use $dir_root/modulefiles
     module load obsforge/$BUILD_TARGET.$COMPILER
@@ -81,11 +82,27 @@ esac
 
 CMAKE_OPTS+=" -DMACHINE=$BUILD_TARGET"
 
+# Default to skipping test-data downloads unless explicitly overridden.
+if [[ " ${CMAKE_OPTS} " != *" -DSKIP_DOWNLOAD_TEST_DATA="* ]]; then
+  CMAKE_OPTS+=" -DSKIP_DOWNLOAD_TEST_DATA=ON"
+fi
+
+# Default to disabling tests (including ioda tests) on wcoss2 unless explicitly overridden.
+if [[ $BUILD_TARGET == 'wcoss2' ]] && [[ " ${CMAKE_OPTS} " != *" -DBUILD_TESTING="* ]]; then
+  CMAKE_OPTS+=" -DBUILD_TESTING=OFF"
+fi
+
+# Default to C++17 (required by ioda code using std::exclusive_scan) unless overridden.
+if [[ " ${CMAKE_OPTS} " != *" -DCMAKE_CXX_STANDARD="* ]]; then
+  CMAKE_OPTS+=" -DCMAKE_CXX_STANDARD=17"
+fi
+
 # TODO: Remove LD_LIBRARY_PATH line as soon as permanent solution is available
 if [[ $BUILD_TARGET == 'wcoss2' ]]; then
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/8.1.29/ofi/intel/2022.1/lib"
+  mpich_ver_for_env="${cray_mpich_ver:-8.1.19}"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/cray/pe/mpich/${mpich_ver_for_env}/ofi/intel/2022.1/lib"
   export LMOD_MPI_NAME=cray-mpich
-  export LMOD_MPI_VERSION=8.1.29-xhbciau
+  export LMOD_MPI_VERSION="${mpich_ver_for_env}"
 fi
 
 BUILD_DIR=${BUILD_DIR:-$dir_root/build}

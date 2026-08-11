@@ -1,0 +1,61 @@
+#PBS -S /bin/bash
+#PBS -N jobsforge_gfs_marine_bufr_dump_%CYC%
+#PBS -j oe
+#PBS -q %QUEUE%
+#PBS -A GFS-DEV
+#PBS -l walltime=00:10:00
+#PBS -l select=1:mpiprocs=1:ompthreads=1:ncpus=1
+#PBS -l place=vscatter:exclhost
+#PBS -l debug=true
+
+model=obsforge
+%include <head.h>
+%include <envir-p1.h>
+
+set -x
+
+export RUN=%JTYP%
+
+############################################################
+# Load modules
+############################################################
+module load prod_util/${prod_util_ver}
+module load intel/${intel_ver}
+module load craype/${craype_ver}
+module load cray-mpich/${cray_mpich_ver}
+module load cray-pals/${cray_pals_ver}
+
+module load hdf5-D/${hdf5D_ver}
+module load pnetcdf/${pnetcdfD_ver}
+module load netcdf-D/${netcdfD_ver}
+module load boost/${boost_ver}
+module load eigen/${eigen_ver}
+module load eckit/${eckit_ver}
+module load fckit/${fckit_ver}
+module load udunits/${udunits_ver}
+module load python/${python_ver}
+module load ve/gcafs/${ve_obsforge_ver} # TODO: change later
+
+module list
+
+#############################################################
+# environment settings
+#############################################################
+export cyc=%CYC%
+export cycle=t%CYC%z
+
+############################################################
+# CALL executable job script here
+############################################################
+${HOMEobsforge}/jobs/JOBSFORGE_GFS_MARINE_BUFR_DUMP
+
+if [ $? -ne 0 ]; then
+   ecflow_client --msg="***JOB ${ECF_NAME} ERROR RUNNING J-SCRIPT ***"
+   ecflow_client --abort
+   exit
+fi
+
+%include <tail.h>
+%manual
+
+%end

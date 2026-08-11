@@ -77,9 +77,8 @@ cd "${DATA}" || ( echo "FATAL [${BASH_SOURCE[0]}]: ${DATA} does not exist"; exit
 # Run setpdy and initialize PDY variables
 ##############################################
 export cycle="t${cyc}z"
-# TODO (Guillaume/Cory): Fails on Hercules if not commented out
-#setpdy.sh
-#source ./PDY
+setpdy.sh
+source ./PDY
 
 
 ##############################################
