@@ -52,32 +52,25 @@ namespace obsforge {
 
 
 
-    // Method to write out a IODA file (writter called in destructor)
+    // Method to write out a IODA file.
     void writeToIoda() {
+      if (inputFilenames_.empty()) {
+        writeEmptyIodaFile(outputFilename_);
+        return;
+      }
+
+      obsforge::preproc::iodavars::IodaVars iodaVarsAll = collectIodaVars();
+      if (comm_.rank() == 0) {
+        writeIodaFile(outputFilename_, &iodaVarsAll);
+      }
+    }
+
+   protected:
+    obsforge::preproc::iodavars::IodaVars collectIodaVars() {
       // Extract ioda variables from the provider's files
       int myrank  = comm_.rank();
       int nobs(0);
       int nchan(0);
-
-      // Handle empty input file list gracefully
-      // Some obs types (e.g. BATHY, RAMA) may have zero input files when concatenating
-      if (inputFilenames_.empty()) {
-       oops::Log::warning() << "writeToIoda: No input files found for "
-                             << outputFilename_
-                             << " — creating empty output file." << std::endl;
-        if (oops::mpi::world().rank() == 0) {
-          ioda::Group group =
-            ioda::Engines::HH::createFile(outputFilename_,
-                                         ioda::Engines::BackendCreateModes::Truncate_If_Exists);
-         ioda::NewDimensionScales_t newDims {
-            ioda::NewDimensionScale<int>("Location", 0)
-          };
-         ioda::ObsGroup ogrp = ioda::ObsGroup::generate(group, newDims);
-         oops::Log::info() << "writeToIoda: empty output file created: "
-                            << outputFilename_ << std::endl;
-        }
-        return;
-      }
 
       // Handle MPI PE count > input file count
       // Each PE processes at least one file, excess PEs get no files
@@ -85,30 +78,47 @@ namespace obsforge {
         oops::Log::warning() << "writeToIoda: More MPI tasks (" << comm_.size()
                              << ") than input files (" << inputFilenames_.size()
                              << ") for " << outputFilename_
-                             << " — excess PEs will be idle." << std::endl;
+                             << " - excess PEs will be idle." << std::endl;
       }
-
 
       // Read the provider's netcdf file
       obsforge::preproc::iodavars::IodaVars iodaVars;
 
       if (myrank < static_cast<int>(inputFilenames_.size())) {
-       iodaVars = providerToIodaVars(inputFilenames_[myrank]);
-       for (int i = myrank + comm_.size(); i < inputFilenames_.size(); i += comm_.size()) {
-        iodaVars.append(providerToIodaVars(inputFilenames_[i]));
-        oops::Log::info() << " appending: " << inputFilenames_[i] << std::endl;
-        oops::Log::info() << " obs count: " << iodaVars.location_ << std::endl;
-        oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
+        iodaVars = providerToIodaVars(inputFilenames_[myrank]);
+        for (int i = myrank + comm_.size(); i < inputFilenames_.size(); i += comm_.size()) {
+          iodaVars.append(providerToIodaVars(inputFilenames_[i]));
+          oops::Log::info() << " appending: " << inputFilenames_[i] << std::endl;
+          oops::Log::info() << " obs count: " << iodaVars.location_ << std::endl;
+          oops::Log::test() << "Reading: " << inputFilenames_ << std::endl;
         }
       }
 
       nobs = iodaVars.location_;
       nchan = iodaVars.channel_;
+      int nfMetadata = iodaVars.nfMetadata_;
+      int niMetadata = iodaVars.niMetadata_;
 
 
       // Get the total number of obs across pe's
       int nobsAll(0);
       comm_.allReduce(nobs, nobsAll, eckit::mpi::sum());
+      int nfMetadataAll(0);
+      comm_.allReduce(nfMetadata, nfMetadataAll, eckit::mpi::max());
+      int niMetadataAll(0);
+      comm_.allReduce(niMetadata, niMetadataAll, eckit::mpi::max());
+
+      if (iodaVars.nfMetadata_ != nfMetadataAll) {
+        iodaVars.nfMetadata_ = nfMetadataAll;
+        iodaVars.floatMetadata_.resize(iodaVars.location_, nfMetadataAll);
+        iodaVars.floatMetadata_.setZero();
+      }
+      if (iodaVars.niMetadata_ != niMetadataAll) {
+        iodaVars.niMetadata_ = niMetadataAll;
+        iodaVars.intMetadata_.resize(iodaVars.location_, niMetadataAll);
+        iodaVars.intMetadata_.setZero();
+      }
+
       obsforge::preproc::iodavars::IodaVars iodaVarsAll(nobsAll,
                                     nchan,
                                     iodaVars.floatMetadataName_,
@@ -122,132 +132,185 @@ namespace obsforge {
       gatherObs(iodaVars.obsError_, iodaVarsAll.obsError_);
       gatherObs(iodaVars.preQc_, iodaVarsAll.preQc_);
 
+      for (int count = 0; count < nfMetadataAll; count++) {
+        Eigen::ArrayXf metadataPe = iodaVars.floatMetadata_.col(count);
+        Eigen::ArrayXf metadataAll(iodaVarsAll.location_);
+        gatherObs(metadataPe, metadataAll);
+        if (comm_.rank() == 0) {
+          iodaVarsAll.floatMetadata_.col(count) = metadataAll;
+        }
+      }
+
+      for (int count = 0; count < niMetadataAll; count++) {
+        Eigen::ArrayXi metadataPe = iodaVars.intMetadata_.col(count);
+        Eigen::ArrayXi metadataAll(iodaVarsAll.location_);
+        gatherObs(metadataPe, metadataAll);
+        if (comm_.rank() == 0) {
+          iodaVarsAll.intMetadata_.col(count) = metadataAll;
+        }
+      }
+
+      int localHasOriginalDatetime = iodaVars.originalDatetime_.size() == 0 ? 0 : 1;
+      int hasOriginalDatetime(0);
+      comm_.allReduce(localHasOriginalDatetime, hasOriginalDatetime, eckit::mpi::max());
+      if (hasOriginalDatetime > 0) {
+        iodaVarsAll.originalDatetime_.resize(iodaVarsAll.location_);
+        gatherObs(iodaVars.originalDatetime_, iodaVarsAll.originalDatetime_);
+      }
+
+      if (comm_.rank() == 0) {
+        iodaVarsAll.referenceDate_ = iodaVars.referenceDate_;
+        iodaVarsAll.channelValues_ = iodaVars.channelValues_;
+        iodaVarsAll.strGlobalAttr_ = iodaVars.strGlobalAttr_;
+      }
+
+      return iodaVarsAll;
+    }
+
+    void writeEmptyIodaFile(const std::string & outputFilename) {
+      oops::Log::warning() << "writeToIoda: No input files found for "
+                           << outputFilename
+                           << " - creating empty output file." << std::endl;
+      if (comm_.rank() == 0) {
+        ioda::Group group =
+          ioda::Engines::HH::createFile(outputFilename,
+                                        ioda::Engines::BackendCreateModes::Truncate_If_Exists);
+        ioda::NewDimensionScales_t newDims {
+          ioda::NewDimensionScale<int>("Location", 0)
+        };
+        ioda::ObsGroup ogrp = ioda::ObsGroup::generate(group, newDims);
+        oops::Log::info() << "writeToIoda: empty output file created: "
+                          << outputFilename << std::endl;
+      }
+    }
+
+    void writeIodaFile(const std::string & outputFilename,
+                       obsforge::preproc::iodavars::IodaVars * iodaVars) {
+      if (comm_.rank() != 0) {
+        return;
+      }
+      ASSERT(iodaVars != nullptr);
 
       // Create empty group backed by HDF file
-      if (oops::mpi::world().rank() == 0) {
-        ioda::Group group =
-          ioda::Engines::HH::createFile(outputFilename_,
-                                        ioda::Engines::BackendCreateModes::Truncate_If_Exists);
+      ioda::Group group =
+        ioda::Engines::HH::createFile(outputFilename,
+                                      ioda::Engines::BackendCreateModes::Truncate_If_Exists);
 
-        // Update the group with the location dimension
-        ioda::NewDimensionScales_t
-          newDims {ioda::NewDimensionScale<int>("Location", iodaVarsAll.location_)};
+      // Update the group with the location dimension
+      ioda::NewDimensionScales_t
+        newDims {ioda::NewDimensionScale<int>("Location", iodaVars->location_)};
 
-        // Update the group with the location and channel dimension (if channel value is assigned)
-        if (iodaVars.channelValues_(0) > 0) {
-           newDims = {
-                 ioda::NewDimensionScale<int>("Location", iodaVarsAll.location_),
-                 ioda::NewDimensionScale<int>("Channel", iodaVarsAll.channel_)
-           };
-        }
-        ioda::ObsGroup ogrp = ioda::ObsGroup::generate(group, newDims);
+      // Update the group with the location and channel dimension (if channel value is assigned)
+      if (iodaVars->channelValues_(0) > 0) {
+         newDims = {
+               ioda::NewDimensionScale<int>("Location", iodaVars->location_),
+               ioda::NewDimensionScale<int>("Channel", iodaVars->channel_)
+         };
+      }
+      ioda::ObsGroup ogrp = ioda::ObsGroup::generate(group, newDims);
 
-        // Create different dimensionScales for data w/wo channel info
-        std::vector<ioda::Variable> dimensionScales {
-            ogrp.vars["Location"]
-        };
-        if (iodaVars.channelValues_(0) > 0) {
-           dimensionScales = {ogrp.vars["Location"], ogrp.vars["Channel"]};
-           ogrp.vars["Channel"].writeWithEigenRegular(iodaVars.channelValues_);
-        }
+      // Create different dimensionScales for data w/wo channel info
+      std::vector<ioda::Variable> dimensionScales {
+          ogrp.vars["Location"]
+      };
+      if (iodaVars->channelValues_(0) > 0) {
+         dimensionScales = {ogrp.vars["Location"], ogrp.vars["Channel"]};
+         ogrp.vars["Channel"].writeWithEigenRegular(iodaVars->channelValues_);
+      }
 
 
-        // Set up the creation parameters
-        ioda::VariableCreationParameters float_params = createVariableParams<float>();
-        ioda::VariableCreationParameters int_params = createVariableParams<int>();
-        ioda::VariableCreationParameters long_params = createVariableParams<int64_t>();
+      // Set up the creation parameters
+      ioda::VariableCreationParameters float_params = createVariableParams<float>();
+      ioda::VariableCreationParameters int_params = createVariableParams<int>();
+      ioda::VariableCreationParameters long_params = createVariableParams<int64_t>();
 
-        // Create the mandatory IODA variables
-        ioda::Variable iodaDatetime =
-          ogrp.vars.createWithScales<int64_t>("MetaData/dateTime",
-                                          {ogrp.vars["Location"]}, long_params);
-        // TODO(MD): Make sure units with iodaVarsAll when applying mpi
-        iodaDatetime.atts.add<std::string>("units", {iodaVars.referenceDate_}, {1});
-        ioda::Variable iodaLat =
-          ogrp.vars.createWithScales<float>("MetaData/latitude",
-                                            {ogrp.vars["Location"]}, float_params);
-        ioda::Variable iodaLon =
-          ogrp.vars.createWithScales<float>("MetaData/longitude",
-                                            {ogrp.vars["Location"]}, float_params);
+      // Create the mandatory IODA variables
+      ioda::Variable iodaDatetime =
+        ogrp.vars.createWithScales<int64_t>("MetaData/dateTime",
+                                        {ogrp.vars["Location"]}, long_params);
+      iodaDatetime.atts.add<std::string>("units", {iodaVars->referenceDate_}, {1});
+      ioda::Variable iodaLat =
+        ogrp.vars.createWithScales<float>("MetaData/latitude",
+                                          {ogrp.vars["Location"]}, float_params);
+      ioda::Variable iodaLon =
+        ogrp.vars.createWithScales<float>("MetaData/longitude",
+                                          {ogrp.vars["Location"]}, float_params);
 
-        ioda::Variable iodaObsVal =
-          ogrp.vars.createWithScales<float>("ObsValue/"+variable_,
-                                            dimensionScales, float_params);
-        ioda::Variable iodaObsErr =
-          ogrp.vars.createWithScales<float>("ObsError/"+variable_,
-                                            dimensionScales, float_params);
+      ioda::Variable iodaObsVal =
+        ogrp.vars.createWithScales<float>("ObsValue/"+variable_,
+                                          dimensionScales, float_params);
+      ioda::Variable iodaObsErr =
+        ogrp.vars.createWithScales<float>("ObsError/"+variable_,
+                                          dimensionScales, float_params);
 
-        ioda::Variable iodaPreQc =
-          ogrp.vars.createWithScales<int>("PreQC/"+variable_,
-                                          dimensionScales, int_params);
+      ioda::Variable iodaPreQc =
+        ogrp.vars.createWithScales<int>("PreQC/"+variable_,
+                                        dimensionScales, int_params);
 
-        // add input filenames to IODA file global attributes
-        ogrp.atts.add<std::string>("obs_source_files", inputFilenames_);
+      // add input filenames to IODA file global attributes
+      ogrp.atts.add<std::string>("obs_source_files", inputFilenames_);
 
-        // add global attributes collected from the specific converter
-        for (const auto& globalAttr : iodaVars.strGlobalAttr_) {
-          ogrp.atts.add<std::string>(globalAttr.first , globalAttr.second);
-        }
+      // add global attributes collected from the specific converter
+      for (const auto& globalAttr : iodaVars->strGlobalAttr_) {
+        ogrp.atts.add<std::string>(globalAttr.first , globalAttr.second);
+      }
 
-        // Create the optional IODA integer metadata
-        ioda::Variable tmpIntMeta;
-        int count = 0;
-        for (const std::string& strMeta : iodaVars.intMetadataName_) {
-          tmpIntMeta = ogrp.vars.createWithScales<int>("MetaData/"+strMeta,
-                                                         {ogrp.vars["Location"]}, int_params);
-          // get ocean basin masks if asked in the config
-          preproc::oceanmask::OceanMask* oceanMask = nullptr;
-          if (fullConfig_.has("ocean basin")) {
-             std::string fileName;
-             fullConfig_.get("ocean basin", fileName);
+      // Create the optional IODA integer metadata
+      ioda::Variable tmpIntMeta;
+      int count = 0;
+      for (const std::string& strMeta : iodaVars->intMetadataName_) {
+        tmpIntMeta = ogrp.vars.createWithScales<int>("MetaData/"+strMeta,
+                                                       {ogrp.vars["Location"]}, int_params);
+        // get ocean basin masks if asked in the config
+        preproc::oceanmask::OceanMask* oceanMask = nullptr;
+        if (fullConfig_.has("ocean basin")) {
+           std::string fileName;
+           fullConfig_.get("ocean basin", fileName);
 
-             // only apply the basin mask if the file exist
-             std::ifstream testFile(fileName.c_str());
-             if (testFile.good()) {
-              oceanMask = new preproc::oceanmask::OceanMask(fileName);
+           // only apply the basin mask if the file exist
+           std::ifstream testFile(fileName.c_str());
+           if (testFile.good()) {
+            oceanMask = new preproc::oceanmask::OceanMask(fileName);
 
-              for (int i = 0; i < iodaVars.location_; i++) {
-                iodaVars.intMetadata_.coeffRef(i, size(iodaVars.intMetadataName_)-1) =
-                  oceanMask->getOceanMask(iodaVars.longitude_[i], iodaVars.latitude_[i]);
-              }
+            for (int i = 0; i < iodaVars->location_; i++) {
+              iodaVars->intMetadata_.coeffRef(i, size(iodaVars->intMetadataName_)-1) =
+                oceanMask->getOceanMask(iodaVars->longitude_[i], iodaVars->latitude_[i]);
             }
           }
-          tmpIntMeta.writeWithEigenRegular(iodaVars.intMetadata_.col(count));
-
-
-          count++;
         }
-
-        // Create the optional IODA float metadata
-        ioda::Variable tmpFloatMeta;
-        count = 0;
-        for (const std::string& strMeta : iodaVars.floatMetadataName_) {
-          tmpFloatMeta = ogrp.vars.createWithScales<float>("MetaData/"+strMeta,
-                                                      {ogrp.vars["Location"]}, float_params);
-          tmpFloatMeta.writeWithEigenRegular(iodaVars.floatMetadata_.col(count));
-          count++;
-        }
-
-        if (iodaVars.originalDatetime_.size() != 0) {
-          ioda::Variable iodaOriginalDatetime =
-              ogrp.vars.createWithScales<int64_t>("MetaData/originalDateTime",
-                                          {ogrp.vars["Location"]}, long_params);
-          iodaOriginalDatetime.writeWithEigenRegular(iodaVars.originalDatetime_);
-          }
-
-
-        // Test output
-        iodaVars.testOutput();
-
-        // Write obs info to group
-        oops::Log::info() << "Writing ioda file" << std::endl;
-        iodaLon.writeWithEigenRegular(iodaVarsAll.longitude_);
-        iodaLat.writeWithEigenRegular(iodaVarsAll.latitude_);
-        iodaDatetime.writeWithEigenRegular(iodaVarsAll.datetime_);
-        iodaObsVal.writeWithEigenRegular(iodaVarsAll.obsVal_);
-        iodaObsErr.writeWithEigenRegular(iodaVarsAll.obsError_);
-        iodaPreQc.writeWithEigenRegular(iodaVarsAll.preQc_);
+        tmpIntMeta.writeWithEigenRegular(iodaVars->intMetadata_.col(count));
+        count++;
       }
+
+      // Create the optional IODA float metadata
+      ioda::Variable tmpFloatMeta;
+      count = 0;
+      for (const std::string& strMeta : iodaVars->floatMetadataName_) {
+        tmpFloatMeta = ogrp.vars.createWithScales<float>("MetaData/"+strMeta,
+                                                    {ogrp.vars["Location"]}, float_params);
+        tmpFloatMeta.writeWithEigenRegular(iodaVars->floatMetadata_.col(count));
+        count++;
+      }
+
+      if (iodaVars->originalDatetime_.size() != 0) {
+        ioda::Variable iodaOriginalDatetime =
+            ogrp.vars.createWithScales<int64_t>("MetaData/originalDateTime",
+                                        {ogrp.vars["Location"]}, long_params);
+        iodaOriginalDatetime.writeWithEigenRegular(iodaVars->originalDatetime_);
+        }
+
+
+      // Test output
+      iodaVars->testOutput();
+
+      // Write obs info to group
+      oops::Log::info() << "Writing ioda file: " << outputFilename << std::endl;
+      iodaLon.writeWithEigenRegular(iodaVars->longitude_);
+      iodaLat.writeWithEigenRegular(iodaVars->latitude_);
+      iodaDatetime.writeWithEigenRegular(iodaVars->datetime_);
+      iodaObsVal.writeWithEigenRegular(iodaVars->obsVal_);
+      iodaObsErr.writeWithEigenRegular(iodaVars->obsError_);
+      iodaPreQc.writeWithEigenRegular(iodaVars->preQc_);
     }
 
 

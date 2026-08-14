@@ -1,0 +1,50 @@
+seconds since 1970-01-01T00:00:00Z
+obsVal:
+    Min: -0.1
+    Max: 1.1
+    Sum: 1.25
+obsError:
+    Min: 0.05
+    Max: 0.4
+    Sum: 0.55
+preQc:
+    Min: 1
+    Max: 5
+    Sum: 8
+longitude:
+    Min: -150
+    Max: 20
+    Sum: -120
+latitude:
+    Min: 65
+    Max: 82
+    Sum: 228
+datetime:
+    Min: 1761955200
+    Max: 1761956400
+    Sum: 5285867400
+seconds since 1970-01-01T00:00:00Z
+obsVal:
+    Min: -0.25
+    Max: 0.5
+    Sum: 0.25
+obsError:
+    Min: 0.2
+    Max: 0.5
+    Sum: 0.7
+preQc:
+    Min: 3
+    Max: 4
+    Sum: 7
+longitude:
+    Min: -45
+    Max: 130
+    Sum: 85
+latitude:
+    Min: -77
+    Max: -72
+    Sum: -149
+datetime:
+    Min: 1761956400
+    Max: 1761958800
+    Sum: 3523915200

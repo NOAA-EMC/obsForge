@@ -2,6 +2,7 @@
 add_library(netcdf2ioda
     IcecAmsr2Ioda.h
     IcecAbi2Ioda.h
+    IcefbIcesat2Ioda.h
     Ghrsst2Ioda.h
     Viirsaod2Ioda.h
     util.h

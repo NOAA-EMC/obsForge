@@ -1,0 +1,78 @@
+netcdf icefb_icesat2_1 {
+
+// Tiny ATL10-shaped fixture for the ICESat-2 freeboard converter.
+
+group: gt1l {
+  group: freeboard_segment {
+    dimensions:
+      delta_time = 5 ;
+
+    variables:
+      double delta_time(delta_time) ;
+        delta_time:units = "seconds since 2018-01-01 00:00:00" ;
+      double latitude(delta_time) ;
+        latitude:units = "degrees_north" ;
+        latitude:_FillValue = 9.969209968386869e+36 ;
+      double longitude(delta_time) ;
+        longitude:units = "degrees_east" ;
+        longitude:_FillValue = 9.969209968386869e+36 ;
+      float beam_fb_height(delta_time) ;
+        beam_fb_height:units = "m" ;
+        beam_fb_height:_FillValue = 3.4028235e+38f ;
+      float beam_fb_unc(delta_time) ;
+        beam_fb_unc:units = "m" ;
+        beam_fb_unc:_FillValue = 3.4028235e+38f ;
+      int beam_fb_quality_flag(delta_time) ;
+        beam_fb_quality_flag:flag_values = -1, 1, 2, 3, 4, 5 ;
+        beam_fb_quality_flag:flag_meanings = "invalid best high medium low poor" ;
+      float beam_fb_confidence(delta_time) ;
+        beam_fb_confidence:_FillValue = 3.4028235e+38f ;
+
+    data:
+      delta_time = 247190400, 247191000, 247191600, 247192200, 247192800 ;
+      latitude = 82.0, 81.0, -77.0, 70.0, 75.0 ;
+      longitude = 10.0, 20.0, -45.0, 30.0, 40.0 ;
+      beam_fb_height = 0.25f, -0.10f, 0.50f, 6.00f, 0.10f ;
+      beam_fb_unc = 0.05f, 0.10f, 0.20f, 0.30f, 0.05f ;
+      beam_fb_quality_flag = 1, 2, 3, 1, -1 ;
+      beam_fb_confidence = 0.90f, 0.80f, 0.70f, 0.60f, 0.50f ;
+  }
+}
+
+group: gt2r {
+  group: freeboard_segment {
+    dimensions:
+      delta_time = 3 ;
+
+    variables:
+      double delta_time(delta_time) ;
+        delta_time:units = "seconds since 2018-01-01 00:00:00" ;
+      double latitude(delta_time) ;
+        latitude:units = "degrees_north" ;
+        latitude:_FillValue = 9.969209968386869e+36 ;
+      double longitude(delta_time) ;
+        longitude:units = "degrees_east" ;
+        longitude:_FillValue = 9.969209968386869e+36 ;
+      float beam_fb_height(delta_time) ;
+        beam_fb_height:units = "m" ;
+        beam_fb_height:_FillValue = 3.4028235e+38f ;
+      float beam_fb_unc(delta_time) ;
+        beam_fb_unc:units = "m" ;
+        beam_fb_unc:_FillValue = 3.4028235e+38f ;
+      int beam_fb_quality_flag(delta_time) ;
+        beam_fb_quality_flag:flag_values = -1, 1, 2, 3, 4, 5 ;
+        beam_fb_quality_flag:flag_meanings = "invalid best high medium low poor" ;
+      float beam_fb_confidence(delta_time) ;
+        beam_fb_confidence:_FillValue = 3.4028235e+38f ;
+
+    data:
+      delta_time = 247194000, 247191600, 247201200 ;
+      latitude = -72.0, 65.0, -80.0 ;
+      longitude = 130.0, -150.0, 60.0 ;
+      beam_fb_height = -0.25f, 1.10f, 0.30f ;
+      beam_fb_unc = _, 0.40f, 0.10f ;
+      beam_fb_quality_flag = 4, 5, 1 ;
+      beam_fb_confidence = _, 0.40f, 0.90f ;
+  }
+}
+}
