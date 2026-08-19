@@ -175,6 +175,7 @@ namespace obsforge {
                                                      floatMetadataNames,
                                                      intMetadataNames,
                                                      obsVariableNames);
+
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
       iodaVars.strGlobalAttr_["platform"] = "ICESat-2";
       iodaVars.strGlobalAttr_["instrument"] = "ATLAS";
