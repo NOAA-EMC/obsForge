@@ -313,7 +313,6 @@ namespace obsforge {
                 oceanMask->getOceanMask(iodaVars->longitude_[i], iodaVars->latitude_[i]);
             }
           }
-
         }
         tmpIntMeta.writeWithEigenRegular(iodaVars->intMetadata_.col(count));
         count++;
@@ -356,7 +355,6 @@ namespace obsforge {
           iodaPreQc[i].writeWithEigenRegular(iodaVars->preQcAdditional_.col(i - 1));
         }
       }
-
     }
 
 
