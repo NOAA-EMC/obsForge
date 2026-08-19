@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -110,6 +111,10 @@ namespace obsforge {
         Eigen::ArrayXf obsVal_;     // Observation value
         Eigen::ArrayXf obsError_;   //      "      error
         Eigen::ArrayXi preQc_;      // Quality control flag
+        Eigen::ArrayXXf obsValAdditional_;    // Additional colocated observation values
+        Eigen::ArrayXXf obsErrorAdditional_;  // Additional colocated observation errors
+        Eigen::ArrayXXi preQcAdditional_;     // Additional colocated quality control flags
+        std::vector<std::string> obsVariableNames_;
 
         // Optional metadata
         Eigen::ArrayXXf floatMetadata_;                // Optional array of float metadata
@@ -125,19 +130,29 @@ namespace obsforge {
         explicit IodaVars(const int nobs = 0,
                           const int channel = 1,
                           const std::vector<std::string> fmnames = {},
-                          const std::vector<std::string> imnames = {}):
-        location_(nobs), nVars_(1), nfMetadata_(fmnames.size()), niMetadata_(imnames.size()),
-          longitude_(location_), latitude_(location_), datetime_(location_),
+                          const std::vector<std::string> imnames = {},
+                          const std::vector<std::string> obsVarNames = {}):
+          location_(nobs),
+          nVars_(std::max(1, static_cast<int>(obsVarNames.size()))),
+          nfMetadata_(fmnames.size()),
+          niMetadata_(imnames.size()),
+          channel_(channel),
+          channelValues_(Eigen::ArrayXi::Constant(channel_, -1)),
+          longitude_(location_),
+          latitude_(location_),
+          datetime_(location_),
           obsVal_(location_*channel_),
           obsError_(location_*channel_),
           preQc_(location_*channel_),
+          obsValAdditional_(location_*channel_, std::max(0, static_cast<int>(obsVarNames.size()) - 1)),
+          obsErrorAdditional_(location_*channel_, std::max(0, static_cast<int>(obsVarNames.size()) - 1)),
+          preQcAdditional_(location_*channel_, std::max(0, static_cast<int>(obsVarNames.size()) - 1)),
+          obsVariableNames_(obsVarNames),
           floatMetadata_(location_, fmnames.size()),
           floatMetadataName_(fmnames),
           intMetadata_(location_, imnames.size()),
           intMetadataName_(imnames),
-          originalDatetime_(),    // initialized as empty
-          channel_(channel),
-          channelValues_(Eigen::ArrayXi::Constant(channel_, -1))
+          originalDatetime_()    // initialized as empty
         {
           oops::Log::trace() << "IodaVars::IodaVars created." << std::endl;
         }
@@ -146,6 +161,7 @@ namespace obsforge {
         void append(const IodaVars& other) {
           // Check if the two instances can be concatenated
           ASSERT(nVars_ == other.nVars_);
+          ASSERT(obsVariableNames_ == other.obsVariableNames_);
           ASSERT(nfMetadata_ == other.nfMetadata_);
           ASSERT(niMetadata_ == other.niMetadata_);
 
@@ -156,6 +172,12 @@ namespace obsforge {
           obsVal_.conservativeResize(location_ * channel_ + other.location_ * other.channel_);
           obsError_.conservativeResize(location_  * channel_ + other.location_ * other.channel_);
           preQc_.conservativeResize(location_ * channel_ + other.location_ * other.channel_);
+          obsValAdditional_.conservativeResize(location_ * channel_ + other.location_ * other.channel_,
+                                               nVars_ - 1);
+          obsErrorAdditional_.conservativeResize(location_ * channel_ + other.location_ * other.channel_,
+                                                 nVars_ - 1);
+          preQcAdditional_.conservativeResize(location_ * channel_ + other.location_ * other.channel_,
+                                              nVars_ - 1);
           floatMetadata_.conservativeResize(location_ + other.location_, nfMetadata_);
           intMetadata_.conservativeResize(location_ + other.location_, niMetadata_);
           if (originalDatetime_.size() != 0) {
@@ -169,6 +191,14 @@ namespace obsforge {
           obsVal_.tail(other.location_ * channel_) = other.obsVal_;
           obsError_.tail(other.location_ * channel_) = other.obsError_;
           preQc_.tail(other.location_ * channel_) = other.preQc_;
+          if (nVars_ > 1) {
+            obsValAdditional_.middleRows(location_ * channel_, other.location_ * other.channel_) =
+              other.obsValAdditional_;
+            obsErrorAdditional_.middleRows(location_ * channel_, other.location_ * other.channel_) =
+              other.obsErrorAdditional_;
+            preQcAdditional_.middleRows(location_ * channel_, other.location_ * other.channel_) =
+              other.preQcAdditional_;
+          }
           floatMetadata_.bottomRows(other.location_) = other.floatMetadata_;
           intMetadata_.bottomRows(other.location_) = other.intMetadata_;
           if (originalDatetime_.size() != 0) {
@@ -184,7 +214,8 @@ namespace obsforge {
         void trim(const Eigen::Array<bool, Eigen::Dynamic, 1>& mask ) {
           int newlocation = mask.count();
 
-          IodaVars iodaVarsMasked(newlocation, channel_, floatMetadataName_, intMetadataName_);
+          IodaVars iodaVarsMasked(newlocation, channel_, floatMetadataName_, intMetadataName_,
+                                  obsVariableNames_);
 
           int j = 0;
           for (int i = 0; i < location_; i++) {
@@ -194,6 +225,11 @@ namespace obsforge {
               iodaVarsMasked.obsVal_(j) = obsVal_(i);
               iodaVarsMasked.obsError_(j) = obsError_(i);
               iodaVarsMasked.preQc_(j) = preQc_(i);
+              for (int k = 0; k < nVars_ - 1; k++) {
+                iodaVarsMasked.obsValAdditional_(j, k) = obsValAdditional_(i, k);
+                iodaVarsMasked.obsErrorAdditional_(j, k) = obsErrorAdditional_(i, k);
+                iodaVarsMasked.preQcAdditional_(j, k) = preQcAdditional_(i, k);
+              }
               iodaVarsMasked.datetime_(j) = datetime_(i);
               for (int k = 0; k < nfMetadata_; k++) {
                 iodaVarsMasked.floatMetadata_(j, k) = floatMetadata_(i, k);
@@ -215,6 +251,9 @@ namespace obsforge {
           obsVal_ = iodaVarsMasked.obsVal_;
           obsError_ = iodaVarsMasked.obsError_;
           preQc_ = iodaVarsMasked.preQc_;
+          obsValAdditional_ = iodaVarsMasked.obsValAdditional_;
+          obsErrorAdditional_ = iodaVarsMasked.obsErrorAdditional_;
+          preQcAdditional_ = iodaVarsMasked.preQcAdditional_;
           floatMetadata_ = iodaVarsMasked.floatMetadata_;
           intMetadata_ = iodaVarsMasked.intMetadata_;
           originalDatetime_ = iodaVarsMasked.originalDatetime_;
@@ -227,9 +266,16 @@ namespace obsforge {
         // Testing
         void testOutput() {
           oops::Log::test() << referenceDate_ << std::endl;
-          oops::Log::test() << checksum(obsVal_, "obsVal") << std::endl;
-          oops::Log::test() << checksum(obsError_, "obsError") << std::endl;
-          oops::Log::test() << checksum(preQc_, "preQc") << std::endl;
+          std::string primaryName = obsVariableNames_.empty() ? "" : "/" + obsVariableNames_[0];
+          oops::Log::test() << checksum(obsVal_, "obsVal" + primaryName) << std::endl;
+          oops::Log::test() << checksum(obsError_, "obsError" + primaryName) << std::endl;
+          oops::Log::test() << checksum(preQc_, "preQc" + primaryName) << std::endl;
+          for (int i = 1; i < nVars_; i++) {
+            const std::string suffix = obsVariableNames_.empty() ? "" : "/" + obsVariableNames_[i];
+            oops::Log::test() << checksum(obsValAdditional_.col(i - 1), "obsVal" + suffix) << std::endl;
+            oops::Log::test() << checksum(obsErrorAdditional_.col(i - 1), "obsError" + suffix) << std::endl;
+            oops::Log::test() << checksum(preQcAdditional_.col(i - 1), "preQc" + suffix) << std::endl;
+          }
           oops::Log::test() << checksum(longitude_, "longitude") << std::endl;
           oops::Log::test() << checksum(latitude_, "latitude") << std::endl;
           oops::Log::test() << checksum(datetime_, "datetime") << std::endl;

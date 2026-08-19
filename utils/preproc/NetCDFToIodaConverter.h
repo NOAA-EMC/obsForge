@@ -98,16 +98,25 @@ namespace obsforge {
       nchan = iodaVars.channel_;
       int nfMetadata = iodaVars.nfMetadata_;
       int niMetadata = iodaVars.niMetadata_;
+      int nVars = iodaVars.nVars_;
 
 
       // Get the total number of obs across pe's
       int nobsAll(0);
       comm_.allReduce(nobs, nobsAll, eckit::mpi::sum());
+      int nVarsAll(0);
+      comm_.allReduce(nVars, nVarsAll, eckit::mpi::max());
       int nfMetadataAll(0);
       comm_.allReduce(nfMetadata, nfMetadataAll, eckit::mpi::max());
       int niMetadataAll(0);
       comm_.allReduce(niMetadata, niMetadataAll, eckit::mpi::max());
 
+      if (iodaVars.nVars_ != nVarsAll) {
+        iodaVars.nVars_ = nVarsAll;
+        iodaVars.obsValAdditional_.resize(iodaVars.location_ * iodaVars.channel_, nVarsAll - 1);
+        iodaVars.obsErrorAdditional_.resize(iodaVars.location_ * iodaVars.channel_, nVarsAll - 1);
+        iodaVars.preQcAdditional_.resize(iodaVars.location_ * iodaVars.channel_, nVarsAll - 1);
+      }
       if (iodaVars.nfMetadata_ != nfMetadataAll) {
         iodaVars.nfMetadata_ = nfMetadataAll;
         iodaVars.floatMetadata_.resize(iodaVars.location_, nfMetadataAll);
@@ -122,7 +131,8 @@ namespace obsforge {
       obsforge::preproc::iodavars::IodaVars iodaVarsAll(nobsAll,
                                     nchan,
                                     iodaVars.floatMetadataName_,
-                                    iodaVars.intMetadataName_);
+                                    iodaVars.intMetadataName_,
+                                    iodaVars.obsVariableNames_);
 
       // Gather iodaVars arrays
       gatherObs(iodaVars.longitude_, iodaVarsAll.longitude_);
@@ -131,6 +141,22 @@ namespace obsforge {
       gatherObs(iodaVars.obsVal_, iodaVarsAll.obsVal_);
       gatherObs(iodaVars.obsError_, iodaVarsAll.obsError_);
       gatherObs(iodaVars.preQc_, iodaVarsAll.preQc_);
+      for (int count = 0; count < nVarsAll - 1; count++) {
+        Eigen::ArrayXf obsValPe = iodaVars.obsValAdditional_.col(count);
+        Eigen::ArrayXf obsValAll(iodaVarsAll.location_ * iodaVarsAll.channel_);
+        gatherObs(obsValPe, obsValAll);
+        Eigen::ArrayXf obsErrorPe = iodaVars.obsErrorAdditional_.col(count);
+        Eigen::ArrayXf obsErrorAll(iodaVarsAll.location_ * iodaVarsAll.channel_);
+        gatherObs(obsErrorPe, obsErrorAll);
+        Eigen::ArrayXi preQcPe = iodaVars.preQcAdditional_.col(count);
+        Eigen::ArrayXi preQcAll(iodaVarsAll.location_ * iodaVarsAll.channel_);
+        gatherObs(preQcPe, preQcAll);
+        if (comm_.rank() == 0) {
+          iodaVarsAll.obsValAdditional_.col(count) = obsValAll;
+          iodaVarsAll.obsErrorAdditional_.col(count) = obsErrorAll;
+          iodaVarsAll.preQcAdditional_.col(count) = preQcAll;
+        }
+      }
 
       for (int count = 0; count < nfMetadataAll; count++) {
         Eigen::ArrayXf metadataPe = iodaVars.floatMetadata_.col(count);
@@ -162,6 +188,7 @@ namespace obsforge {
         iodaVarsAll.referenceDate_ = iodaVars.referenceDate_;
         iodaVarsAll.channelValues_ = iodaVars.channelValues_;
         iodaVarsAll.strGlobalAttr_ = iodaVars.strGlobalAttr_;
+        iodaVarsAll.obsVariableNames_ = iodaVars.obsVariableNames_;
       }
 
       return iodaVarsAll;
@@ -236,16 +263,26 @@ namespace obsforge {
         ogrp.vars.createWithScales<float>("MetaData/longitude",
                                           {ogrp.vars["Location"]}, float_params);
 
-      ioda::Variable iodaObsVal =
-        ogrp.vars.createWithScales<float>("ObsValue/"+variable_,
-                                          dimensionScales, float_params);
-      ioda::Variable iodaObsErr =
-        ogrp.vars.createWithScales<float>("ObsError/"+variable_,
-                                          dimensionScales, float_params);
+      std::vector<std::string> obsVariableNames = iodaVars->obsVariableNames_;
+      if (obsVariableNames.empty()) {
+        obsVariableNames.push_back(variable_);
+      }
+      ASSERT(static_cast<int>(obsVariableNames.size()) == iodaVars->nVars_);
 
-      ioda::Variable iodaPreQc =
-        ogrp.vars.createWithScales<int>("PreQC/"+variable_,
-                                        dimensionScales, int_params);
+      std::vector<ioda::Variable> iodaObsVal;
+      std::vector<ioda::Variable> iodaObsErr;
+      std::vector<ioda::Variable> iodaPreQc;
+      for (const std::string& obsVariableName : obsVariableNames) {
+        iodaObsVal.push_back(
+          ogrp.vars.createWithScales<float>("ObsValue/"+obsVariableName,
+                                            dimensionScales, float_params));
+        iodaObsErr.push_back(
+          ogrp.vars.createWithScales<float>("ObsError/"+obsVariableName,
+                                            dimensionScales, float_params));
+        iodaPreQc.push_back(
+          ogrp.vars.createWithScales<int>("PreQC/"+obsVariableName,
+                                          dimensionScales, int_params));
+      }
 
       // add input filenames to IODA file global attributes
       ogrp.atts.add<std::string>("obs_source_files", inputFilenames_);
@@ -308,9 +345,17 @@ namespace obsforge {
       iodaLon.writeWithEigenRegular(iodaVars->longitude_);
       iodaLat.writeWithEigenRegular(iodaVars->latitude_);
       iodaDatetime.writeWithEigenRegular(iodaVars->datetime_);
-      iodaObsVal.writeWithEigenRegular(iodaVars->obsVal_);
-      iodaObsErr.writeWithEigenRegular(iodaVars->obsError_);
-      iodaPreQc.writeWithEigenRegular(iodaVars->preQc_);
+      for (int i = 0; i < iodaVars->nVars_; i++) {
+        if (i == 0) {
+          iodaObsVal[i].writeWithEigenRegular(iodaVars->obsVal_);
+          iodaObsErr[i].writeWithEigenRegular(iodaVars->obsError_);
+          iodaPreQc[i].writeWithEigenRegular(iodaVars->preQc_);
+        } else {
+          iodaObsVal[i].writeWithEigenRegular(iodaVars->obsValAdditional_.col(i - 1));
+          iodaObsErr[i].writeWithEigenRegular(iodaVars->obsErrorAdditional_.col(i - 1));
+          iodaPreQc[i].writeWithEigenRegular(iodaVars->preQcAdditional_.col(i - 1));
+        }
+      }
     }
 
 

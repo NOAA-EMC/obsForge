@@ -101,6 +101,8 @@ namespace obsforge {
       std::vector<float> freeboardValues;
       std::vector<float> errorValues;
       std::vector<int> preQcValues;
+      std::vector<float> seaIceFractionValues;
+      std::vector<int> seaIceFractionPreQcValues;
       std::vector<float> confidenceValues;
       std::vector<int> beamValues;
 
@@ -126,6 +128,9 @@ namespace obsforge {
         std::vector<float> uncertainty = readSampled1D<float>(segment, "beam_fb_unc");
         std::vector<int> qualityFlag = readSampled1D<int>(segment, "beam_fb_quality_flag");
         std::vector<float> confidence = readSampled1D<float>(segment, "beam_fb_confidence");
+        netCDF::NcGroup heights = segment.getGroup("heights");
+        std::vector<float> ssmiIceConc = readOptionalSampled1D<float>(
+          heights, "ice_conc_ssmi", freeboard.size(), missingFloat_);
 
         const size_t nobs = minimumSize({lat.size(), lon.size(), deltaTime.size(),
                                          freeboard.size(), uncertainty.size(),
@@ -155,16 +160,21 @@ namespace obsforge {
           freeboardValues.push_back(freeboard[i]);
           errorValues.push_back(validError(uncertainty[i]) ? uncertainty[i] : defaultObsError_);
           preQcValues.push_back(qualityFlag[i]);
+          const float seaIceFraction = ssmiToSeaIceFraction(ssmiIceConc[i]);
+          seaIceFractionValues.push_back(seaIceFraction);
+          seaIceFractionPreQcValues.push_back(validSeaIceFraction(seaIceFraction) ? 0 : 1);
           confidenceValues.push_back(validFloat(confidence[i]) ? confidence[i] : missingFloat_);
           beamValues.push_back(beamId);
         }
       }
 
+      std::vector<std::string> obsVariableNames = {"seaIceFreeboard", "seaIceFraction"};
       std::vector<std::string> floatMetadataNames = {"freeboardConfidence"};
       std::vector<std::string> intMetadataNames = {"beam", "oceanBasin"};
       obsforge::preproc::iodavars::IodaVars iodaVars(latValues.size(), 1,
                                                      floatMetadataNames,
-                                                     intMetadataNames);
+                                                     intMetadataNames,
+                                                     obsVariableNames);
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
       iodaVars.strGlobalAttr_["platform"] = "ICESat-2";
       iodaVars.strGlobalAttr_["instrument"] = "ATLAS";
@@ -178,6 +188,9 @@ namespace obsforge {
         iodaVars.obsVal_(i) = freeboardValues[i];
         iodaVars.obsError_(i) = errorValues[i];
         iodaVars.preQc_(i) = preQcValues[i];
+        iodaVars.obsValAdditional_(i, 0) = seaIceFractionValues[i];
+        iodaVars.obsErrorAdditional_(i, 0) = seaIceFractionObsError_;
+        iodaVars.preQcAdditional_(i, 0) = seaIceFractionPreQcValues[i];
         iodaVars.floatMetadata_.row(i) << confidenceValues[i];
         iodaVars.intMetadata_.row(i) << beamValues[i], -999;
       }
@@ -217,6 +230,25 @@ namespace obsforge {
       return values;
     }
 
+    template <typename T>
+    std::vector<T> readOptionalSampled1D(const netCDF::NcGroup & group,
+                                        const std::string & variableName,
+                                        const size_t expectedSize,
+                                        const T missingValue) const {
+      if (group.isNull()) {
+        return std::vector<T>(expectedSize, missingValue);
+      }
+
+      std::vector<T> values = readSampled1D<T>(group, variableName);
+      if (values.empty() && expectedSize > 0) {
+        return std::vector<T>(expectedSize, missingValue);
+      }
+      if (values.size() < expectedSize) {
+        values.resize(expectedSize, missingValue);
+      }
+      return values;
+    }
+
     int64_t epochOffsetSeconds(const util::DateTime & dateTime) const {
       util::DateTime epochDtime("1970-01-01T00:00:00Z");
       return ioda::convertDtimeToTimeOffsets(epochDtime, {dateTime})[0];
@@ -252,6 +284,17 @@ namespace obsforge {
 
     bool validError(const float value) const {
       return validFloat(value) && value >= 0.0f;
+    }
+
+    static bool validSeaIceFraction(const float value) {
+      return validFloat(value) && value >= 0.0f && value <= 1.0f;
+    }
+
+    static float ssmiToSeaIceFraction(const float value) {
+      if (!validFloat(value) || value < 0.0f || value > 100.0f) {
+        return missingFloat_;
+      }
+      return value * 0.01f;
     }
 
     static size_t minimumSize(const std::vector<size_t> & sizes) {
@@ -296,6 +339,7 @@ namespace obsforge {
     }
 
     static constexpr float missingFloat_ = std::numeric_limits<float>::max();
+    static constexpr float seaIceFractionObsError_ = 0.1f;
     static constexpr std::array<const char *, 6> beams_ = {
       "gt1l", "gt1r", "gt2l", "gt2r", "gt3l", "gt3r"
     };
