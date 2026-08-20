@@ -1,16 +1,28 @@
 seconds since 1970-01-01T00:00:00Z
-obsVal:
+obsVal/seaIceFreeboard:
     Min: -0.1
     Max: 1.1
     Sum: 1.25
-obsError:
+obsError/seaIceFreeboard:
     Min: 0.05
     Max: 0.4
     Sum: 0.55
-preQc:
+preQc/seaIceFreeboard:
     Min: 1
     Max: 5
     Sum: 8
+obsVal/seaIceFraction:
+    Min: 0.55
+    Max: 0.8
+    Sum: 2.1
+obsError/seaIceFraction:
+    Min: 0.1
+    Max: 0.1
+    Sum: 0.3
+preQc/seaIceFraction:
+    Min: 0
+    Max: 0
+    Sum: 0
 longitude:
     Min: -150
     Max: 20
@@ -24,18 +36,30 @@ datetime:
     Max: 1761956400
     Sum: 5285867400
 seconds since 1970-01-01T00:00:00Z
-obsVal:
+obsVal/seaIceFreeboard:
     Min: -0.25
     Max: 0.5
     Sum: 0.25
-obsError:
+obsError/seaIceFreeboard:
     Min: 0.2
     Max: 0.5
     Sum: 0.7
-preQc:
+preQc/seaIceFreeboard:
     Min: 3
     Max: 4
     Sum: 7
+obsVal/seaIceFraction:
+    Min: 0.65
+    Max: 0.7
+    Sum: 1.35
+obsError/seaIceFraction:
+    Min: 0.1
+    Max: 0.1
+    Sum: 0.2
+preQc/seaIceFraction:
+    Min: 0
+    Max: 0
+    Sum: 0
 longitude:
     Min: -45
     Max: 130

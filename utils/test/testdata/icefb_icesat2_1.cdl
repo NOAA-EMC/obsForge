@@ -36,6 +36,16 @@ group: gt1l {
       beam_fb_unc = 0.05f, 0.10f, 0.20f, 0.30f, 0.05f ;
       beam_fb_quality_flag = 1, 2, 3, 1, -1 ;
       beam_fb_confidence = 0.90f, 0.80f, 0.70f, 0.60f, 0.50f ;
+
+    group: heights {
+      variables:
+        float ice_conc_ssmi(delta_time) ;
+          ice_conc_ssmi:units = "1" ;
+          ice_conc_ssmi:_FillValue = 3.4028235e+38f ;
+
+      data:
+        ice_conc_ssmi = 80.0f, 75.0f, 65.0f, 90.0f, 50.0f ;
+    }
   }
 }
 
@@ -73,6 +83,16 @@ group: gt2r {
       beam_fb_unc = _, 0.40f, 0.10f ;
       beam_fb_quality_flag = 4, 5, 1 ;
       beam_fb_confidence = _, 0.40f, 0.90f ;
+
+    group: heights {
+      variables:
+        float ice_conc_ssmi(delta_time) ;
+          ice_conc_ssmi:units = "1" ;
+          ice_conc_ssmi:_FillValue = 3.4028235e+38f ;
+
+      data:
+        ice_conc_ssmi = 70.0f, 55.0f, 60.0f ;
+    }
   }
 }
 }
