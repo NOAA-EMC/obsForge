@@ -7,6 +7,7 @@
 #include "oops/runs/Application.h"
 
 #include "../Ghrsst2Ioda.h"
+#include "../IcefbIcesat2Ioda.h"
 #include "../IcecAbi2Ioda.h"
 #include "../IcecAmsr2Ioda.h"
 #include "../IcecAmsr3Ioda.h"
@@ -61,6 +62,8 @@ namespace obsforge {
         conv2ioda.writeToIoda();
       } else if (provider == "AMSR3") {
         IcecAmsr3Ioda conv2ioda(fullConfig, this->getComm());
+      } else if (provider == "FBICESAT2") {
+        IcefbIcesat2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
       } else if (provider == "MIRS") {
         IcecMirs2Ioda conv2ioda(fullConfig, this->getComm());

@@ -17,8 +17,8 @@
 	<log verbosity="10"><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H.log</cyclestr></log>
 
 	<!-- Define the cycles -->
-	<cycledef activation_offset="05:55:00" group="gcdas">0 */6 * * 2025 *</cycledef>
-        <cycledef activation_offset="05:55:00" group="gdas">0 */6 * * 2025 *</cycledef>
+	<cycledef activation_offset="05:55:00" group="gcdas">0 */6 * * 2026 *</cycledef>
+        <cycledef activation_offset="05:55:00" group="gdas">0 */6 * * 2026 *</cycledef>
 
 <!--
 	============================================
@@ -50,11 +50,11 @@
 	<envar><name>COMROOT</name><value>{{ COMROOT }}</value></envar>
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gcdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
-<!--
+
 	<dependency>
-		<datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_post_run</cyclestr></datadep>
+		<datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_run</cyclestr></datadep>
 	</dependency>
--->	
+	
 
 </task>
 
@@ -89,11 +89,11 @@
 	<envar><name>DCOMROOT</name><value>{{ DCOMROOT }}</value></envar>
 	<envar><name>DATAROOT</name><value>{{ DATAROOT }}/{{ PSLOT }}/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
         <envar><name>OBSPROC_COMROOT</name><value>/lfs/h1/ops/prod/com/obsproc/v1.2</value></envar>
-<!--
+
 	<dependency>
-                <datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_post_run</cyclestr></datadep>
+                <datadep><cyclestr>/lfs/h1/ops/prod/com/obsproc/v1.2/gdas.@Y@m@d/@H/atmos/obsproc_version_for_t@Hz_gdas_prep_run</cyclestr></datadep>
 	</dependency>
--->	
+	
 </task>
 
 <!--

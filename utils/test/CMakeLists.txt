@@ -8,6 +8,7 @@ list( APPEND utils_test_input
   testinput/obsforge_smos2ioda.yaml
   testinput/obsforge_icecabi2ioda.yaml
   testinput/obsforge_icecamsr2ioda.yaml
+  testinput/obsforge_icefbicesat2ioda.yaml
   testinput/obsforge_icecmirs2ioda.yaml
   testinput/obsforge_icecjpssrr2ioda.yaml
   testinput/obsforge_insituall2ioda.yaml
@@ -24,6 +25,7 @@ set( obsforge_utils_test_ref
   testref/smos2ioda.test
   testref/icecabi2ioda.test
   testref/icecamsr2ioda.test
+  testref/icefbicesat2ioda.test
   testref/icecmirs2ioda.test
   testref/icecjpssrr2ioda.test
   testref/insituall2ioda.test
@@ -166,6 +168,14 @@ ecbuild_add_test( TARGET  test_obsforge_util_viirsaod2ioda
 ecbuild_add_test( TARGET  test_obsforge_util_icecamsr2ioda
                   COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
                   ARGS    "../testinput/obsforge_icecamsr2ioda.yaml"
+                  LIBS    obsforge-utils
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
+                  TEST_DEPENDS test_obsforge_util_prepdata)
+
+# Test the ICESat-2 freeboard to IODA converter
+ecbuild_add_test( TARGET  test_obsforge_util_icefbicesat2ioda
+                  COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
+                  ARGS    "../testinput/obsforge_icefbicesat2ioda.yaml"
                   LIBS    obsforge-utils
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
                   TEST_DEPENDS test_obsforge_util_prepdata)
