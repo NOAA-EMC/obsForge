@@ -1,0 +1,176 @@
+Table,Role,Data Type
+
+ioda_structures,"The ""Skeleton""",Invariant (Blueprint)
+ioda_structure_nodes,"Groups, Vars, & Dims",Invariant (Blueprint)
+ioda_variable_dimensions,Shape & Order,Invariant (Blueprint)
+ioda_attributes,"Units, FillValues, etc.",Invariant (per Node)
+ioda_dimension_scales,Actual sizes (N),Variant (per File)
+--------------------------------------------------------------------
+
+-- Represents a unique collection of groups/variables (the blueprint)
+CREATE TABLE ioda_structures (
+    id SERIAL PRIMARY KEY,
+    structure_hash TEXT UNIQUE, -- SHA-256 of sorted variable paths
+    description TEXT            -- e.g., 'Radiance structure'
+);
+
+-- Defines the specific variables/groups belonging to a structure
+CREATE TABLE ioda_structure_nodes (
+    id SERIAL PRIMARY KEY,
+    structure_id INTEGER REFERENCES ioda_structures(id),
+    full_path TEXT,             -- e.g., 'ObsValue/seaSurfaceTemperature'
+    dtype TEXT,                 -- e.g., 'float32'
+    is_dimension BOOLEAN DEFAULT FALSE,
+    UNIQUE(structure_id, full_path)
+);
+
+
+# separate the attributes into structure and actual values
+CREATE TABLE ioda_structure_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id INTEGER NOT NULL,
+    attr_name TEXT NOT NULL,
+    FOREIGN KEY (node_id) REFERENCES ioda_structure_nodes (id),
+    -- Ensures we don't define the same attribute name twice for one variable
+    UNIQUE (node_id, attr_name)
+);
+
+CREATE TABLE ioda_file_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    struct_attr_id INTEGER NOT NULL,
+    attr_value JSON NOT NULL, -- Use TEXT for raw SQL in older SQLite, or JSON for newer/PG
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    FOREIGN KEY (struct_attr_id) REFERENCES ioda_structure_attributes (id)
+);
+
+
+
+-- Join table to define which variables use which dimensions
+-- order of dims matters;
+-- To handle nchans properly, ensure your nodes table distinguishes 
+-- between the Dimension (the axis) and the Variable (the values on the axis).
+
+-- 1. Invariant: Variable X is indexed by Dimension Y
+
+CREATE TABLE ioda_variable_dimensions (
+    variable_node_id INTEGER NOT NULL,
+    dimension_node_id INTEGER NOT NULL,
+    dim_index INTEGER NOT NULL,
+    PRIMARY KEY (variable_node_id, dimension_node_id, dim_index),
+    FOREIGN KEY (variable_node_id) REFERENCES ioda_structure_nodes (id),
+    FOREIGN KEY (dimension_node_id) REFERENCES ioda_structure_nodes (id)
+);
+
+--------------------------------------------------------------------------
+
+-- The actual size of the dimension in a specific file
+CREATE TABLE ioda_file_dimensions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    node_id INTEGER NOT NULL, -- Points to the 'DIMENSION' node in ioda_structure_nodes
+    dimension_value INTEGER NOT NULL,
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    FOREIGN KEY (node_id) REFERENCES ioda_structure_nodes (id),
+    -- Ensure a file only defines a specific dimension once
+    UNIQUE (file_id, node_id)
+);
+
+--------------------------------------------------------------------------
+=============================================================================
+
+-- Registry for any calculation performed on a file
+CREATE TABLE derived_products (
+    id SERIAL PRIMARY KEY,
+    file_id INTEGER REFERENCES files(id),
+    product_name TEXT,          -- e.g., 'obs_count', 'mean_bias', 'qc_mask_plot'
+    product_type TEXT,          -- e.g., 'scalar', 'image', 'netcdf_subset'
+    
+    -- Storage (One or both can be filled)
+    result_value DOUBLE PRECISION, 
+    result_path TEXT,           -- Path to disk if it's an image or large file
+    
+    metadata JSONB,             -- Flexible storage for units, timestamps, etc.
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Linkage for multi-variable products
+-- (e.g., if a product is a 'Scatter Plot' of ObsValue vs ObsError)
+CREATE TABLE product_sources (
+    product_id INTEGER REFERENCES derived_products(id),
+    node_id INTEGER REFERENCES ioda_structure_nodes(id),
+    PRIMARY KEY (product_id, node_id)
+);
+
+-- Quick-access table for spatial queries
+CREATE TABLE file_geography (
+    file_id INTEGER PRIMARY KEY REFERENCES files(id),
+    min_lat DOUBLE PRECISION,
+    max_lat DOUBLE PRECISION,
+    min_lon DOUBLE PRECISION,
+    max_lon DOUBLE PRECISION
+);
+
+
+-- Stores the results of the derived products per variable, per file
+CREATE TABLE ioda_variable_instances (
+    id SERIAL PRIMARY KEY,
+    file_id INTEGER REFERENCES files(id),
+    node_id INTEGER REFERENCES ioda_structure_nodes(id),
+    
+    -- Scalar Derived Products
+    obs_count INTEGER,          -- Your "N"
+    mean_val DOUBLE PRECISION,
+    min_val DOUBLE PRECISION,
+    max_val DOUBLE PRECISION,
+    std_dev DOUBLE PRECISION,
+    
+    -- Large Derived Products
+    derived_file_path TEXT,     -- Path to disk if the product is a large file
+    
+    UNIQUE(file_id, node_id)
+);
+
+
+
+
+ioda_structure:
+├─ global_attributes
+│   ├─ dataOriginalFormatSpec
+│   ├─ data_type
+│   ├─ subsets
+│   ├─ data_description
+│   ├─ sensor_name
+│   ├─ sensor_full_name
+│   ├─ sensor_id
+│   ├─ data_provider
+│   ├─ satellite_name
+│   ├─ satellite_full_name
+│   └─ satellite_id
+├─ dimensions
+│   └─ <dimension_name>
+│       ├─ size
+│       └─ isunlimited
+├─ groups
+│   └─ <group_name>
+│       └─ <variable_name>
+│           ├─ dtype
+│           ├─ dimensions: [ ... ]
+│           ├─ attributes
+│           │   ├─ _FillValue
+│           │   ├─ long_name
+│           │   ├─ units
+│           │   └─ valid_range (optional)
+│           └─ storage
+│               ├─ filters
+│               │   ├─ zlib
+│               │   ├─ szip
+│               │   ├─ zstd
+│               │   ├─ bzip2
+│               │   ├─ blosc
+│               │   ├─ shuffle
+│               │   ├─ complevel
+│               │   └─ fletcher32
+│               └─ chunks: [ ... ]
+
+

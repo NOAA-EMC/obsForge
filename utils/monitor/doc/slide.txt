@@ -1,0 +1,201 @@
+The monitoring application
+https://www.emc.ncep.noaa.gov/users/aeichmann/marinediag/web/html/gcdas/index.html
+
+    Workflow monitoring (obsforge tasks)
+    Inventory management (a collection of netcdf files)
+    A prototype of a framework for computing derived data products
+        stored in the database
+        files (images, json blobs, etc)
+    QC, structural integrity
+    website (static, displays data products)
+        graphical browsing interface and automated reporting
+
+Architecture: 
+-------------
+VERY SMALL relational database (Sqlite, 100MB)
+Query execution with tens of thousands of files:
+    Milliseconds instead of minutes to hours (0.1 msec lookup)
+    O(log n) RAM cache access instead of O(n) file system scan.
+
+Database schema (SQL) for obsforge datasets:
+--------------------------------------------
+Centralized Metadata Registry:
+    complete description of a collection of netcdf files 
+    and their internal structure,
+    replacing
+        thousands of yaml files
+        fixed directory tree structures
+        file naming conventions
+        shell and python scripts containing hard coded metadata
+Derived data (min, max values of all variables and much more)
+Physics knowledge (e.g. the temperature range on Earth)
+
+--------------------------------------------------------------------
+
+A Proposal for OBSPROC Architecture
+-----------------------------------
+A system for managing data (and meta data).
+Asynchronous, massively parallel workflow
+Scalability
+
+Utilities: move, copy, diff, find missing files
+Data transform: Example: run converters (instead of obsforge)
+Basic Q.C.
+
+Services:
+    Implement basic utilities
+        1. run a SQL query to generate a list of files
+        2. run a Python script on the list
+    Implement servers
+
+
+Implications of architecture for scientific modeling:
+
+Lagrangian fields on a manifold (spherical shell)
+    An obs space is a coordinate chart representation.
+    The entire field is constructed with a simple SQL query.
+
+Large-scale, massively parallel computations:
+    (The database schema enables calculus on a differential manifold.)
+    Differential operators (vorticity, divergence, time derivatives)
+    Convolution with kernels (statistical noise filtering, interpolation/extrapolation)
+
+Applications:
+    Computations along trajectories:
+        Discover and track critical points (vortices, eddies).
+        Localized covariance matrices.
+        Tracking and visualizing macro-structures.
+    Integral quantities and fluxes:
+        heat transport across a domain.
+
+
+
+
+
+
+
+-----------------------------------------------------------------------
+An obs space encodes a collection of Lagrangian fields
+on a manifold (spherical shell),
+where each field is defined on a coordinate chart.
+
+The entire Lagrangian field can be constructed with a simple
+SQL query.
+This enables large-scale, highly parallel computations:
+
+    a typical field may be undersamples or oversampled,
+    and has stochastic components --> apply filtering,
+    convolution with kernels, interpolation, etc.
+    
+    Arithmetic operations
+    Differential operators (spacial and time derivatives)
+    Vorticity, divergence
+
+    
+Tracking macro-scopic structures in time. (make a video)
+Computation of physically interesting quantities in space
+and along trajectories.
+What else?
+
+
+1. Additional Computational Frontiers
+Covariance and Correlation Structures: Use the SQL-indexed metadata to rapidly identify "neighboring" trajectories for the construction of localized covariance matrices—a prerequisite for advanced Data Assimilation.
+
+Feature Discovery via Topology: By treating the data as a field, you can use the database to find critical points (minima, maxima, saddle points) to identify features like oceanic eddies or atmospheric low-pressure centers.
+
+Integral Quantities & Fluxes: Beyond differential operators, the framework enables the calculation of integrated quantities (e.g., total heat transport across a latitude band) by aggregating Lagrangian segments into Eulerian flux estimates.
+
+2. Refined Content for Slide 2
+Here is how to structure that specific section to keep it "dense but crisp":
+
+Architectural Implications for Scientific Modeling
+
+The Lagrangian Manifold: Represents the Observation Space as a collection of fields on a spherical shell, where each coordinate chart is managed as a relational entity.
+
+Rapid Field Reconstruction: SQL queries replace manual file-looping to assemble global fields, enabling massive parallelization for:
+
+Signal Processing: Addressing under/oversampling via filtering, kernel convolutions, and stochastic noise reduction.
+
+Calculus of Observations: Native support for arithmetic operations and the computation of spatial/temporal differential operators.
+
+Advanced Diagnostics: * Trajectory Analytics: Tracking macroscopic structures and computing physical quantities (e.g., vorticity, divergence) along moving parcels.
+
+Continuum Transitions: Facilitates the transformation of discrete Lagrangian points into continuous Eulerian grids for model validation.
+
+3. "What else?" (The Forward-Looking Part)
+If you want to add one or two more high-value points for "future work" or "extended implications":
+
+Multi-Sensor Synthesis: "The framework allows for the simultaneous convolution of disparate sensors (e.g., satellite radiances + drifter temperatures) onto the same coordinate chart for cross-validation."
+
+4D-Var Preparation: "Pre-calculating the temporal evolution of observation clusters to provide 'first-guess' structures for 4D-Variational Data Assimilation."
+
+Speaker Note for this Section:
+"By shifting the perspective from 'files' to 'Lagrangian fields on a manifold,' the database becomes a tool for active physics. Because we can construct an entire field with a single query, we can apply filtering, convolutions, and differential operators at a scale that was previously impossible. We aren't just looking at the data; we are computing the dynamics of the system—tracking structures in time and calculating fluxes along trajectories as first-class physical entities."
+
+
+
+The query first calculates a RegionalAverage to establish a baseline "true" 
+temperature for a specific time and area using the pre-computed means 
+in the database. 
+It then compares every individual sensor's mean against this baseline 
+to identify specific files where the measurement deviates 
+by more than a set threshold (e.g., 2K). 
+This allows you to instantly flag potentially biased instruments across 
+the entire dataset without ever having to open or parse the raw NetCDF data arrays.
+
+WITH RegionalAverage AS (
+    -- Calculate the average temperature for a specific region/time
+    SELECT 
+        AVG(val.value) as regional_mean
+    FROM dataset_file_derived_attributes val
+    JOIN ioda_structure_nodes node ON val.ioda_node_id = node.id
+    WHERE node.name = 'seaSurfaceTemperature' 
+      AND node.group_name = 'ObsValue'
+      AND val.name = 'mean'
+)
+SELECT 
+    f.path,
+    attr.value as sensor_mean,
+    (attr.value - ra.regional_mean) as estimated_bias
+FROM dataset_file_derived_attributes attr
+JOIN dataset_obs_space_files f ON attr.obs_space_file_id = f.id
+JOIN RegionalAverage ra
+WHERE attr.name = 'mean'
+  AND ABS(attr.value - ra.regional_mean) > 2.0; -- Flag if > 2K bias
+
+
+
+
+
+
+
+
+
+A dataset (collection of obs spaces) includes
+A set of Lagrangian fields on a manifold (spherical shell).
+coordinate chart 
+
+
+
+
+
+--------------------------------------------------------------------
+
+
+
+By abstracting the filesystem into a database, we move from "data on disk" to "data in a managed environment."
+
+Structural Integrity:
+The framework codifies the implicit logic of naming conventions and directory nesting. This allows for automated validation of the file system, ensuring that assets are not just present, but structurally correct according to the expected dataset hierarchy.
+
+Operational Inventory & Auditing:
+Traditional file-system operations (scanning for missing cycles, identifying duplicates, or diffing large directories) are transformed from hours of shell-script execution into millisecond SQL queries. This provides a "Zero-I/O" inventory that does not stress the underlying storage hardware.
+
+Quality & Physics-Aware Ingest:
+By integrating basic physical bounds directly into the ingest logic, the system performs an initial "sanity check" at the entry point. This ensures that the administrative inventory is already pre-filtered for gross physical errors (e.g., impossible pressure or temperature ranges) before it reaches downstream users.
+
+Scalable Inspection:
+The schema enables a graphical browsing interface and automated reporting. This allows for a high-level view of dataset completeness and health that is difficult to maintain when metadata is fragmented across thousands of individual files or YAML sidecars.
+
+However, the schema is valuable beyond this and enables computations
+that are not possible without it.

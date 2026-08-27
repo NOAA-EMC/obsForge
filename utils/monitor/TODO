@@ -1,0 +1,255 @@
+moving average 30 days
+
+toggle doesnt work
+
+reorder gdas, obs name
+
+add limit-cycles argument to product generation, elsewhere
+
+known_state unused in scanners
+
+toggle 7days/full history
+
+explain "low volume" on page
+
+check atmos
+
+plotting 3d
+https://www.gfdl.noaa.gov/fv3/
+
+add description of generated data to db
+
+separate log scanning from dir tree scanning
+
+ioda file reader
+
+display ioda file
+
+correct the schema:
+remove variables
+add tables for ioda structure
+add explicit "runs/experiments (gdas, gfs)"
+add new data about geophysics (dim of vars, etc)
+
+refactor db access (all data_services)
+
+add services
+for each service need to generate 
+    dir for computations
+    description of input data
+    description of output
+    description of the code that performs the service
+Example of basic service: run bufr to ioda converter on a single file
+
+
+chatgpt on services:
+--------------------
+I’ll walk you through what works on WCOSS2, what usually doesn’t, and a realistic deployment pattern people at NOAA actually use.
+
+1. Reality check: what you probably do not have on WCOSS2
+On WCOSS2, assume:
+
+❌ Docker / Podman
+❌ systemd access
+❌ root privileges
+❌ long-running internet-facing daemons
+❌ Redis / RabbitMQ
+
+Maybe:
+
+FastAPI / uvicorn ❓
+
+Python 3 via modules ✔
+
+SQLite ✔
+
+Slurm / PBS / LSF ✔ (WCOSS2 = Slurm)
+
+So forget “web service listening on a port” as your primary mechanism.
+
+2. The WCOSS2-native pattern (this is the key insight)
+On WCOSS2, the service is not a daemon.
+
+Instead, it is:
+
+A command-line service + scheduler integration
+
+Think:
+
+request  →  writes DB entry  →  submits Slurm job  →  job runs converter
+This is still a service — just job-driven, not socket-driven.
+
+3. What “deployment” means on WCOSS2
+Deployment =
+
+Put code in $HOME or /lfs/h2/...
+
+Load modules
+
+Create a CLI entry point
+
+Submit jobs with sbatch
+
+Use SQLite for coordination
+
+That’s it.
+
+No always-on process.
+
+4. Minimal WCOSS2-compatible service design
+Components
+ioda_service/
+├── ioda_service.py      # CLI entry point (the "service")
+├── runner.py            # runs one obs_space_cycle
+├── db.sqlite
+├── submit_cycle.sh      # Slurm submission script
+├── logs/
+└── modules.sh
+5. The “service” is a CLI
+ioda_service.py
+#!/usr/bin/env python3
+import argparse
+import sqlite3
+import subprocess
+
+def submit_cycle(cycle):
+    db = sqlite3.connect("db.sqlite")
+    rows = db.execute(
+        "SELECT id FROM obs_space_cycle WHERE cycle_time=?",
+        (cycle,)
+    ).fetchall()
+
+    for (osc_id,) in rows:
+        subprocess.run(
+            ["sbatch", "submit_cycle.sh", str(osc_id)],
+            check=True
+        )
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cycle", required=True)
+    args = parser.parse_args()
+
+    submit_cycle(args.cycle)
+Run it like:
+
+./ioda_service.py --cycle 2026012912
+That is your service request.
+
+6. Slurm job script (this is your worker)
+submit_cycle.sh
+#!/bin/bash
+#SBATCH --job-name=ioda_conv
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --partition=service
+#SBATCH --output=logs/%j.out
+#SBATCH --error=logs/%j.err
+
+source modules.sh
+python3 runner.py "$1"
+7. The runner (stateless, pure)
+runner.py
+import sys
+import sqlite3
+import subprocess
+
+osc_id = int(sys.argv[1])
+
+db = sqlite3.connect("db.sqlite")
+
+row = db.execute(
+    """SELECT input_path, output_path, parameters_json, converter
+       FROM obs_space_cycle WHERE id=?""",
+    (osc_id,)
+).fetchone()
+
+input_path, output_path, params, converter = row
+
+cmd = [
+    converter,
+    "--input", input_path,
+    "--output", output_path
+]
+
+subprocess.run(cmd, check=True)
+That’s it. No service running forever. Slurm is your scheduler, retry system, and monitor.
+
+8. Modules instead of pip installs
+On WCOSS2 you should expect:
+
+module avail python
+module load python/3.9.12
+Create modules.sh:
+
+module purge
+module load python/3.9.12
+If FastAPI isn’t available — no problem — you don’t need it.
+
+9. SQLite is fine on WCOSS2 (with rules)
+SQLite works well if:
+
+✔ Writes are infrequent
+✔ One writer at a time
+✔ DB is on a shared filesystem (Lustre is OK)
+
+Best practice:
+
+One Slurm job = one obs_space_cycle
+
+Short transactions
+
+Commit fast
+
+10. How this maps perfectly to your use case
+Concept	WCOSS2 reality
+Service	CLI + DB
+Request	./ioda_service.py --cycle X
+Workers	Slurm jobs
+Async	Scheduler
+Retry	Re-submit job
+Status	DB column
+Logs	Slurm stdout/err
+This is idiomatic NOAA HPC design.
+
+11. If you really want HTTP later
+You can:
+
+Run FastAPI on a login node
+
+Bind to localhost
+
+Use SSH port forwarding
+
+But I would strongly advise:
+➡ start CLI + Slurm first
+➡ add HTTP only if a real user needs it
+
+12. Sanity check: you’re not behind
+What you’re proposing:
+
+DB-driven
+
+Cycle-based
+
+Stateless workers
+
+Scheduler-backed execution
+
+…is exactly how big NOAA systems are built.
+
+If you want, next I can:
+
+Design a Slurm-friendly DB schema
+
+Show how to prevent duplicate job submission
+
+Add failure + retry tracking
+
+Talk about multiple instruments per job vs one per job
+
+Show how ops people will actually use this
+
+
+

@@ -1,0 +1,191 @@
+CREATE TABLE dataset_file_derived_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    
+    -- The specific file instance being processed
+    obs_space_file_id INTEGER NOT NULL,
+    
+    -- Link to the specific IODA variable (e.g., 'ObsValue/seaSurfaceTemperature')
+    -- NULL if this is a global file attribute (e.g., 'lon_max')
+    ioda_node_id INTEGER,
+    
+    -- The metric name (e.g., 'min', 'max', 'std', 'valid_count')
+    name TEXT NOT NULL,
+    
+    -- The numeric value for fast range queries and math
+    value REAL NOT NULL,
+    
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id) 
+        ON DELETE CASCADE,
+    FOREIGN KEY (ioda_node_id) REFERENCES ioda_structure_nodes (id) 
+        ON DELETE SET NULL,
+        
+    -- Ensure we only have one value for a specific metric per variable per file
+    UNIQUE(obs_space_file_id, ioda_node_id, name)
+);
+
+-- Essential indices for spatio-temporal and quality queries
+CREATE INDEX idx_derived_attr_lookup ON dataset_file_derived_attributes (name, value);
+CREATE INDEX idx_derived_attr_node ON dataset_file_derived_attributes (ioda_node_id);
+
+
+
+CREATE TABLE dataset_file_derived_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    
+    -- The specific source file instance
+    obs_space_file_id INTEGER NOT NULL,
+    
+    -- Variable context (NULL for global plots like coverage maps)
+    ioda_node_id INTEGER,
+    
+    -- The type of product (e.g., 'histogram', 'spatial_plot', 'reformatted_nc')
+    name TEXT NOT NULL,
+    
+    -- Link to your central files table for path/size/mtime info
+    file_id INTEGER NOT NULL,
+    
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id) 
+        ON DELETE CASCADE,
+    FOREIGN KEY (ioda_node_id) REFERENCES ioda_structure_nodes (id) 
+        ON DELETE SET NULL,
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    
+    -- Prevents duplicate products for the same variable in a single file
+    UNIQUE(obs_space_file_id, ioda_node_id, name)
+);
+
+CREATE INDEX idx_derived_file_source ON dataset_file_derived_files (obs_space_file_id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------
+CREATE TABLE dataset_file_derived_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obs_space_file_id INTEGER NOT NULL,  -- Links to the specific cycle/file
+    
+    -- If ioda_node_id is NULL, it's a global file attribute (e.g., lon_max)
+    -- If ioda_node_id is set, it's a variable attribute (e.g., sst_min)
+    ioda_node_id INTEGER,                
+    
+    name TEXT NOT NULL,                  -- e.g., 'min', 'max', 'mean', 'count'
+    value REAL NOT NULL,                 -- The numeric result
+    
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id),
+    FOREIGN KEY (ioda_node_id) REFERENCES ioda_structure_nodes (id),
+    
+    -- Ensure uniqueness per variable (or global) per file
+    UNIQUE(obs_space_file_id, ioda_node_id, name)
+);
+
+CREATE TABLE dataset_file_derived_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obs_space_file_id INTEGER NOT NULL,
+    ioda_node_id INTEGER, 
+    name TEXT NOT NULL,     -- e.g., 'histogram', 'spatial_plot'
+    file_id INTEGER NOT NULL,
+    
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id),
+    FOREIGN KEY (ioda_node_id) REFERENCES ioda_structure_nodes (id),
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    UNIQUE(obs_space_file_id, ioda_node_id, name)
+);
+
+
+-------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Numeric/Scalar results derived from a specific dataset file
+CREATE TABLE dataset_file_derived_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obs_space_file_id INTEGER NOT NULL, -- FK -> dataset_obs_space_files.id
+    name TEXT NOT NULL,                 -- e.g., 'lat_min', 'valid_count'
+    value REAL NOT NULL,                -- Numeric for easy querying
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id),
+    UNIQUE(obs_space_file_id, name)
+);
+
+-- Files (plots, logs, sub-products) derived from a specific dataset file
+CREATE TABLE dataset_file_derived_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obs_space_file_id INTEGER NOT NULL, -- FK -> dataset_obs_space_files.id
+    name TEXT NOT NULL,                 -- e.g., 'coverage_plot', 'reformatted_nc'
+    file_id INTEGER NOT NULL,           -- FK -> files.id
+    FOREIGN KEY (obs_space_file_id) REFERENCES dataset_obs_space_files (id),
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    UNIQUE(obs_space_file_id, name)
+);
+
+
+
+
+
+
+-- Numeric/Scalar properties of a DatasetObsSpace for a specific cycle
+CREATE TABLE dataset_attributes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_obs_space_id INTEGER NOT NULL,
+    dataset_cycle_id INTEGER NOT NULL,
+    
+    name TEXT NOT NULL,         -- e.g., 'lat_min', 'count', 'mean_error'
+    value REAL NOT NULL,        -- Numeric for fast SQL math and range queries
+    
+    FOREIGN KEY (dataset_obs_space_id) REFERENCES dataset_obs_spaces (id),
+    FOREIGN KEY (dataset_cycle_id) REFERENCES dataset_cycles (id),
+    UNIQUE(dataset_obs_space_id, dataset_cycle_id, name)
+);
+
+-- Files produced from a DatasetObsSpace for a specific cycle
+CREATE TABLE dataset_derived_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_obs_space_id INTEGER NOT NULL,
+    dataset_cycle_id INTEGER NOT NULL,
+    
+    name TEXT NOT NULL,         -- e.g., 'coverage_plot', 'reformatted_nc'
+    file_id INTEGER NOT NULL,   -- Link to your existing 'files' table
+    
+    FOREIGN KEY (dataset_obs_space_id) REFERENCES dataset_obs_spaces (id),
+    FOREIGN KEY (dataset_cycle_id) REFERENCES dataset_cycles (id),
+    FOREIGN KEY (file_id) REFERENCES files (id),
+    UNIQUE(dataset_obs_space_id, dataset_cycle_id, name)
+);
