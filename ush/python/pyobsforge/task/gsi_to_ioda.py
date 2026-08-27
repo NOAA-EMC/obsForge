@@ -312,7 +312,7 @@ class GsiToIoda(Task):
         except Exception as e:
             raise WorkflowException(f"An error occurred during execution of {exec_cmd}:\n{e}") from e
 
-        # Create satellite tarball and copy to COMOUT
+        # Create bias tarball and copy to COMOUT
         comout = os.path.join(self.task_config['COMROOT'],
                               self.task_config['PSLOT'],
                               f"{self.task_config.RUN}.{self.task_config.current_cycle.strftime('%Y%m%d')}",
@@ -320,24 +320,32 @@ class GsiToIoda(Task):
                               'atmos_gsi')
         if not os.path.exists(comout):
             FileHandler({'mkdir': [comout]}).sync()
-        tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}rad_varbc_params.tar")
+        tarball_out = os.path.join(comout, f"{self.task_config.APREFIX}varbc_params.tar")
         with tarfile.open(tarball_out, "w") as tar:
             for sat in satlist:
-                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
-                if os.path.exists(bias_file):
-                    logger.info(f"Adding {bias_file} to tarball")
-                    tar.add(bias_file, arcname=os.path.basename(bias_file))
-                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
-                if os.path.exists(tlapse_file):
+                bias_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.satbias.gsi.nc')
+                bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.bias.nc')
+                cov_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.bias_cov.nc')
+                if os.path.exists(bias_file_in):
+                    logger.info(f"Adding {bias_file_in} to tarball as {os.path.basename(bias_file)}")
+                    tar.add(bias_file_in, arcname=os.path.basename(bias_file))
+                    # add the same file with a different name for the covariance file
+                    # (this is needed for the UFO varbc reader to read in the covariance info)
+                    tar.add(bias_file_in, arcname=os.path.basename(cov_file))
+                tlapse_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.gsi.txt')
+                tlapse_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}radiance_{sat}.tlapse.txt')
+                if os.path.exists(tlapse_file_in):
                     logger.info(f"Adding {tlapse_file} to tarball")
-                    tar.add(tlapse_file, arcname=os.path.basename(tlapse_file))
-        logger.info(f"Finished creating bias correction tarball at {tarball_out}")
+                    tar.add(tlapse_file_in, arcname=os.path.basename(tlapse_file))
+            # also add the aircraft bias file to the tarball
+            acft_bias_file_in = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.gsi.nc')
+            acft_bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft.bias.nc')
+            acft_cov_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft.bias_cov.nc')
+            if os.path.exists(acft_bias_file_in):
+                logger.info(f"Adding {acft_bias_file_in} to tarball")
+                tar.add(acft_bias_file_in, arcname=os.path.basename(acft_bias_file))
+                # add the same file with a different name for the covariance file
+                # (this is needed for the UFO varbc reader to read in the covariance info)
+                tar.add(acft_bias_file_in, arcname=os.path.basename(acft_cov_file))
 
-        # copy aircraft bias file to COMOUT
-        acft_bias_file = os.path.join(bias_dir_path, f'{self.task_config["APREFIX"]}aircraft_bias.gsi.nc')
-        if os.path.exists(acft_bias_file):
-            dest = os.path.join(comout, os.path.basename(acft_bias_file))
-            FileHandler({'copy_opt': [[acft_bias_file, dest]]}).sync()
-            logger.info(f"Copied aircraft bias file to {dest}")
-        else:
-            logger.warning(f"Aircraft bias file {acft_bias_file} does not exist, skipping copy to COMOUT")
+        logger.info(f"Finished creating bias correction tarball at {tarball_out}")
