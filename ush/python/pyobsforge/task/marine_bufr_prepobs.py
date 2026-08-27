@@ -207,7 +207,11 @@ class MarineBufrObsPrep(Task):
                 try:
                     logger.debug(f"Executing {concater}")
                     concater()
-                except Exception as e:
+                # catch everything:
+                except BaseException as e:
+                    if type(e).__name__ in ('KeyboardInterrupt', 'SystemExit'):
+                        raise
+
                     logger.warning(f"Concatenation failed for {concat_config['provider_var']}")
                     logger.warning(f"Execution failed for {concater}: {e}")
                     logger.debug("Exception details", exc_info=True)
