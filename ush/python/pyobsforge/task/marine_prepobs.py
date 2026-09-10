@@ -226,7 +226,7 @@ class MarineObsPrep(Task):
                 "window_begin": window_begin,
                 "window_end": window_end,
                 "task_config": self.task_config,
-            } 
+            }
 
         return config["processor"].process_obs_space(**kwargs)
 
