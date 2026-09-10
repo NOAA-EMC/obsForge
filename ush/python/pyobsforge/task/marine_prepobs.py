@@ -143,52 +143,92 @@ class MarineObsPrep(Task):
             return result
 
         # Process NESDIS_AMSR2
-        if provider == "nesdis_amsr2":
-            # Only handling "icec_amsr2_" cases
-            platform = "GW1"
-            instrument = "AMSR2"
-            satellite = "GW1"
-            # TODO(G,M): Get the window size from the config
-            window_begin = self.task_config.window_begin - timedelta(hours=30)
-            window_end = self.task_config.window_begin + timedelta(hours=6)
-            kwargs = {
-                'provider': "amsr2",
-                'obs_space': obs_space,
-                'platform': platform,
-                'instrument': instrument,
-                'satellite': satellite,
-                'obs_type': obs_space,
-                'output_file': output_file,
-                'window_begin': window_begin,
-                'window_end': window_end,
-                'task_config': self.task_config
-            }
-            result = self.nesdis_amsr2.process_obs_space(**kwargs)
-            return result
+#        if provider == "nesdis_amsr2":
+#            # Only handling "icec_amsr2_" cases
+#            platform = "GW1"
+#            instrument = "AMSR2"
+#            satellite = "GW1"
+#            # TODO(G,M): Get the window size from the config
+#            window_begin = self.task_config.window_begin - timedelta(hours=30)
+#            window_end = self.task_config.window_begin + timedelta(hours=6)
+#            kwargs = {
+#                'provider': "amsr2",
+#                'obs_space': obs_space,
+#                'platform': platform,
+#                'instrument': instrument,
+#                'satellite': satellite,
+#                'obs_type': obs_space,
+#                'output_file': output_file,
+#                'window_begin': window_begin,
+#                'window_end': window_end,
+#                'task_config': self.task_config
+#            }
+#            result = self.nesdis_amsr2.process_obs_space(**kwargs)
+#            return result
 
         # Process NESDIS_AMSR3
-        if provider == "nesdis_amsr3":
-            # Only handling "icec_amsr3_" cases
-            platform = "ggw"
-            instrument = "AMSR3"
-            satellite = "ggw"
+#        if provider == "nesdis_amsr3":
+#            # Only handling "icec_amsr3_" cases
+#            platform = "ggw"
+#            instrument = "AMSR3"
+#            satellite = "ggw"
+#            # TODO(G,M): Get the window size from the config
+#            window_begin = self.task_config.window_begin - timedelta(hours=30)
+#            window_end = self.task_config.window_begin + timedelta(hours=6)
+#            kwargs = {
+#                'provider': "amsr3",
+#                'obs_space': obs_space,
+#                'platform': platform,
+#                'instrument': instrument,
+#                'satellite': satellite,
+#                'obs_type': obs_space,
+#                'output_file': output_file,
+#                'window_begin': window_begin,
+#                'window_end': window_end,
+#                'task_config': self.task_config
+#            }
+#            result = self.nesdis_amsr3.process_obs_space(**kwargs)
+#            return result
+
+        # Process NESDIS_AMSR2 & 3
+        if provider in ("nesdis_amsr2", "nesdis_amsr3"):
+            amsr_config = {
+                "nesdis_amsr2": {
+                    "provider": "amsr2",
+                    "platform": "GW1",
+                    "instrument": "AMSR2",
+                    "satellite": "GW1",
+                    "processor": self.nesdis_amsr2,
+                },
+                "nesdis_amsr3": {
+                    "provider": "amsr3",
+                    "platform": "ggw",
+                    "instrument": "AMSR3",
+                    "satellite": "ggw",
+                    "processor": self.nesdis_amsr3,
+                },
+            }
+
+            config = amsr_config[provider]
+
             # TODO(G,M): Get the window size from the config
             window_begin = self.task_config.window_begin - timedelta(hours=30)
             window_end = self.task_config.window_begin + timedelta(hours=6)
+
             kwargs = {
-                'provider': "amsr3",
-                'obs_space': obs_space,
-                'platform': platform,
-                'instrument': instrument,
-                'satellite': satellite,
-                'obs_type': obs_space,
-                'output_file': output_file,
-                'window_begin': window_begin,
-                'window_end': window_end,
-                'task_config': self.task_config
-            }
-            result = self.nesdis_amsr3.process_obs_space(**kwargs)
-            return result
+                "provider": config["provider"],
+                "obs_space": obs_space,
+                "platform": config["platform"],
+                "instrument": config["instrument"],
+                "satellite": config["satellite"],
+                "obs_type": obs_space,
+                "output_file": output_file,
+                "window_begin": window_begin,
+                "window_end": window_end,
+                "task_config": self.task_config,
+            } 
+
+        return config["processor"].process_obs_space(**kwargs)
 
         # Process NESDIS_MIRS
         if provider == "nesdis_mirs":
