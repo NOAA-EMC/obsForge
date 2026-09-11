@@ -9,7 +9,7 @@
 #include "../Ghrsst2Ioda.h"
 #include "../IcefbIcesat2Ioda.h"
 #include "../IcecAbi2Ioda.h"
-#include "../IcecAmsr2Ioda.h"
+#include "../IcecAmsrIoda.h"
 #include "../IcecJpssrr2Ioda.h"
 #include "../IcecMirs2Ioda.h"
 #include "../InsituAll2ioda.h"
@@ -57,8 +57,10 @@ namespace obsforge {
         IcecAbi2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
       } else if (provider == "AMSR2") {
-        IcecAmsr2Ioda conv2ioda(fullConfig, this->getComm());
+        IcecAmsrIoda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
+      } else if (provider == "AMSR3") {
+        IcecAmsrIoda conv2ioda(fullConfig, this->getComm());
       } else if (provider == "FBICESAT2") {
         IcefbIcesat2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();

@@ -23,16 +23,16 @@
 
 namespace obsforge {
 
-  class IcecAmsr2Ioda : public NetCDFToIodaConverter {
+  class IcecAmsrIoda : public NetCDFToIodaConverter {
    public:
-    explicit IcecAmsr2Ioda(const eckit::Configuration & fullConfig, const eckit::mpi::Comm & comm)
+    explicit IcecAmsrIoda(const eckit::Configuration & fullConfig, const eckit::mpi::Comm & comm)
       : NetCDFToIodaConverter(fullConfig, comm) {
       variable_ = "seaIceFraction";
     }
 
     // Read netcdf file and populate iodaVars
     obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
-      oops::Log::info() << "Processing files provided by the AMSR2" << std::endl;
+      oops::Log::info() << "Processing files provided by the AMSR# Curently 2 or 3" << std::endl;
 
       //  Abort the case where the 'window begin & window end' key is not found
       ASSERT(fullConfig_.has("window begin"));
@@ -85,7 +85,7 @@ namespace obsforge {
       ncFile.getVar("Scan_Time").getVar(oneTmpdateTimeVal.data());
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
-      // Set epoch time for AMSR2_ICEC
+      // Set epoch time for AMSR#_ICEC
       util::DateTime epochDtime("1970-01-01T00:00:00Z");
 
       // Compute seconds of windowBegin and windowEnd since epoch
@@ -144,5 +144,5 @@ namespace obsforge {
 
       return iodaVars;
     };
-  };  // class IcecAmsr2Ioda
+  };  // class IcecAmsrIoda
 }  // namespace obsforge
