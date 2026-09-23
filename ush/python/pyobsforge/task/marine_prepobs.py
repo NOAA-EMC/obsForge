@@ -180,7 +180,7 @@ class MarineObsPrep(Task):
                 "task_config": self.task_config,
             }
 
-        return config["processor"].process_obs_space(**kwargs)
+            return config["processor"].process_obs_space(**kwargs)
 
         # Process NESDIS_MIRS
         if provider == "nesdis_mirs":

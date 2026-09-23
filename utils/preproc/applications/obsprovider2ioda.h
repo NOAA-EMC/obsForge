@@ -61,6 +61,7 @@ namespace obsforge {
         conv2ioda.writeToIoda();
       } else if (provider == "AMSR3") {
         IcecAmsrIoda conv2ioda(fullConfig, this->getComm());
+        conv2ioda.writeToIoda();
       } else if (provider == "FBICESAT2") {
         IcefbIcesat2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
