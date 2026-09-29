@@ -92,11 +92,12 @@ namespace obsforge {
       // Apply scaling/unit change and compute the necessary fields
       std::vector<std::vector<int>> mask(dimRow, std::vector<int>(dimCol));
       std::vector<std::vector<float>> obsvalue(dimRow, std::vector<float>(dimCol));
+      std::vector<std::vector<float>> obsvalue_raw(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<float>> obserror(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<int>> preqc(dimRow, std::vector<int>(dimCol));
       std::vector<std::vector<float>> lat(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<float>> lon(dimRow, std::vector<float>(dimCol));
-
+      std::vector<std::vector<float>> pathflag(dimRow, std::vector<float>(dimCol));
 
 
       // Thinning
@@ -117,20 +118,33 @@ namespace obsforge {
              float isThin = dis(gen);
              if (isThin > thinThreshold) {
                 preqc[i][j] = static_cast<int>(qcall[i][j]);
-                obsvalue[i][j] = static_cast<float>(aod550[i][j]);
                 lat[i][j] = lat2d[i][j];
                 lon[i][j] = lon2d[i][j];
                 // dark land
-                float obserrorValue = 0.111431 + 0.128699 * static_cast<float>(aod550[i][j]);
+                float obserrorValue1 = 0.111431 + 0.128699 * static_cast<float>(aod550[i][j]);  // (Huang et al. 2023)
+		// Innovation-based diagnostic (Desroziers et al, 2005)
+		float obserrorValue2 = -0.127 + 0.547 * static_cast<float>(aod550[i][j]);  
+		float obsBiasValue = -0.014 + 0.158 * static_cast<float>(aod550[i][j]);        // (Huang et al. 2023)
+		pathflag[i][j] = static_cast<float>(1);   // briefly assign dark land flag to 1
+
                 // ocean
                 if (qcpath[i][j] % 2 == 1) {
-                    obserrorValue = 0.00784394 + 0.219923 * static_cast<float>(aod550[i][j]);
+                    obserrorValue1 = 0.00784394 + 0.219923 * static_cast<float>(aod550[i][j]);
+		    obserrorValue2 = -0.069 + 0.483 * static_cast<float>(aod550[i][j]);
+		    obsBiasValue = -0.015 + 0.077 * static_cast<float>(aod550[i][j]);
+		    pathflag[i][j] = static_cast<float>(0); // briefly assign ocean flag to 1
                 }
                 // bright land
                 if (qcpath[i][j] % 4 == 2) {
-                   obserrorValue = 0.0550472 + 0.299558 *  static_cast<float>(aod550[i][j]);
+                   obserrorValue1 = 0.0550472 + 0.299558 *  static_cast<float>(aod550[i][j]);
+		   obserrorValue2 = -0.101 + 0.644 *  static_cast<float>(aod550[i][j]);
+		   obsBiasValue = -0.011 + 0.150 * static_cast<float>(aod550[i][j]);
+		   pathflag[i][j] = static_cast<float>(2); // briefly assign bright land flag to 2
                 }
-                obserror[i][j] = obserrorValue;
+
+		obsvalue[i][j] = static_cast<float>(aod550[i][j]);
+		obsvalue[i][j] -= obsBiasValue;
+		obserror[i][j] = std::max(obserrorValue1,obserrorValue2);
                 mask[i][j] = 1;
              }
           }
@@ -142,6 +156,7 @@ namespace obsforge {
       std::vector<std::vector<float>> lat2d_s;
       std::vector<std::vector<float>> obserror_s;
       std::vector<std::vector<int>> mask_s;
+      std::vector<std::vector<float>> pathflag_s;
 
       if ( fullConfig_.has("binning") ) {
         // Do superobbing
@@ -172,6 +187,7 @@ namespace obsforge {
 
         lat2d_s = obsforge::superobutils::subsample2D(lat, mask, fullConfig_);
         mask_s = obsforge::superobutils::subsample2D(mask, mask, fullConfig_);
+        pathflag_s = obsforge::superobutils::subsample2DMode(pathflag, mask, fullConfig_);
         if (fullConfig_.has("binning.cressman radius")) {
         // Weighted-average (cressman) superob
           bool useCressman = true;
@@ -179,17 +195,22 @@ namespace obsforge {
                        useCressman, lat, lon, lat2d_s, lon2d_s);
           obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_,
                        useCressman, lat, lon, lat2d_s, lon2d_s);
+          obsvalue_raw_s = obsforge::superobutils::subsample2D(obsvalue_raw, mask, fullConfig_,
+                       useCressman, lat, lon, lat2d_s, lon2d_s);
         } else {
         // Simple-average superob
           obsvalue_s = obsforge::superobutils::subsample2D(obsvalue, mask, fullConfig_);
           obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_);
+          obsvalue_raw_s = obsforge::superobutils::subsample2D(obsvalue_raw, mask, fullConfig_);
         }
       } else {
         obsvalue_s = obsvalue;
+        obsvalue_raw_s = obsvalue_raw;
         lon2d_s = lon;
         lat2d_s = lat;
         obserror_s = obserror;
         mask_s = mask;
+	pathflag_s = pathflag;
       }
 
       int dimRow_s = obsvalue_s.size();
@@ -202,6 +223,9 @@ namespace obsforge {
            }
         }
       }
+      // save pathFlag to MetaData
+      std::vector<std::string> intMetadataNames = {"QCPath"};
+      std::vector<std::string> floatMetadataNames = {"ObsValue_raw_4"};
 
 
       // read in channel number
@@ -218,7 +242,7 @@ namespace obsforge {
       int nchan(channelNumber.size());
       oops::Log::info() << " number of channels " << nchan << std::endl;
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, {}, {});
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
 
       oops::Log::info() << " eigen... row and column:" << obsvalue_s.size() << " "
@@ -233,6 +257,8 @@ namespace obsforge {
                     iodaVars.longitude_(loc) = lon2d_s[i][j];
                     iodaVars.latitude_(loc) = lat2d_s[i][j];
                     iodaVars.datetime_(loc) = secondsSinceReference;
+		    iodaVars.intMetadata_.row(loc) << pathflag_s[i][j];
+		    iodaVars.floatMetadata_.row(loc) << obsvalue_raw_s[i][j];
                     // VIIRS AOD use only one channel (4)
                     iodaVars.obsVal_(nchan*loc+k) = obsvalue_s[i][j];
                     if ( fullConfig_.has("binning") ) {

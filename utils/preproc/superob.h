@@ -112,5 +112,73 @@ namespace obsforge {
       std::cout << " done subsampling" << std::endl;
       return subsampled;
     }
+
+
+     /**
+     * @brief Performs mode (most frequent) subsampling on 2D gridded data.
+     * 
+     * Finds the most frequent value in each stride box. If its frequency is 
+     * strictly greater than 1/2 of the total valid observations in the box,
+     * it stores that value. 
+     */
+    template <typename T>
+    std::vector<std::vector<T>> subsample2DMode(const std::vector<std::vector<T>>& inputArray,
+                                                const std::vector<std::vector<int>>& mask,
+                                                const eckit::Configuration & fullConfig) {
+      // Get the binning configuration
+      int stride;
+      int minNumObs;
+      fullConfig.get("binning.stride", stride);
+      fullConfig.get("binning.min number of obs", minNumObs);
+
+      // Calculate the dimensions of the subsampled array
+      int numRows = inputArray.size();
+      int numCols = inputArray[0].size();
+      int subsampledRows = (numRows + stride - 1) / stride;
+      int subsampledCols = (numCols + stride - 1) / stride;
+
+      // Allocate memory for the subsampled array
+      std::vector<std::vector<T>> subsampled(subsampledRows, std::vector<T>(subsampledCols));
+
+      for (int i = 0; i < subsampledRows; ++i) {
+        for (int j = 0; j < subsampledCols; ++j) {
+          std::unordered_map<T, int> freqMap;
+          int count = 0;
+
+          // Collect valid points and count frequencies within the stride box
+          for (int si = 0; si < stride; ++si) {
+            for (int sj = 0; sj < stride; ++sj) {
+              int row = i * stride + si;
+              int col = j * stride + sj;
+              if (row < numRows && col < numCols && mask[row][col] == 1) {
+                freqMap[inputArray[row][col]]++;
+                count++;
+              }
+            }
+          }
+
+          // Check minimum observations threshold
+          if (count < minNumObs) {
+            subsampled[i][j] = static_cast<T>(-9999);
+          } else {
+            // Find the most frequent element
+            int maxFreq = 0;
+            T modeVal = static_cast<T>(1);
+
+            for (const auto& entry : freqMap) {
+              if (entry.second > maxFreq) {
+                maxFreq = entry.second;
+                modeVal = entry.first;
+              }
+            }
+
+            subsampled[i][j] = modeVal;
+          }
+        }
+      }
+
+      std::cout << " done mode subsampling" << std::endl;
+      return subsampled;
+    }
   }  // namespace superobutils
 }  // namespace obsforge
