@@ -138,13 +138,17 @@ namespace obsforge {
 
       // Superobing over (stride x stride) boxes of swath pixels
       if ( fullConfig_.has("binning") ) {
-        // Average the longitude as a unit vector to avoid issues at the dateline
-        std::vector<std::vector<float>> coslon2d(nLines, std::vector<float>(nPixels));
-        std::vector<std::vector<float>> sinlon2d(nLines, std::vector<float>(nPixels));
+        // Average the longitude as a unit vector to avoid issues at the dateline.
+        // Done in double precision so that the float results do not depend on the
+        // compiler's single precision trigonometric functions.
+        std::vector<std::vector<double>> coslon2d(nLines, std::vector<double>(nPixels));
+        std::vector<std::vector<double>> sinlon2d(nLines, std::vector<double>(nPixels));
+        index = 0;
         for (int i = 0; i < nLines; i++) {
           for (int j = 0; j < nPixels; j++) {
-            coslon2d[i][j] = std::cos(lon2d[i][j] * M_PI / 180.0);
-            sinlon2d[i][j] = std::sin(lon2d[i][j] * M_PI / 180.0);
+            coslon2d[i][j] = std::cos(lon[index] * M_PI / 180.0);
+            sinlon2d[i][j] = std::sin(lon[index] * M_PI / 180.0);
+            index++;
           }
         }
         coslon2d = binSwath(coslon2d, mask);
@@ -161,7 +165,7 @@ namespace obsforge {
         for (size_t i = 0; i < adt2d.size(); i++) {
           for (size_t j = 0; j < adt2d[0].size(); j++) {
             mask[i][j] = (adt2d[i][j] != -9999.0) ? 1 : 0;
-            lon2d[i][j] = std::atan2(sinlon2d[i][j], coslon2d[i][j]) * 180.0 / M_PI;
+            lon2d[i][j] = static_cast<float>(std::atan2(sinlon2d[i][j], coslon2d[i][j]) * 180.0 / M_PI);
           }
         }
       }
