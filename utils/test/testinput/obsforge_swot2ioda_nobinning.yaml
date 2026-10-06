@@ -6,6 +6,7 @@ ssha variable: ssha_karin_2  # or ssha_karin (radiometer wet troposphere correct
 output file: swot_adt_20250901_nobinning.ioda.nc
 #ocean basin: RECCAP2_region_masks_all_v20221025.nc
 input files:
+- swot_l2_lr_ssh_3.nc4  # no valid obs, must not break the appended files
 - swot_l2_lr_ssh_1.nc4
 - swot_l2_lr_ssh_2.nc4
 
