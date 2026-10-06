@@ -2,6 +2,7 @@
 list( APPEND utils_test_input
   testinput/obsforge_rads2ioda.yaml
   testinput/obsforge_swot2ioda.yaml
+  testinput/obsforge_swot2ioda_nobinning.yaml
   testinput/obsforge_ghrsst2ioda.yaml
   testinput/obsforge_rtofstmp.yaml
   testinput/obsforge_rtofssal.yaml
@@ -20,6 +21,7 @@ list( APPEND utils_test_input
 set( obsforge_utils_test_ref
   testref/rads2ioda.test
   testref/swot2ioda.test
+  testref/swot2ioda_nobinning.test
   testref/ghrsst2ioda.test
   testref/rtofstmp.test
   testref/rtofssal.test
@@ -81,6 +83,14 @@ ecbuild_add_test( TARGET  test_obsforge_util_rads2ioda
 ecbuild_add_test( TARGET  test_obsforge_util_swot2ioda
                   COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
                   ARGS    "../testinput/obsforge_swot2ioda.yaml"
+                  LIBS    netcdf2ioda
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
+                  TEST_DEPENDS test_obsforge_util_prepdata)
+
+# Test the SWOT to IODA converter without superobing
+ecbuild_add_test( TARGET  test_obsforge_util_swot2ioda_nobinning
+                  COMMAND ${CMAKE_BINARY_DIR}/bin/obsforge_obsprovider2ioda.x
+                  ARGS    "../testinput/obsforge_swot2ioda_nobinning.yaml"
                   LIBS    netcdf2ioda
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/obsproc
                   TEST_DEPENDS test_obsforge_util_prepdata)

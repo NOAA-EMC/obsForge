@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cmath>
-#include <iostream>
-#include <map>
 #include <netcdf>    // NOLINT (using C API)
 #include <regex>
 #include <string>
@@ -44,16 +42,41 @@ namespace obsforge {
       errRatio /= 86400.0;
 
       // SSHA field: ssha_karin_2 (model wet troposphere, default) or ssha_karin (radiometer)
+      // Any other field (e.g. ssh_karin, relative to the ellipsoid) would not give an ADT
       const std::string sshaName = fullConfig_.getString("ssha variable", "ssha_karin_2");
+      ASSERT(sshaName == "ssha_karin" || sshaName == "ssha_karin_2");
+
+      // Set the int metadata names
+      std::vector<std::string> intMetadataNames = {"cycle", "pass", "mission", "oceanBasin"};
+
+      // Set the float metadata name
+      std::vector<std::string> floatMetadataNames = {"mdt", "crossTrackDistance"};
 
       // Open the NetCDF file in read-only mode
       netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       oops::Log::info() << "Reading... " << fileName << std::endl;
 
+      // Reformat the reference time: "seconds since 2000-01-01 00:00:00.0"
+      std::string timeUnits;
+      ncFile.getVar("time").getAtt("units").getValues(timeUnits);
+      std::regex dateRegex(R"(seconds since (\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2}))");
+      std::smatch match;
+      const bool foundRefDate = std::regex_search(timeUnits, match, dateRegex);
+      ASSERT(foundRefDate);
+      std::string refDate = "seconds since " + match.str(1) + "T" + match.str(2) + "Z";
+
       // Swath dimensions
       const int nLines = ncFile.getDim("num_lines").getSize();
       const int nPixels = ncFile.getDim("num_pixels").getSize();
       const size_t nSwath = static_cast<size_t>(nLines) * nPixels;
+
+      // Nothing to read in an empty granule
+      if (nSwath == 0) {
+        oops::Log::warning() << "Empty swath in " << fileName << std::endl;
+        obsforge::preproc::iodavars::IodaVars iodaVars(0, 1, floatMetadataNames, intMetadataNames);
+        iodaVars.referenceDate_ = refDate;
+        return iodaVars;
+      }
 
       // Read and unpack the swath fields, valid is false wherever a field is missing
       std::vector<bool> valid(nSwath, true);
@@ -66,30 +89,18 @@ namespace obsforge {
 
       // Quality and surface flags, 0 is good/open ocean/no ice/no rain for all of them.
       // Fill values are non-zero and are rejected as well.
-      std::vector<uint32_t> sshaQual(nSwath);
-      ncFile.getVar(sshaName + "_qual").getVar(sshaQual.data());
-      std::vector<uint8_t> xoverQual(nSwath);
-      ncFile.getVar("height_cor_xover_qual").getVar(xoverQual.data());
-      std::vector<uint8_t> surfaceFlag(nSwath);
-      ncFile.getVar("ancillary_surface_classification_flag").getVar(surfaceFlag.data());
-      std::vector<uint8_t> iceFlag(nSwath);
-      ncFile.getVar("dynamic_ice_flag").getVar(iceFlag.data());
-      std::vector<uint8_t> rainFlag(nSwath);
-      ncFile.getVar("rain_flag").getVar(rainFlag.data());
+      std::vector<uint32_t> sshaQual = readSwathFlag<uint32_t>(ncFile, sshaName + "_qual", nSwath);
+      std::vector<uint8_t> xoverQual = readSwathFlag<uint8_t>(ncFile, "height_cor_xover_qual", nSwath);
+      std::vector<uint8_t> surfaceFlag =
+        readSwathFlag<uint8_t>(ncFile, "ancillary_surface_classification_flag", nSwath);
+      std::vector<uint8_t> iceFlag = readSwathFlag<uint8_t>(ncFile, "dynamic_ice_flag", nSwath);
+      std::vector<uint8_t> rainFlag = readSwathFlag<uint8_t>(ncFile, "rain_flag", nSwath);
 
       // Time is only a function of the along track line
       std::vector<double> time(nLines);
       ncFile.getVar("time").getVar(time.data());
       double timeFillValue;
       ncFile.getVar("time").getAtt("_FillValue").getValues(&timeFillValue);
-
-      // Reformat the reference time: "seconds since 2000-01-01 00:00:00.0"
-      std::string timeUnits;
-      ncFile.getVar("time").getAtt("units").getValues(timeUnits);
-      std::regex dateRegex(R"(seconds since (\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2}))");
-      std::smatch match;
-      ASSERT(std::regex_search(timeUnits, match, dateRegex));
-      std::string refDate = "seconds since " + match.str(1) + "T" + match.str(2) + "Z";
 
       // Cycle and pass numbers
       int cycle;
@@ -147,8 +158,8 @@ namespace obsforge {
         // Bins with less than "min number of obs" are set to -9999
         mask.assign(adt2d.size(), std::vector<int>(adt2d[0].size()));
         lon2d.assign(adt2d.size(), std::vector<float>(adt2d[0].size()));
-        for (int i = 0; i < adt2d.size(); i++) {
-          for (int j = 0; j < adt2d[0].size(); j++) {
+        for (size_t i = 0; i < adt2d.size(); i++) {
+          for (size_t j = 0; j < adt2d[0].size(); j++) {
             mask[i][j] = (adt2d[i][j] != -9999.0) ? 1 : 0;
             lon2d[i][j] = std::atan2(sinlon2d[i][j], coslon2d[i][j]) * 180.0 / M_PI;
           }
@@ -160,12 +171,6 @@ namespace obsforge {
       for (const auto & row : mask) {
         for (const int m : row) nobs += m;
       }
-
-      // Set the int metadata names
-      std::vector<std::string> intMetadataNames = {"cycle", "pass", "mission", "oceanBasin"};
-
-      // Set the float metadata name
-      std::vector<std::string> floatMetadataNames = {"mdt", "crossTrackDistance"};
 
       // Create instance of iodaVars object
       obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, floatMetadataNames, intMetadataNames);
@@ -181,8 +186,8 @@ namespace obsforge {
 
       // Store into eigen arrays
       int loc = 0;
-      for (int i = 0; i < mask.size(); i++) {
-        for (int j = 0; j < mask[0].size(); j++) {
+      for (size_t i = 0; i < mask.size(); i++) {
+        for (size_t j = 0; j < mask[0].size(); j++) {
           if (mask[i][j] == 0) continue;
           iodaVars.longitude_(loc) = lon2d[i][j];
           iodaVars.latitude_(loc)  = lat2d[i][j];
@@ -235,13 +240,32 @@ namespace obsforge {
       return binned;
     }
 
+    // Get a variable and check that it is defined on the (num_lines, num_pixels) swath
+    netCDF::NcVar getSwathVar(const netCDF::NcFile & ncFile, const std::string & varName,
+                              const size_t nSwath) const {
+      netCDF::NcVar ncVar = ncFile.getVar(varName);
+      ASSERT(ncVar.getDimCount() == 2);
+      ASSERT(ncVar.getDim(0).getName() == "num_lines");
+      ASSERT(ncVar.getDim(1).getName() == "num_pixels");
+      ASSERT(ncVar.getDim(0).getSize() * ncVar.getDim(1).getSize() == nSwath);
+      return ncVar;
+    }
+
+    // Read a (num_lines, num_pixels) flag variable as is
+    template <typename T>
+    std::vector<T> readSwathFlag(const netCDF::NcFile & ncFile, const std::string & varName,
+                                 const size_t nSwath) const {
+      std::vector<T> flag(nSwath);
+      getSwathVar(ncFile, varName, nSwath).getVar(flag.data());
+      return flag;
+    }
+
     // Read a packed (num_lines, num_pixels) variable, apply the scale factor and offset,
     // and set valid to false where the fill value is found
     template <typename T>
     std::vector<double> readSwathVar(const netCDF::NcFile & ncFile, const std::string & varName,
                                      std::vector<bool> * valid) const {
-      netCDF::NcVar ncVar = ncFile.getVar(varName);
-      ASSERT(ncVar.getDimCount() == 2);
+      netCDF::NcVar ncVar = getSwathVar(ncFile, varName, valid->size());
       std::vector<T> raw(valid->size());
       ncVar.getVar(raw.data());
 

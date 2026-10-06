@@ -3,16 +3,13 @@ window begin: 2025-08-31T18:00:00Z
 window end: 2025-09-01T00:00:00Z  # second file is redated
 error ratio: 0.4  # meters per day
 ssha variable: ssha_karin_2  # or ssha_karin (radiometer wet troposphere correction)
-binning:
-  stride: 2
-  min number of obs: 1
-output file: swot_adt_20250901.ioda.nc
+output file: swot_adt_20250901_nobinning.ioda.nc
 #ocean basin: RECCAP2_region_masks_all_v20221025.nc
 input files:
 - swot_l2_lr_ssh_1.nc4
 - swot_l2_lr_ssh_2.nc4
 
 test:
-  reference filename: testref/swot2ioda.test
-  test output filename: testoutput/swot2ioda.test
+  reference filename: testref/swot2ioda_nobinning.test
+  test output filename: testoutput/swot2ioda_nobinning.test
   float relative tolerance: 1e-6
