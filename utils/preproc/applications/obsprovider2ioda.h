@@ -18,6 +18,7 @@
 #include "../RTOFSTemperature.h"
 #include "../Smap2Ioda.h"
 #include "../Smos2Ioda.h"
+#include "../Swot2Ioda.h"
 #include "../Viirsaod2Ioda.h"
 #include "../Tmsrad2Ioda.h"
 
@@ -37,6 +38,9 @@ namespace obsforge {
 
       if (provider == "RADS") {
         Rads2Ioda conv2ioda(fullConfig, this->getComm());
+        conv2ioda.writeToIoda();
+      } else if (provider == "SWOT") {
+        Swot2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
       } else if (provider == "GHRSST") {
         Ghrsst2Ioda conv2ioda(fullConfig, this->getComm());
