@@ -20,6 +20,7 @@
 #include "../Smos2Ioda.h"
 #include "../Swot2Ioda.h"
 #include "../Viirsaod2Ioda.h"
+#include "../Goesaod2Ioda.h"
 #include "../Tmsrad2Ioda.h"
 
 namespace obsforge {
@@ -77,6 +78,9 @@ namespace obsforge {
         conv2ioda.writeToIoda();
       } else if (provider == "VIIRSAOD") {
         Viirsaod2Ioda conv2ioda(fullConfig, this->getComm());
+        conv2ioda.writeToIoda();
+      } else if (provider == "GOESAOD") {
+        Goesaod2Ioda conv2ioda(fullConfig, this->getComm());
         conv2ioda.writeToIoda();
       } else if (provider == "INSITUOBS") {
         InsituAll2Ioda conv2ioda(fullConfig, this->getComm());
