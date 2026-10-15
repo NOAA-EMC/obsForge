@@ -24,7 +24,7 @@
 #include "ioda/ObsGroup.h"
 
 #include "superob.h"
-
+#include "util.h"
 using netCDF::exceptions::NcException;
 
 namespace obsforge {
@@ -111,21 +111,31 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
                     << secondsSinceReference << std::endl;
 
   // --------------------------------------------------------------------
-  // GOES ABI projection parameters
+  // Read GOES ABI projection metadata from the input file.
   // --------------------------------------------------------------------
-  constexpr double perspectivePointHeight = 35786023.0;
-  constexpr double semiMajorAxis = 6378137.0;
-  constexpr double semiMinorAxis = 6356752.31414;
-  constexpr double longitudeOriginDeg = -137.0;
+  double longitudeOriginDeg = 0.0;
+  double perspectivePointHeight = 0.0;
+  double semiMajorAxis = 0.0;
+  double semiMinorAxis = 0.0;
 
-  constexpr double longitudeOrigin =
-      longitudeOriginDeg * M_PI / 180.0;
+  const auto projection = ncFile.getVar("goes_imager_projection");
+  if (projection.isNull()) {
+    throw std::runtime_error(
+        "Input file is missing goes_imager_projection metadata.");
+  }
 
-  constexpr double aSquared =
-      semiMajorAxis * semiMajorAxis;
+  projection.getAtt("longitude_of_projection_origin")
+      .getValues(&longitudeOriginDeg);
+  projection.getAtt("perspective_point_height")
+      .getValues(&perspectivePointHeight);
+  projection.getAtt("semi_major_axis")
+      .getValues(&semiMajorAxis);
+  projection.getAtt("semi_minor_axis")
+      .getValues(&semiMinorAxis);
 
-  constexpr double bSquared =
-      semiMinorAxis * semiMinorAxis;
+  // The shared ABI projection utility expects distance from Earth's center.
+  const double satelliteDistance =
+      perspectivePointHeight + semiMajorAxis;
 
   // --------------------------------------------------------------------
   // Unpack fixed-grid x/y coordinates.
@@ -146,81 +156,31 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
     y[i] = static_cast<double>(yRaw[i]) * yScale + yOffset;
   }
 
-  // --------------------------------------------------------------------
-  // Calculate latitude/longitude from GOES fixed-grid coordinates.
-  //
-  // GOES ABI uses a geostationary perspective projection.  x and y
-  // are viewing angles in radians.
-  //
-  // The equations below follow the standard GOES-R ABI fixed-grid
-  // inverse projection.
-  // --------------------------------------------------------------------
-  auto fixedGridToLatLon =
-      [&](const double xAngle, const double yAngle,
-          double & latitude, double & longitude) -> bool {
-        const double sinX = std::sin(xAngle);
-        const double cosX = std::cos(xAngle);
-        const double sinY = std::sin(yAngle);
-        const double cosY = std::cos(yAngle);
+  // Expand the fixed-grid coordinates into 2-D grids for the shared
+  // GOES ABI inverse-projection utility.
+  std::vector<std::vector<double>> xGrid(
+      dimRow, std::vector<double>(dimCol));
+  std::vector<std::vector<double>> yGrid(
+      dimRow, std::vector<double>(dimCol));
 
-        const double h = perspectivePointHeight;
+  for (int i = 0; i < dimRow; ++i) {
+    for (int j = 0; j < dimCol; ++j) {
+      xGrid[i][j] = x[j];
+      yGrid[i][j] = y[i];
+    }
+  }
 
-        // Ellipsoid intersection equation.
-        const double r1 =
-            h * cosX * cosY;
+  std::vector<std::vector<double>> latitudeGrid;
+  std::vector<std::vector<double>> longitudeGrid;
 
-        const double r2 =
-            cosY * cosY
-            + (aSquared / bSquared) * sinY * sinY
-            - (h * h - aSquared);
-
-        const double discriminant =
-            r1 * r1 - r2 * cosY * cosY * (h * h - aSquared);
-
-        if (discriminant < 0.0) {
-          return false;
-        }
-
-        const double r_s =
-            (-r1 - std::sqrt(discriminant)) /
-            (cosY * cosY
-             + (aSquared / bSquared) * sinY * sinY);
-
-        const double sX =
-            h - r_s * cosX * cosY;
-
-        const double sY =
-            r_s * sinX * cosY;
-
-        const double sZ =
-            r_s * sinY;
-
-        const double longitudeRad =
-            longitudeOrigin + std::atan2(sY, sX);
-
-        const double latitudeRad =
-            std::atan(
-                (aSquared / bSquared) *
-                (sZ / std::sqrt(sX * sX + sY * sY))
-            );
-
-        latitude =
-            latitudeRad * 180.0 / M_PI;
-
-        longitude =
-            longitudeRad * 180.0 / M_PI;
-
-        // Normalize longitude to [-180, 180].
-        while (longitude > 180.0) {
-          longitude -= 360.0;
-        }
-
-        while (longitude < -180.0) {
-          longitude += 360.0;
-        }
-
-        return true;
-      };
+  obsforge::preproc::utils::abiToGeoLoc(
+      xGrid, yGrid,
+      longitudeOriginDeg,
+      satelliteDistance,
+      semiMajorAxis,
+      semiMinorAxis,
+      &latitudeGrid,
+      &longitudeGrid);
 
   // --------------------------------------------------------------------
   // Allocate 2-D arrays using the same convention as the VIIRS
@@ -312,11 +272,12 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
           continue;
         }
 
-        double latitude = 0.0;
-        double longitude = 0.0;
+        const double latitude = latitudeGrid[i][j];
+        const double longitude = longitudeGrid[i][j];
 
-        if (!fixedGridToLatLon(
-                x[j], y[i], latitude, longitude)) {
+        // The projection utility returns NaN when the viewing ray
+        // does not intersect Earth. Reject those pixels before masking.
+        if (!std::isfinite(latitude) || !std::isfinite(longitude)) {
           continue;
         }
 
@@ -438,6 +399,19 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
     mask_s = mask;
   }
 
+  // Cressman interpolation can return -9999 when no valid source
+  // observations fall within the radius. Do not export those bins.
+  if (fullConfig_.has("binning")) {
+    for (std::size_t i = 0; i < mask_s.size(); ++i) {
+      for (std::size_t j = 0; j < mask_s[i].size(); ++j) {
+        if (obsvalue_s[i][j] == -9999.0f ||
+            obserror_s[i][j] == -9999.0f) {
+          mask_s[i][j] = 0;
+        }
+      }
+    }
+  }
+
   // --------------------------------------------------------------------
   // Count observations.
   // --------------------------------------------------------------------
@@ -477,6 +451,11 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
   while (std::getline(ss, substr, ',')) {
     const int intValue = std::stoi(substr);
     channelNumber.push_back(intValue);
+  }
+
+  if (channelNumber.size() != 1) {
+    throw std::runtime_error(
+        "GOESAOD requires exactly one channel in the configuration.");
   }
 
   oops::Log::info()
@@ -546,4 +525,3 @@ obsforge::preproc::iodavars::IodaVars providerToIodaVars(
 };  // class Goesaod2Ioda
 
 }  // namespace obsforge
-
