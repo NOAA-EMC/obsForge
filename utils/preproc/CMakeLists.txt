@@ -5,6 +5,7 @@ add_library(netcdf2ioda
     IcefbIcesat2Ioda.h
     Ghrsst2Ioda.h
     Viirsaod2Ioda.h
+    Goesaod2Ioda.h
     util.h
     superob.h
     Smos2Ioda.h
