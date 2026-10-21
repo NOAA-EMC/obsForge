@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<!DOCTYPE workflow
+[
+	<!--
+	PROGRAM
+		Main workflow manager for ObsForge
+
+	-->
+	<!ENTITY PSLOT "obsforge">
+	<!ENTITY ROTDIR "/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT/obsforge">
+	<!ENTITY JOBS_DIR "/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/dev/job_cards/rocoto">
+	<!ENTITY MAXTRIES "2">
+]>
+
+<workflow realtime="F" scheduler="slurm" cyclethrottle="1" taskthrottle="25">
+
+	<log verbosity="10"><cyclestr>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT/obsforge/logs/@Y@m@d@H.log</cyclestr></log>
+
+	<!-- Define the cycles -->
+	<cycledef group="gdas">202609010000 202612311800 06:00:00</cycledef>
+
+<!--
+	============================================
+	Task: gdas_atmos_bufr_dump
+	============================================
+-->
+<task name="gdas_atmos_bufr_dump" cycledefs="gdas" maxtries="&MAXTRIES;">
+
+	<command>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/dev/job_cards/rocoto/atmosbufrdump.sh</command>
+
+	<jobname><cyclestr>obsforge_gdas_atmos_bufr_dump_@H</cyclestr></jobname>
+	<account>da-cpu</account>
+	<queue>debug</queue>
+	<partition>u1-compute</partition>
+	<walltime>00:20:00</walltime>
+	<nodes>1:ppn=80:tpp=1</nodes>
+	<memory>256GB</memory>
+	<native>--export=NONE</native>
+
+	<join><cyclestr>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT/obsforge/logs/@Y@m@d@H/gdas_atmos_bufr_dump_prep.log</cyclestr></join>
+
+	<envar><name>RUN_ENVIR</name><value>emc</value></envar>
+	<envar><name>HOMEobsforge</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test</value></envar>
+	<envar><name>NET</name><value>gfs</value></envar>
+	<envar><name>RUN</name><value>gdas</value></envar>
+	<envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+	<envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+	<envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+	<envar><name>KEEPDATA</name><value>NO</value></envar>
+	<envar><name>COMROOT</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT</value></envar>
+	<envar><name>DCOMROOT</name><value>/scratch3/NCEPDEV/da/common/realtime_sample/lfs/h1/ops/prod/dcom</value></envar>
+	<envar><name>DATAROOT</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/RUNDIRS/obsforge/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+    <envar><name>OBSPROC_COMROOT</name><value>/scratch3/NCEPDEV/global/role.glopara/dump/</value></envar>
+
+</task>
+
+
+<!--
+        ============================================
+        Task: gdas_atmos_sat
+        ============================================
+-->
+<task name="gdas_atmos_sat" cycledefs="gdas" maxtries="&MAXTRIES;">
+
+        <command>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/dev/job_cards/rocoto/atmosbufrdump.sh</command>
+
+        <jobname><cyclestr>obsforge_gdas_atmos_sat_@H</cyclestr></jobname>
+        <account>da-cpu</account>
+        <queue>debug</queue>
+        <partition>u1-compute</partition>
+        <walltime>00:20:00</walltime>
+        <nodes>1:ppn=80:tpp=1</nodes>
+        <memory>256GB</memory>
+        <native>--export=NONE</native>
+
+        <join><cyclestr>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT/obsforge/logs/@Y@m@d@H/gdas_atmos_sat_prep.log</cyclestr></join>
+
+        <envar><name>RUN_ENVIR</name><value>emc</value></envar>
+        <envar><name>HOMEobsforge</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test</value></envar>
+        <envar><name>NET</name><value>gfs</value></envar>
+        <envar><name>RUN</name><value>gdas</value></envar>
+        <envar><name>CDATE</name><value><cyclestr>@Y@m@d@H</cyclestr></value></envar>
+        <envar><name>PDY</name><value><cyclestr>@Y@m@d</cyclestr></value></envar>
+        <envar><name>cyc</name><value><cyclestr>@H</cyclestr></value></envar>
+        <envar><name>KEEPDATA</name><value>NO</value></envar>
+        <envar><name>COMROOT</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/COMROOT</value></envar>
+        <envar><name>DCOMROOT</name><value>/scratch4/NCEPDEV/naqfc/Hyundeok.Choi/Data/AWS</value></envar>
+        <envar><name>DATAROOT</name><value>/scratch3/NCEPDEV/da/Hyundeok.Choi/obsForge_test/RUNDIRS/obsforge/gdas.<cyclestr>@Y@m@d@H</cyclestr></value></envar>
+    <envar><name>OBSPROC_COMROOT</name><value>/scratch3/NCEPDEV/global/role.glopara/dump/</value></envar>
+
+</task>
+
+
+</workflow>

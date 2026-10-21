@@ -1,0 +1,8 @@
+atmossatnetcdf:
+  observations:
+    aws_mwr:
+      input_dir: "/scratch4/NCEPDEV/naqfc/Hyundeok.Choi/Data/AWS/Y%Y/M%m"
+      file_filter: "W_NO-KSAT-Tromso,SAT,AWS1-MWR-1B-RAD*.nc"
+      script_file: "aws_netcdf2ioda.py"
+      output_file: "aws1_mwr_1b.nc"
+      mpi: 1
