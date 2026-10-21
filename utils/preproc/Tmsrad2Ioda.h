@@ -180,6 +180,14 @@ namespace obsforge {
       const size_t nchan = channels.size();
       oops::Log::info() << "selected channels: " << channels
                         << " number of channels: " << nchan << std::endl;
+      
+      for (int ch : channels) {
+        if (ch < 1 || static_cast<size_t>(ch) > dimchan) {
+          throw std::runtime_error("Tmsrad2Ioda: channel " + std::to_string(ch) +
+                                   " is out of valid range [1, " +
+                                   std::to_string(dimchan) + "] in " + fileName);
+        }
+      }
 
       // Set the metadata name
       std::vector<std::string> intMetadataNames = {"satelliteAscendingFlag", "sensorScanPosition"};
