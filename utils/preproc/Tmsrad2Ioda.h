@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <netcdf>    // NOLINT (using C API)
@@ -15,6 +16,7 @@
 #include "ioda/ObsGroup.h"
 
 #include "NetCDFToIodaConverter.h"
+#include "oops/util/missingValues.h"
 
 using netCDF::exceptions::NcException;
 
@@ -57,6 +59,14 @@ namespace obsforge {
       ncFile.getVar("longitude").getVar(lon.data());
       ncFile.getVar("latitude").getVar(lat.data());
       ncFile.getVar("brightness_temperature").getVar(tb.data());
+      float fileFillValue;
+      ncFile.getVar("brightness_temperature").getAtt("_FillValue").getValues(&fileFillValue);
+      const float MissingFloat = util::missingValue<float>();
+      for (auto& val : tb) {
+        if (std::abs(val - fileFillValue) < 1e-4) { 
+	  val = MissingFloat;
+        }
+      }
 
       // Read metadata variables (flattened storage)
       std::vector<float> sensor_view_angle(dimspot * dimscan);
@@ -74,6 +84,18 @@ namespace obsforge {
       ncFile.getVar("lunar_azimuth_angle").getVar(lunar_azimuth_angle.data());
       ncFile.getVar("solar_zenith_angle").getVar(solar_zenith_angle.data());
       ncFile.getVar("solar_azimuth_angle").getVar(solar_azimuth_angle.data());
+
+      // Read Ascending/Descending flag only from channel 1,given the flag is identical across channels.
+      // 1 if in descending portion of orbit, 0 if in ascending portion of orbit.
+      std::vector<float> flagAscDesc(dimspot * dimscan * dimchan);
+      std::vector<float> flagAscDesc_2d(dimspot * dimscan);
+      ncFile.getVar("flagAscDesc").getVar(flagAscDesc.data());
+      for (size_t i = 0; i < dimspot; ++i) {
+        for (size_t j = 0; j < dimscan; ++j) {
+	    flagAscDesc_2d[i*dimscan + j] = flagAscDesc[(i*dimscan + j)*dimchan + 0];
+	}
+      }
+
 
       // Read time components (per scan)
       std::vector<uint16_t> Year(dimscan);
@@ -130,7 +152,7 @@ namespace obsforge {
       oops::Log::info() << "selected channels: " << channels << " number of channels: " << nchan << std::endl;
 
       // Set the metadata name
-      std::vector<std::string> intMetadataNames = {};
+      std::vector<std::string> intMetadataNames = {"satelliteAscendingFlag", "sensorScanPosition"};
       std::vector<std::string> floatMetadataNames = {"lunarAzimuthAngle", "lunarZenithAngle", "sensorAzimuthAngle",
                                   "sensorViewAngle", "sensorZenithAngle", "solarAzimuthAngle", "solarZenithAngle"};
 
@@ -142,14 +164,22 @@ namespace obsforge {
       std::uniform_real_distribution<> dis(0.0, 1.0);
 
       // Count valid observations
-      std::vector<std::vector<int>> mask(dimspot, std::vector<int>(dimscan));
+      std::vector<std::vector<int>> mask(dimspot, std::vector<int>(dimscan, 0));
       size_t nlocs = 0;
-      for (size_t i = 0; i < dimspot; ++i)
-        for (size_t j = 0; j < dimscan; ++j)
-        if (dis(gen) > thinThreshold) {
-           mask[i][j] = 1;
-           ++nlocs;
+      for (size_t i = 0; i < dimspot; ++i) {
+        for (size_t j = 0; j < dimscan; ++j) {
+          const float la = lat[i * dimscan + j];
+          const float lo = lon[i * dimscan + j];
+
+          // Skip invalid lat/lon
+          if (!std::isfinite(la) || !std::isfinite(lo)) continue;
+
+          if (dis(gen) > thinThreshold) {
+            mask[i][j] = 1;
+            ++nlocs;
+          }
         }
+      }
 
       // Create instance of iodaVars object
       obsforge::preproc::iodavars::IodaVars iodaVars(nlocs, nchan, floatMetadataNames, intMetadataNames);
@@ -165,6 +195,7 @@ namespace obsforge {
 
       size_t loc = 0;
       for (size_t i = 0; i < dimspot; ++i) {
+	int scanposition = i+1;
         for (size_t j = 0; j < dimscan; ++j) {
           if (mask[i][j] != 1) continue;
           iodaVars.latitude_(loc)  = lat[i*dimscan + j];
@@ -177,6 +208,8 @@ namespace obsforge {
                                               sensor_zenith_angle[i*dimscan + j],
                                               solar_azimuth_angle[i*dimscan + j],
                                               solar_zenith_angle[i*dimscan + j];
+          iodaVars.intMetadata_.row(loc) << flagAscDesc_2d[i*dimscan + j],
+	                                    scanposition;
           for (size_t k = 0; k < nchan; ++k) {
             size_t ch = channels[k] - 1;
             size_t idx = (i*dimscan + j)*dimchan + ch;
