@@ -119,30 +119,30 @@ namespace obsforge {
                 preqc[i][j] = static_cast<int>(qcall[i][j]);
                 lat[i][j] = lat2d[i][j];
                 lon[i][j] = lon2d[i][j];
-                // dark land
-                float obserrorValue = 0.111431 + 0.128699 * static_cast<float>(aod550[i][j]);  // (Huang et al. JAMES 2023)
-		// Innovation-based diagnostic (Desroziers et al, 2005)
-                //float obserrorValue2 = -0.127 + 0.547 * static_cast<float>(aod550[i][j]);  
-		float obsBiasValue = -0.014 + 0.158 * static_cast<float>(aod550[i][j]);        // (Huang et al. JAMES 2023)
-		pathflag[i][j] = static_cast<float>(1);   // dark land flag: 1
+                // dark land (Huang et al. JAMES 2023)
+                float obserrorValue = 0.111431 + 0.128699 * static_cast<float>(aod550[i][j]);
+                // Innovation-based diagnostic (Desroziers et al, 2005)
+                // float obserrorValue2 = -0.127 + 0.547 * static_cast<float>(aod550[i][j]);
+                float obsBiasValue = -0.014 + 0.158 * static_cast<float>(aod550[i][j]);
+                pathflag[i][j] = static_cast<float>(1);   // dark land flag: 1
 
                 // ocean
                 if (qcpath[i][j] % 2 == 1) {
                     obserrorValue = 0.00784394 + 0.219923 * static_cast<float>(aod550[i][j]);
-		    //obserrorValue2 = -0.069 + 0.483 * static_cast<float>(aod550[i][j]);
-		    obsBiasValue = -0.015 + 0.077 * static_cast<float>(aod550[i][j]);
-		    pathflag[i][j] = static_cast<float>(0); // ocean/water flag: 0
+                    // obserrorValue2 = -0.069 + 0.483 * static_cast<float>(aod550[i][j]);
+                    obsBiasValue = -0.015 + 0.077 * static_cast<float>(aod550[i][j]);
+                    pathflag[i][j] = static_cast<float>(0);  // ocean/water flag: 0
                 }
                 // bright land
                 if (qcpath[i][j] % 4 == 2) {
                    obserrorValue = 0.0550472 + 0.299558 *  static_cast<float>(aod550[i][j]);
-		   //obserrorValue2 = -0.101 + 0.644 *  static_cast<float>(aod550[i][j]);
-		   obsBiasValue = -0.011 + 0.150 * static_cast<float>(aod550[i][j]);
-		   pathflag[i][j] = static_cast<float>(2); // bright land flag: 2
+                   // obserrorValue2 = -0.101 + 0.644 *  static_cast<float>(aod550[i][j]);
+                   obsBiasValue = -0.011 + 0.150 * static_cast<float>(aod550[i][j]);
+                   pathflag[i][j] = static_cast<float>(2);  // bright land flag: 2
                 }
                 obserror[i][j] = obserrorValue;
-		obsvalue[i][j] = static_cast<float>(aod550[i][j]);
-		obsvalue[i][j] -= obsBiasValue;
+                obsvalue[i][j] = static_cast<float>(aod550[i][j]) - obsBiasValue;
+                // obsvalue[i][j] -= obsBiasValue;
                 mask[i][j] = 1;
              }
           }
@@ -185,7 +185,7 @@ namespace obsforge {
 
         lat2d_s = obsforge::superobutils::subsample2D(lat, mask, fullConfig_);
         mask_s = obsforge::superobutils::subsample2D(mask, mask, fullConfig_);
-        pathflag_s = obsforge::superobutils::subsample2DMode(pathflag, mask, fullConfig_); // The dominant surface type
+        pathflag_s = obsforge::superobutils::subsample2DMode(pathflag, mask, fullConfig_);  // The dominant surface type
         if (fullConfig_.has("binning.cressman radius")) {
         // Weighted-average (cressman) superob
           bool useCressman = true;
@@ -204,7 +204,7 @@ namespace obsforge {
         lat2d_s = lat;
         obserror_s = obserror;
         mask_s = mask;
-	pathflag_s = pathflag;
+        pathflag_s = pathflag;
       }
 
       int dimRow_s = obsvalue_s.size();

@@ -3,12 +3,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "atlas/util/Earth.h"
 #include "atlas/util/Geometry.h"
 #include "atlas/util/Point.h"
 #include "eckit/config/LocalConfiguration.h"
-
 
 
 namespace obsforge {
