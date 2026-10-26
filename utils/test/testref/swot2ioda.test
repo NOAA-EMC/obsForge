@@ -1,0 +1,30 @@
+Reading: [swot_l2_lr_ssh_1.nc4,swot_l2_lr_ssh_2.nc4]
+seconds since 2000-01-01T00:00:00Z
+obsVal:
+    Min: 0.326775
+    Max: 0.927025
+    Sum: 158.567
+obsError:
+    Min: 0.1
+    Max: 0.110819
+    Sum: 25.4488
+preQc:
+    Min: 0
+    Max: 0
+    Sum: 0
+longitude:
+    Min: -94.7303
+    Max: 75.6994
+    Sum: 81.8427
+latitude:
+    Min: -1.59976
+    Max: 18.5687
+    Sum: 1760.67
+datetime:
+    Min: 809998947
+    Max: 809999999
+    Sum: 194399888382
+originalDatetime:
+    Min: 809998947
+    Max: 810002337
+    Sum: 194400201458

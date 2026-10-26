@@ -31,6 +31,9 @@ project_source_dir=$1
 
 cdl2nc4 rads_adt_3a_2021181.nc4 ${project_source_dir}/testdata/rads_adt_3a_2021181.cdl
 cdl2nc4 rads_adt_3b_2021181.nc4 ${project_source_dir}/testdata/rads_adt_3b_2021181.cdl
+cdl2nc4 swot_l2_lr_ssh_1.nc4 ${project_source_dir}/testdata/swot_l2_lr_ssh_1.cdl
+cdl2nc4 swot_l2_lr_ssh_2.nc4 ${project_source_dir}/testdata/swot_l2_lr_ssh_2.cdl
+cdl2nc4 swot_l2_lr_ssh_3.nc4 ${project_source_dir}/testdata/swot_l2_lr_ssh_3.cdl
 #cdl2nc4 icec_abi_g16_1.nc4 ${project_source_dir}/testdata/icec_abi_g16_1.cdl
 #cdl2nc4 icec_abi_g16_2.nc4 ${project_source_dir}/testdata/icec_abi_g16_2.cdl
 cdl2nc4 icec_amsr2_north_1.nc4 ${project_source_dir}/testdata/icec_amsr2_north_1.cdl

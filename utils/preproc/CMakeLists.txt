@@ -10,6 +10,7 @@ add_library(netcdf2ioda
     Smos2Ioda.h
     Smap2Ioda.h
     Rads2Ioda.h
+    Swot2Ioda.h
     NetCDFToIodaConverter.h
     InsituAll2ioda.h
     IcecMirs2Ioda.h

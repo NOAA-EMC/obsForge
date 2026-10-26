@@ -1,0 +1,31 @@
+Reading: [swot_l2_lr_ssh_3.nc4,swot_l2_lr_ssh_1.nc4,swot_l2_lr_ssh_2.nc4]
+Reading: [swot_l2_lr_ssh_3.nc4,swot_l2_lr_ssh_1.nc4,swot_l2_lr_ssh_2.nc4]
+seconds since 2000-01-01T00:00:00Z
+obsVal:
+    Min: 0.3203
+    Max: 0.9322
+    Sum: 579.266
+obsError:
+    Min: 0.1
+    Max: 0.110819
+    Sum: 93.4654
+preQc:
+    Min: 0
+    Max: 0
+    Sum: 0
+longitude:
+    Min: -94.7438
+    Max: 75.7007
+    Sum: -606.997
+latitude:
+    Min: -1.6087
+    Max: 18.5791
+    Sum: 6578.45
+datetime:
+    Min: 809998947
+    Max: 809999999
+    Sum: 714419584045
+originalDatetime:
+    Min: 809998947
+    Max: 810002337
+    Sum: 714420721849

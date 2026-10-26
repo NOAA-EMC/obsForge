@@ -180,7 +180,11 @@ namespace obsforge {
                                               nVars_ - 1);
           floatMetadata_.conservativeResize(location_ + other.location_, nfMetadata_);
           intMetadata_.conservativeResize(location_ + other.location_, niMetadata_);
-          if (originalDatetime_.size() != 0) {
+          // An empty instance (e.g. a file without valid obs) has no original dates,
+          // take the ones of the instance appended to it
+          const bool appendOriginalDatetime = originalDatetime_.size() != 0 ||
+            (location_ == 0 && other.originalDatetime_.size() != 0);
+          if (appendOriginalDatetime) {
             originalDatetime_.conservativeResize(location_ + other.location_);
           }
 
@@ -201,7 +205,7 @@ namespace obsforge {
           }
           floatMetadata_.bottomRows(other.location_) = other.floatMetadata_;
           intMetadata_.bottomRows(other.location_) = other.intMetadata_;
-          if (originalDatetime_.size() != 0) {
+          if (appendOriginalDatetime) {
             originalDatetime_.tail(other.location_) = other.originalDatetime_;
           }
 
