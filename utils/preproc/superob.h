@@ -115,7 +115,7 @@ namespace obsforge {
 
 
      /**
-     * @brief Performs mode (most frequent) subsampling on 2D gridded data.
+     * Performs mode (most frequent) subsampling on 2D gridded data.
      * 
      * Finds the most frequent value in each stride box. If its frequency is 
      * strictly greater than 1/2 of the total valid observations in the box,
