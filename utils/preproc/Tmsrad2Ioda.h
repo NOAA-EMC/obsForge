@@ -125,7 +125,8 @@ namespace obsforge {
       for (size_t i = 0; i < dimspot; ++i) {
         for (size_t j = 0; j < dimscan; ++j) {
           const float raw = flagAscDesc[(i * dimscan + j) * dimchan + 0];
-          flagAscDesc_2d[i * dimscan + j] = (std::isfinite(raw) && raw >= 0.5f) ? 1 : 0;
+          flagAscDesc_2d[i * dimscan + j] =
+              (raw == 0.0f || raw == 1.0f) ? static_cast<int>(raw) : util::missingValue<int>();
         }
       }
 
