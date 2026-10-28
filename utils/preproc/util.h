@@ -122,6 +122,7 @@ namespace obsforge {
         Eigen::ArrayXXi intMetadata_;                  // Optional array of integer metadata
         std::vector<std::string> intMetadataName_;    // String descriptor of the integer metadata
         Eigen::Array<int64_t, Eigen::Dynamic, 1> originalDatetime_;   // Epoch date in seconds
+        Eigen::ArrayXf obsBiasValue_;    // Optional observation bias, written to ObsBiasValue if not empty
 
         // Optional global attributes
         std::map<std::string, std::string> strGlobalAttr_;
@@ -152,7 +153,8 @@ namespace obsforge {
           floatMetadataName_(fmnames),
           intMetadata_(location_, imnames.size()),
           intMetadataName_(imnames),
-          originalDatetime_()    // initialized as empty
+          originalDatetime_(),   // initialized as empty
+          obsBiasValue_()    // initialized as empty
         {
           oops::Log::trace() << "IodaVars::IodaVars created." << std::endl;
         }
@@ -187,6 +189,11 @@ namespace obsforge {
           if (appendOriginalDatetime) {
             originalDatetime_.conservativeResize(location_ + other.location_);
           }
+          const bool appendObsBiasValue = obsBiasValue_.size() != 0 ||
+            (location_ == 0 && other.obsBiasValue_.size() != 0);
+          if (appendObsBiasValue) {
+            obsBiasValue_.conservativeResize(location_ * channel_ + other.location_ * other.channel_);
+          }
 
           // Copy data from the 'other' object to this object
           longitude_.tail(other.location_) = other.longitude_;
@@ -208,6 +215,9 @@ namespace obsforge {
           if (appendOriginalDatetime) {
             originalDatetime_.tail(other.location_) = other.originalDatetime_;
           }
+          if (appendObsBiasValue) {
+            obsBiasValue_.tail(other.location_ * channel_) = other.obsBiasValue_;
+          }
 
           // Update obs count
           location_ += other.location_;
@@ -220,6 +230,10 @@ namespace obsforge {
 
           IodaVars iodaVarsMasked(newlocation, channel_, floatMetadataName_, intMetadataName_,
                                   obsVariableNames_);
+
+          if (obsBiasValue_.size() != 0) {
+            iodaVarsMasked.obsBiasValue_.resize(newlocation);
+          }
 
           int j = 0;
           for (int i = 0; i < location_; i++) {
@@ -245,6 +259,9 @@ namespace obsforge {
               if (originalDatetime_.size() != 0) {
                 iodaVarsMasked.originalDatetime_(j) = originalDatetime_(i);
               }
+              if (obsBiasValue_.size() != 0) {
+                iodaVarsMasked.obsBiasValue_(j) = obsBiasValue_(i);
+              }
               j++;
             }  // end if (mask(i))
           }
@@ -261,6 +278,7 @@ namespace obsforge {
           floatMetadata_ = iodaVarsMasked.floatMetadata_;
           intMetadata_ = iodaVarsMasked.intMetadata_;
           originalDatetime_ = iodaVarsMasked.originalDatetime_;
+          obsBiasValue_ = iodaVarsMasked.obsBiasValue_;
 
           // Update obs count
           location_ = iodaVarsMasked.location_;
@@ -285,6 +303,9 @@ namespace obsforge {
           oops::Log::test() << checksum(datetime_, "datetime") << std::endl;
           if (originalDatetime_.size() != 0) {
             oops::Log::test() << checksum(originalDatetime_, "originalDatetime") << std::endl;
+          }
+          if (obsBiasValue_.size() != 0) {
+            oops::Log::test() << checksum(obsBiasValue_, "obsBiasValue") << std::endl;
           }
         }
 

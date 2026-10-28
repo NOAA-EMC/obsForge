@@ -93,10 +93,11 @@ namespace obsforge {
       std::vector<std::vector<int>> mask(dimRow, std::vector<int>(dimCol));
       std::vector<std::vector<float>> obsvalue(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<float>> obserror(dimRow, std::vector<float>(dimCol));
+      std::vector<std::vector<float>> obsbias(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<int>> preqc(dimRow, std::vector<int>(dimCol));
       std::vector<std::vector<float>> lat(dimRow, std::vector<float>(dimCol));
       std::vector<std::vector<float>> lon(dimRow, std::vector<float>(dimCol));
-
+      std::vector<std::vector<float>> pathflag(dimRow, std::vector<float>(dimCol));
 
 
       // Thinning
@@ -117,20 +118,32 @@ namespace obsforge {
              float isThin = dis(gen);
              if (isThin > thinThreshold) {
                 preqc[i][j] = static_cast<int>(qcall[i][j]);
-                obsvalue[i][j] = static_cast<float>(aod550[i][j]);
                 lat[i][j] = lat2d[i][j];
                 lon[i][j] = lon2d[i][j];
-                // dark land
+                // dark land (Huang et al. JAMES 2023)
                 float obserrorValue = 0.111431 + 0.128699 * static_cast<float>(aod550[i][j]);
+                // Innovation-based diagnostic (Desroziers et al, 2005)
+                // float obserrorValue2 = -0.127 + 0.547 * static_cast<float>(aod550[i][j]);
+                float obsBiasValue = -0.014 + 0.158 * static_cast<float>(aod550[i][j]);
+                pathflag[i][j] = static_cast<float>(1);   // dark land flag: 1
+
                 // ocean
                 if (qcpath[i][j] % 2 == 1) {
                     obserrorValue = 0.00784394 + 0.219923 * static_cast<float>(aod550[i][j]);
+                    // obserrorValue2 = -0.069 + 0.483 * static_cast<float>(aod550[i][j]);
+                    obsBiasValue = -0.015 + 0.077 * static_cast<float>(aod550[i][j]);
+                    pathflag[i][j] = static_cast<float>(0);  // ocean/water flag: 0
                 }
                 // bright land
                 if (qcpath[i][j] % 4 == 2) {
                    obserrorValue = 0.0550472 + 0.299558 *  static_cast<float>(aod550[i][j]);
+                   // obserrorValue2 = -0.101 + 0.644 *  static_cast<float>(aod550[i][j]);
+                   obsBiasValue = -0.011 + 0.150 * static_cast<float>(aod550[i][j]);
+                   pathflag[i][j] = static_cast<float>(2);  // bright land flag: 2
                 }
                 obserror[i][j] = obserrorValue;
+                obsbias[i][j] = obsBiasValue;
+                obsvalue[i][j] = static_cast<float>(aod550[i][j]);
                 mask[i][j] = 1;
              }
           }
@@ -141,7 +154,9 @@ namespace obsforge {
       std::vector<std::vector<float>> lon2d_s;
       std::vector<std::vector<float>> lat2d_s;
       std::vector<std::vector<float>> obserror_s;
+      std::vector<std::vector<float>> obsbias_s;
       std::vector<std::vector<int>> mask_s;
+      std::vector<std::vector<float>> pathflag_s;
 
       if ( fullConfig_.has("binning") ) {
         // Do superobbing
@@ -172,6 +187,7 @@ namespace obsforge {
 
         lat2d_s = obsforge::superobutils::subsample2D(lat, mask, fullConfig_);
         mask_s = obsforge::superobutils::subsample2D(mask, mask, fullConfig_);
+        pathflag_s = obsforge::superobutils::subsample2DMode(pathflag, mask, fullConfig_);  // The dominant surface type
         if (fullConfig_.has("binning.cressman radius")) {
         // Weighted-average (cressman) superob
           bool useCressman = true;
@@ -179,17 +195,22 @@ namespace obsforge {
                        useCressman, lat, lon, lat2d_s, lon2d_s);
           obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_,
                        useCressman, lat, lon, lat2d_s, lon2d_s);
+          obsbias_s = obsforge::superobutils::subsample2D(obsbias, mask, fullConfig_,
+                       useCressman, lat, lon, lat2d_s, lon2d_s);
         } else {
         // Simple-average superob
           obsvalue_s = obsforge::superobutils::subsample2D(obsvalue, mask, fullConfig_);
           obserror_s = obsforge::superobutils::subsample2D(obserror, mask, fullConfig_);
+          obsbias_s = obsforge::superobutils::subsample2D(obsbias, mask, fullConfig_);
         }
       } else {
         obsvalue_s = obsvalue;
         lon2d_s = lon;
         lat2d_s = lat;
         obserror_s = obserror;
+        obsbias_s = obsbias;
         mask_s = mask;
+        pathflag_s = pathflag;
       }
 
       int dimRow_s = obsvalue_s.size();
@@ -202,6 +223,8 @@ namespace obsforge {
            }
         }
       }
+      // save surface type pathFlag to MetaData
+      std::vector<std::string> intMetadataNames = {"QCPath"};
 
 
       // read in channel number
@@ -218,8 +241,9 @@ namespace obsforge {
       int nchan(channelNumber.size());
       oops::Log::info() << " number of channels " << nchan << std::endl;
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, {}, {});
+      obsforge::preproc::iodavars::IodaVars iodaVars(nobs, 1, {}, intMetadataNames);
       iodaVars.referenceDate_ = "seconds since 1970-01-01T00:00:00Z";
+      iodaVars.obsBiasValue_.resize(nobs * nchan);
 
       oops::Log::info() << " eigen... row and column:" << obsvalue_s.size() << " "
                         << obsvalue_s[0].size() << std::endl;
@@ -233,6 +257,7 @@ namespace obsforge {
                     iodaVars.longitude_(loc) = lon2d_s[i][j];
                     iodaVars.latitude_(loc) = lat2d_s[i][j];
                     iodaVars.datetime_(loc) = secondsSinceReference;
+                    iodaVars.intMetadata_.row(loc) << pathflag_s[i][j];
                     // VIIRS AOD use only one channel (4)
                     iodaVars.obsVal_(nchan*loc+k) = obsvalue_s[i][j];
                     if ( fullConfig_.has("binning") ) {
@@ -241,6 +266,7 @@ namespace obsforge {
                        iodaVars.preQc_(nchan*loc+k)     = preqc[i][j];
                     }
                     iodaVars.obsError_(nchan*loc+k) = obserror_s[i][j];
+                    iodaVars.obsBiasValue_(nchan*loc+k) = obsbias_s[i][j];
                     loc += 1;
                  }
               }
