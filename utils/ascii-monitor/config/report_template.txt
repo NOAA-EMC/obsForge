@@ -1,0 +1,19 @@
+********************************************************************************
+*                                                                              *
+*        ### {SYSTEM} OBSERVATIONAL DATA MONITOR FOR {CYCLE_STR} ###            *
+*                                                                              *
+*        Model: {model}                                                         *
+*        System: {system}                                                       *
+*        Cycle: {yyyymmdd} {hh}Z                                                *
+*        Generated: {timestamp}                                                 *
+*                                                                              *
+********************************************************************************
+*                                                                              *
+* todays    30-day                                                             *
+* receipt   average                Data Type                                   *
+*                                                                              *
+BEGIN_DATA
+# count avg flag code description
+{DATA_ROWS}
+END_DATA
+********************************************************************************
