@@ -69,9 +69,9 @@ class Goesaod2Ioda : public NetCDFToIodaConverter {
     //   2 = low quality
     //   3 = no retrieval
     //
-    // x and y are short fixed-grid coordinates:
-    //   x = raw_x * 5.6e-05 - 0.151844
-    //   y = raw_y * (-5.6e-05) + 0.151844
+    // x and y are short fixed-grid coordinates.
+    // Their scale_factor and add_offset attributes are used
+    // to convert raw values to scan angles.
     // --------------------------------------------------------------------
 
     std::vector<unsigned short> aodRaw(
@@ -148,10 +148,26 @@ class Goesaod2Ioda : public NetCDFToIodaConverter {
     std::vector<double> x(dimCol);
     std::vector<double> y(dimRow);
 
-    constexpr double xScale = 5.6e-05;
-    constexpr double yScale = -5.6e-05;
-    constexpr double xOffset = -0.151844;
-    constexpr double yOffset = 0.151844;
+    double xScale = 0.0;
+    double xOffset = 0.0;
+    double yScale = 0.0;
+    double yOffset = 0.0;
+
+    const auto xVar = ncFile.getVar("x");
+    const auto yVar = ncFile.getVar("y");
+
+    if (xVar.getAtt("scale_factor").isNull() ||
+        xVar.getAtt("add_offset").isNull() ||
+        yVar.getAtt("scale_factor").isNull() ||
+        yVar.getAtt("add_offset").isNull()) {
+      throw std::runtime_error(
+          "GOES x/y variables are missing required packing attributes.");
+    }
+
+    xVar.getAtt("scale_factor").getValues(&xScale);
+    xVar.getAtt("add_offset").getValues(&xOffset);
+    yVar.getAtt("scale_factor").getValues(&yScale);
+    yVar.getAtt("add_offset").getValues(&yOffset);
 
     for (int j = 0; j < dimCol; ++j) {
       x[j] = static_cast<double>(xRaw[j]) * xScale + xOffset;
@@ -229,9 +245,24 @@ class Goesaod2Ioda : public NetCDFToIodaConverter {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(0.0, 1.0);
 
-    constexpr unsigned short aodFillValue = 65535;
-    constexpr float aodScale = 7.706e-05f;
-    constexpr float aodOffset = -0.05f;
+    unsigned short aodFillValue = 0;
+    double aodScale = 0.0;
+    double aodOffset = 0.0;
+
+    const auto aodVar = ncFile.getVar("AOD");
+
+    if (aodVar.getAtt("_FillValue").isNull() ||
+        aodVar.getAtt("scale_factor").isNull() ||
+        aodVar.getAtt("add_offset").isNull()) {
+      throw std::runtime_error(
+          "GOES AOD variable is missing required packing attributes.");
+    }
+
+    aodVar.getAtt("_FillValue").getValues(&aodFillValue);
+    aodVar.getAtt("scale_factor").getValues(&aodScale);
+    aodVar.getAtt("add_offset").getValues(&aodOffset);
+
+
 
     int nHighQuality = 0;
     int nValid = 0;
@@ -266,8 +297,8 @@ class Goesaod2Ioda : public NetCDFToIodaConverter {
             static_cast<float>(dis(gen));
 
         if (isThin > thinThreshold) {
-          const float aod =
-              static_cast<float>(rawAod) * aodScale + aodOffset;
+          const double aod =
+              static_cast<double>(rawAod) * aodScale + aodOffset;
 
           // Physical valid range from the GOES file.
           if (aod < 0.0f) {
