@@ -14,6 +14,26 @@ from wxflow import (AttrDict, Task, add_to_datetime, to_timedelta,
 
 logger = getLogger(__name__.split('.')[-1])
 
+# Directories under spoc/dump that are staged into DATA
+SPOC_STAGED_DIRS = [
+    os.path.join("scripts", "atmosphere"),
+    os.path.join("config", "atmosphere"),
+    "aux",
+]
+# Files under spoc/dump that make the staged scripts importable as the spoc package
+SPOC_PACKAGE_FILES = [
+    "__init__.py",
+    os.path.join("scripts", "__init__.py"),
+    os.path.join("scripts", "config_path.py"),
+    os.path.join("scripts", "atmosphere", "__init__.py"),
+]
+
+
+def spoc_module(script_file):
+    """Return the spoc package module name for a staged SPOC script."""
+    name = os.path.splitext(os.path.basename(script_file))[0]
+    return f"spoc.dump.scripts.atmosphere.{name}"
+
 
 def mp_bufr_converter(ob_name, exec_cmd):
     try:
@@ -80,6 +100,18 @@ class AtmosBufrObsPrep(Task):
         copylist = []
         sub_dir_list = []
 
+        # SPOC scripts are run as modules of the spoc package (spoc.dump.scripts...),
+        # so they are staged into the same layout under DATA. They find their mapping
+        # and auxiliary files relative to the package, which lets this task edit the
+        # staged mappings below.
+        spoc_src = os.path.join(self.task_config.HOMEobsforge, "sorc", "spoc", "dump")
+        spoc_dest = os.path.join(self.task_config.DATA, "spoc", "dump")
+        sub_dir_list += [os.path.join(spoc_dest, d) for d in SPOC_STAGED_DIRS]
+        for f in SPOC_PACKAGE_FILES:
+            src = os.path.join(spoc_src, f)
+            if os.path.exists(src):
+                copylist.append([src, os.path.join(spoc_dest, f)])
+
         for ob_name, ob_data in self.task_config.observations.items():
             logger.debug(f"Processing observation: {ob_name}: {ob_data}")
 
@@ -145,27 +177,25 @@ class AtmosBufrObsPrep(Task):
 
             # Stage mapping files
             for f in mapping_files:
-                src = os.path.join(
-                    self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "config", "atmosphere", f
-                )
-                dest = os.path.join(self.task_config.DATA, os.path.basename(src))
+                src = os.path.join(spoc_src, "config", "atmosphere", f)
+                dest = os.path.join(spoc_dest, "config", "atmosphere", os.path.basename(src))
                 copylist.append([src, dest])
                 staged_mappings.append(dest)
 
             # Stage script files
             for f in script_files:
-                src = os.path.join(
-                    self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "scripts", "atmosphere", f
-                )
-                dest = os.path.join(self.task_config.DATA, os.path.basename(src))
+                src = os.path.join(spoc_src, "scripts", "atmosphere", f)
+                dest = os.path.join(spoc_dest, "scripts", "atmosphere", os.path.basename(src))
                 copylist.append([src, dest])
                 staged_scripts.append(dest)
 
-            # Stage auxiliary files if any
+            # Stage auxiliary files if any. The SPOC scripts find them in the
+            # spoc.dump.aux package; a copy is also kept in DATA for tools that
+            # look in the working directory.
             for f in aux_files:
-                src = os.path.join(self.task_config.HOMEobsforge, "sorc", "spoc", "dump", "aux", f)
-                dest = os.path.join(self.task_config.DATA, os.path.basename(src))
-                copylist.append([src, dest])
+                src = os.path.join(spoc_src, "aux", f)
+                copylist.append([src, os.path.join(spoc_dest, "aux", os.path.basename(src))])
+                copylist.append([src, os.path.join(self.task_config.DATA, os.path.basename(src))])
 
             # Prepare input string for the script
             input_str = staged_inputs
@@ -212,6 +242,11 @@ class AtmosBufrObsPrep(Task):
 
         # Loop through BUFR to netCDF observations and convert them
 
+        # Make the spoc package staged in DATA importable by the converters
+        os.environ['PYTHONPATH'] = os.pathsep.join(
+            p for p in [self.task_config.DATA, os.environ.get('PYTHONPATH')] if p
+        )
+
         exec_cmd_list = []
         mpi_count = 0
         for ob_name, ob_data in self.script2netcdf_obs.items():
@@ -221,9 +256,9 @@ class AtmosBufrObsPrep(Task):
             if not script_files:
                 logger.error(f"No script_file provided for observation '{ob_name}'. Skipping.")
                 continue
-            script_file = script_files[0]
+            module = spoc_module(script_files[0])
             mpi = ob_data.get('mpi', 1)
-            logger.info(f"Converting {input_str} to {output_file} using {script_file} and MPI={mpi}")
+            logger.info(f"Converting {input_str} to {output_file} using {module} and MPI={mpi}")
             if mpi > 1:
                 mpi_count += int(mpi)
                 logger.info(f"Using MPI with {mpi} ranks for {ob_name}")
@@ -231,7 +266,7 @@ class AtmosBufrObsPrep(Task):
                     exec_cmd = Executable("mpiexec")
                     args = [
                         "-n", str(mpi),
-                        "python", script_file,
+                        "python", "-m", module,
                         "--input", input_str,
                         "--output", output_file,
                     ]
@@ -242,13 +277,13 @@ class AtmosBufrObsPrep(Task):
                         "-n", str(mpi),
                         "--mem", "0G",              # no memory limit
                         "--time", "00:30:00",
-                        "python", script_file,
+                        "python", "-m", module,
                         "--input", input_str,
                         "--output", output_file,
                     ]
             else:
                 exec_cmd = Executable('python')
-                args = [script_file, '--input', input_str, '--output', output_file]
+                args = ['-m', module, '--input', input_str, '--output', output_file]
 
             for arg in args:
                 exec_cmd.add_default_arg(arg)
