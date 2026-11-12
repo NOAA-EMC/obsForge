@@ -213,6 +213,11 @@ namespace obsforge {
             originalDatetime_.conservativeResize(
                 location_ + other.location_);
           }
+          const bool appendObsBiasValue = obsBiasValue_.size() != 0 ||
+            (location_ == 0 && other.obsBiasValue_.size() != 0);
+          if (appendObsBiasValue) {
+            obsBiasValue_.conservativeResize(location_ * channel_ + other.location_ * other.channel_);
+          }
 
           // Copy data from the 'other' object to this object
           longitude_.tail(other.location_) = other.longitude_;
@@ -241,6 +246,9 @@ namespace obsforge {
             originalDatetime_.tail(other.location_) =
                 other.originalDatetime_;
           }
+          if (appendObsBiasValue) {
+            obsBiasValue_.tail(other.location_ * channel_) = other.obsBiasValue_;
+          }
 
           // Update obs count
           location_ += other.location_;
@@ -256,6 +264,10 @@ namespace obsforge {
           IodaVars iodaVarsMasked(
               newlocation, channel_, floatMetadataName_,
               intMetadataName_, obsVariableNames_);
+
+          if (obsBiasValue_.size() != 0) {
+            iodaVarsMasked.obsBiasValue_.resize(newlocation);
+          }
 
           int j = 0;
           for (int i = 0; i < location_; i++) {
@@ -309,6 +321,7 @@ namespace obsforge {
           floatMetadata_ = iodaVarsMasked.floatMetadata_;
           intMetadata_ = iodaVarsMasked.intMetadata_;
           originalDatetime_ = iodaVarsMasked.originalDatetime_;
+          obsBiasValue_ = iodaVarsMasked.obsBiasValue_;
 
           // Update obs count
           location_ = iodaVarsMasked.location_;
@@ -358,6 +371,9 @@ namespace obsforge {
             oops::Log::test()
                 << checksum(originalDatetime_, "originalDatetime")
                 << std::endl;
+          }
+          if (obsBiasValue_.size() != 0) {
+            oops::Log::test() << checksum(obsBiasValue_, "obsBiasValue") << std::endl;
           }
         }
 

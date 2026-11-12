@@ -183,6 +183,18 @@ namespace obsforge {
         gatherObs(iodaVars.originalDatetime_, iodaVarsAll.originalDatetime_);
       }
 
+      int localHasObsBiasValue = iodaVars.obsBiasValue_.size() == 0 ? 0 : 1;
+      int hasObsBiasValue(0);
+      comm_.allReduce(localHasObsBiasValue, hasObsBiasValue, eckit::mpi::max());
+      if (hasObsBiasValue > 0) {
+        // PEs without a bias (e.g. idle or empty files) contribute zeros
+        if (localHasObsBiasValue == 0) {
+          iodaVars.obsBiasValue_ = Eigen::ArrayXf::Zero(iodaVars.location_ * iodaVars.channel_);
+        }
+        iodaVarsAll.obsBiasValue_.resize(iodaVarsAll.location_ * iodaVarsAll.channel_);
+        gatherObs(iodaVars.obsBiasValue_, iodaVarsAll.obsBiasValue_);
+      }
+
       if (comm_.rank() == 0) {
         iodaVarsAll.referenceDate_ = iodaVars.referenceDate_;
         iodaVarsAll.channelValues_ = iodaVars.channelValues_;
@@ -334,6 +346,14 @@ namespace obsforge {
                                         {ogrp.vars["Location"]}, long_params);
         iodaOriginalDatetime.writeWithEigenRegular(iodaVars->originalDatetime_);
         }
+
+      // Create the optional ObsBiasValue for the primary obs variable
+      if (iodaVars->obsBiasValue_.size() != 0) {
+        ioda::Variable iodaObsBiasValue =
+          ogrp.vars.createWithScales<float>("ObsBiasValue/"+obsVariableNames[0],
+                                            dimensionScales, float_params);
+        iodaObsBiasValue.writeWithEigenRegular(iodaVars->obsBiasValue_);
+      }
 
 
       // Test output

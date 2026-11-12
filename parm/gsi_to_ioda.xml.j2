@@ -33,11 +33,10 @@
 	<jobname><cyclestr>obsforge_gdas_gsi_to_ioda_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
 	<queue>{{ QUEUE }}</queue>
-	<partition>{{ PARTITION }}</partition>
 	<walltime>{{ WALLTIME_GSI_TO_IODA }}</walltime>
 	<nodes>{{ TASK_GEOM_GSI_TO_IODA }}</nodes>
 	<memory>{{ MEMORY_GSI_TO_IODA }}</memory>
-	<native>--export=NONE</native>
+	<native>-l place=vscatter:shared</native>
 
 	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_gsi_to_ioda.log</cyclestr></join>
 
@@ -73,11 +72,10 @@
 	<jobname><cyclestr>obsforge_gdas_atmos_bufr_dump_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
 	<queue>{{ QUEUE }}</queue>
-	<partition>{{ PARTITION }}</partition>
 	<walltime>{{ WALLTIME_ATMOS_BUFR_DUMP }}</walltime>
 	<nodes>{{ TASK_GEOM_ATMOS_BUFR_DUMP }}</nodes>
 	<memory>{{ MEMORY_ATMOS_BUFR_DUMP }}</memory>
-	<native>--export=NONE</native>
+	<native>-l place=vscatter:shared</native>
 
 	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_atmos_bufr_dump.log</cyclestr></join>
 
@@ -112,11 +110,10 @@
 	<jobname><cyclestr>obsforge_gdas_stage_output_@H</cyclestr></jobname>
 	<account>{{ ACCOUNT }}</account>
 	<queue>{{ QUEUE }}</queue>
-	<partition>{{ PARTITION }}</partition>
 	<walltime>{{ WALLTIME_STAGE_OUTPUT }}</walltime>
 	<nodes>{{ TASK_GEOM_STAGE_OUTPUT }}</nodes>
 	<memory>{{ MEMORY_STAGE_OUTPUT }}</memory>
-	<native>--export=NONE</native>
+	<native>-l place=vscatter:shared</native>
 
 	<join><cyclestr>{{ COMROOT }}/{{ PSLOT }}/logs/@Y@m@d@H/gdas_stage_output.log</cyclestr></join>
 
@@ -136,8 +133,8 @@
 
     <dependency>
 	    <and>
-		    <taskdep>gdas_gsi_to_ioda</taskdep>
-		    <taskdep>gdas_atmos_bufr_dump</taskdep>
+		    <taskdep task="gdas_gsi_to_ioda"/>
+		    <taskdep task="gdas_atmos_bufr_dump"/>
 	    </and>
 	</dependency>
 
