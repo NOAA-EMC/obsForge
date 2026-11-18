@@ -1,9 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <ctime>
 #include <iostream>
 #include <limits>
 #include <netcdf>    // NOLINT (using C API)
+#include <random>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -15,6 +21,7 @@
 #include "ioda/ObsGroup.h"
 
 #include "NetCDFToIodaConverter.h"
+#include "oops/util/missingValues.h"
 
 using netCDF::exceptions::NcException;
 
@@ -30,11 +37,12 @@ namespace obsforge {
     obsforge::preproc::iodavars::IodaVars providerToIodaVars(const std::string fileName) final {
       oops::Log::info() << "Processing files provided by TMSTBR" << std::endl;
 
-    // Try to open the NetCDF file in read-only mode. If failed, return empty iodaVars object
+      // Try to open the NetCDF file in read-only mode. If failed, return empty iodaVars object
       try {
         netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       } catch (const NcException &e) {
-        oops::Log::warning() << "Warning: Failed to read file " << fileName << ". Skipping." << std::endl;
+        oops::Log::warning() << "Warning: Failed to read file " << fileName << ". Skipping."
+                             << std::endl;
         oops::Log::warning() << e.what() << std::endl;
         obsforge::preproc::iodavars::IodaVars iodaVars(0, 1, {}, {});
         return iodaVars;
@@ -43,20 +51,54 @@ namespace obsforge {
       // Open the NetCDF file in read-only mode
       netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
       oops::Log::info() << "Reading... " << fileName << std::endl;
+
+      // Helpers: fail with a clear message if a dimension/variable is missing
+      auto requireDim = [&](const std::string & name) -> netCDF::NcDim {
+        netCDF::NcDim dim = ncFile.getDim(name);
+        if (dim.isNull()) {
+          throw std::runtime_error("Tmsrad2Ioda: missing dimension '" + name + "' in " + fileName);
+        }
+        return dim;
+      };
+      auto requireVar = [&](const std::string & name) -> netCDF::NcVar {
+        netCDF::NcVar var = ncFile.getVar(name);
+        if (var.isNull()) {
+          throw std::runtime_error("Tmsrad2Ioda: missing variable '" + name + "' in " + fileName);
+        }
+        return var;
+      };
+
       // Get dimensions
-      int dimspot = ncFile.getDim("spots").getSize();
-      int dimscan = ncFile.getDim("scans").getSize();
-      int dimchan = ncFile.getDim("channels").getSize();
-      oops::Log::info() << "spots, scans, channels: " << dimspot << " " << dimscan << " " << dimchan << std::endl;
+      const size_t dimspot = requireDim("spots").getSize();
+      const size_t dimscan = requireDim("scans").getSize();
+      const size_t dimchan = requireDim("channels").getSize();
+      oops::Log::info() << "spots, scans, channels: " << dimspot << " " << dimscan << " "
+                        << dimchan << std::endl;
 
       // Read variables (flattened storage)
       std::vector<float> lon(dimspot * dimscan);
       std::vector<float> lat(dimspot * dimscan);
       std::vector<float> tb(dimspot * dimscan * dimchan);
 
-      ncFile.getVar("longitude").getVar(lon.data());
-      ncFile.getVar("latitude").getVar(lat.data());
-      ncFile.getVar("brightness_temperature").getVar(tb.data());
+      requireVar("longitude").getVar(lon.data());
+      requireVar("latitude").getVar(lat.data());
+      netCDF::NcVar tbVar = requireVar("brightness_temperature");
+      tbVar.getVar(tb.data());
+
+      // Replace the file's fill value with the JEDI missing value
+      const auto tbAtts = tbVar.getAtts();
+      if (tbAtts.find("_FillValue") == tbAtts.end()) {
+        throw std::runtime_error("Tmsrad2Ioda: brightness_temperature has no _FillValue in "
+                                 + fileName);
+      }
+      float fileFillValue = 0.0f;
+      tbVar.getAtt("_FillValue").getValues(&fileFillValue);
+      const float MissingFloat = util::missingValue<float>();
+      for (auto & val : tb) {
+        if (!std::isfinite(val) || std::abs(val - fileFillValue) < 1e-4f) {
+          val = MissingFloat;
+        }
+      }
 
       // Read metadata variables (flattened storage)
       std::vector<float> sensor_view_angle(dimspot * dimscan);
@@ -67,53 +109,64 @@ namespace obsforge {
       std::vector<float> solar_zenith_angle(dimspot * dimscan);
       std::vector<float> solar_azimuth_angle(dimspot * dimscan);
 
-      ncFile.getVar("sensor_view_angle").getVar(sensor_view_angle.data());
-      ncFile.getVar("sensor_zenith_angle").getVar(sensor_zenith_angle.data());
-      ncFile.getVar("sensor_azimuth_angle").getVar(sensor_azimuth_angle.data());
-      ncFile.getVar("lunar_zenith_angle").getVar(lunar_zenith_angle.data());
-      ncFile.getVar("lunar_azimuth_angle").getVar(lunar_azimuth_angle.data());
-      ncFile.getVar("solar_zenith_angle").getVar(solar_zenith_angle.data());
-      ncFile.getVar("solar_azimuth_angle").getVar(solar_azimuth_angle.data());
+      requireVar("sensor_view_angle").getVar(sensor_view_angle.data());
+      requireVar("sensor_zenith_angle").getVar(sensor_zenith_angle.data());
+      requireVar("sensor_azimuth_angle").getVar(sensor_azimuth_angle.data());
+      requireVar("lunar_zenith_angle").getVar(lunar_zenith_angle.data());
+      requireVar("lunar_azimuth_angle").getVar(lunar_azimuth_angle.data());
+      requireVar("solar_zenith_angle").getVar(solar_zenith_angle.data());
+      requireVar("solar_azimuth_angle").getVar(solar_azimuth_angle.data());
+
+      // Read Ascending/Descending flag only from channel 1, given the flag is identical
+      // across channels. 1 if in descending portion of orbit, 0 if in ascending portion.
+      std::vector<float> flagAscDesc(dimspot * dimscan * dimchan);
+      std::vector<int> flagAscDesc_2d(dimspot * dimscan, 0);
+      requireVar("flagAscDesc").getVar(flagAscDesc.data());
+      for (size_t i = 0; i < dimspot; ++i) {
+        for (size_t j = 0; j < dimscan; ++j) {
+          const float raw = flagAscDesc[(i * dimscan + j) * dimchan + 0];
+          flagAscDesc_2d[i * dimscan + j] =
+              (raw == 0.0f || raw == 1.0f) ? static_cast<int>(raw) : util::missingValue<int>();
+        }
+      }
 
       // Read time components (per scan)
       std::vector<uint16_t> Year(dimscan);
       std::vector<uint8_t> Month(dimscan), Day(dimscan),
-                         Hour(dimscan), Minute(dimscan), Second(dimscan);
+                           Hour(dimscan), Minute(dimscan), Second(dimscan);
 
-      ncFile.getVar("Year").getVar(Year.data());
-      ncFile.getVar("Month").getVar(Month.data());
-      ncFile.getVar("Day").getVar(Day.data());
-      ncFile.getVar("Hour").getVar(Hour.data());
-      ncFile.getVar("Minute").getVar(Minute.data());
-      ncFile.getVar("Second").getVar(Second.data());
+      requireVar("Year").getVar(Year.data());
+      requireVar("Month").getVar(Month.data());
+      requireVar("Day").getVar(Day.data());
+      requireVar("Hour").getVar(Hour.data());
+      requireVar("Minute").getVar(Minute.data());
+      requireVar("Second").getVar(Second.data());
 
       std::vector<double> epochTime(dimscan);
       for (size_t j = 0; j < dimscan; ++j) {
-          std::tm t{};
-          t.tm_year = Year[j] - 1900;
-          t.tm_mon  = Month[j] - 1;    // months are 0 based
-          t.tm_mday = Day[j];
-          t.tm_hour = Hour[j];
-          t.tm_min  = Minute[j];
-          t.tm_sec  = (Second[j] == 60 ? 59 : Second[j]);
-          t.tm_isdst = 0;
+        std::tm t{};
+        t.tm_year = Year[j] - 1900;
+        t.tm_mon  = Month[j] - 1;    // months are 0 based
+        t.tm_mday = Day[j];
+        t.tm_hour = Hour[j];
+        t.tm_min  = Minute[j];
+        t.tm_sec  = (Second[j] == 60 ? 59 : Second[j]);
+        t.tm_isdst = 0;
 
-          // timegm interprets 't' as UTC and returns seconds since 1970
-          epochTime[j] = static_cast<double>(timegm(&t));
+        // timegm interprets 't' as UTC and returns seconds since 1970
+        epochTime[j] = static_cast<double>(timegm(&t));
       }
 
-      // Read QC flahgs (flattened storage)
+      // Read QC flags (flattened storage)
       // Note: The 'combinedQualityFlag' in NetCDF differs from the 'Overall Quality' flag in BUFR
       // We generate a new combined flag here to replicate the BUFR logic.
       std::vector<uint16_t> cqf(dimspot * dimscan * dimchan);
-      ncFile.getVar("combinedQualityFlag").getVar(cqf.data());
+      requireVar("combinedQualityFlag").getVar(cqf.data());
 
-      std::vector<uint8_t>flagSDRTX(dimspot * dimscan * dimchan);
-      ncFile.getVar("flagSDRTX").getVar(flagSDRTX.data());
+      std::vector<uint8_t> flagSDRTX(dimspot * dimscan * dimchan);
+      requireVar("flagSDRTX").getVar(flagSDRTX.data());
 
-      std::vector<int8_t>comflag(dimspot * dimscan * dimchan);
-      comflag = createRepackedFlag(cqf, flagSDRTX);
-
+      std::vector<int8_t> comflag = createRepackedFlag(cqf, flagSDRTX);
 
       // Channel selection
       std::string channelStr;
@@ -123,16 +176,25 @@ namespace obsforge {
       std::stringstream ss(channelStr);
       std::string substr;
       while (std::getline(ss, substr, ',')) {
-         int intValue = std::stoi(substr);
-         channels.push_back(intValue);
+        channels.push_back(std::stoi(substr));
       }
-      int nchan = channels.size();
-      oops::Log::info() << "selected channels: " << channels << " number of channels: " << nchan << std::endl;
+      const size_t nchan = channels.size();
+      oops::Log::info() << "selected channels: " << channels
+                        << " number of channels: " << nchan << std::endl;
+
+      for (int ch : channels) {
+        if (ch < 1 || static_cast<size_t>(ch) > dimchan) {
+          throw std::runtime_error("Tmsrad2Ioda: channel " + std::to_string(ch) +
+                                   " is out of valid range [1, " +
+                                   std::to_string(dimchan) + "] in " + fileName);
+        }
+      }
 
       // Set the metadata name
-      std::vector<std::string> intMetadataNames = {};
-      std::vector<std::string> floatMetadataNames = {"lunarAzimuthAngle", "lunarZenithAngle", "sensorAzimuthAngle",
-                                  "sensorViewAngle", "sensorZenithAngle", "solarAzimuthAngle", "solarZenithAngle"};
+      std::vector<std::string> intMetadataNames = {"satelliteAscendingFlag", "sensorScanPosition"};
+      std::vector<std::string> floatMetadataNames = {
+          "lunarAzimuthAngle", "lunarZenithAngle", "sensorAzimuthAngle",
+          "sensorViewAngle", "sensorZenithAngle", "solarAzimuthAngle", "solarZenithAngle"};
 
       // Thinning
       float thinThreshold;
@@ -141,18 +203,27 @@ namespace obsforge {
       std::mt19937 gen(42);    // make thinning results reproducible
       std::uniform_real_distribution<> dis(0.0, 1.0);
 
-      // Count valid observations
-      std::vector<std::vector<int>> mask(dimspot, std::vector<int>(dimscan));
+      // Count valid observations (finite lat/lon and passes thinning)
+      std::vector<std::vector<int>> mask(dimspot, std::vector<int>(dimscan, 0));
       size_t nlocs = 0;
-      for (size_t i = 0; i < dimspot; ++i)
-        for (size_t j = 0; j < dimscan; ++j)
-        if (dis(gen) > thinThreshold) {
-           mask[i][j] = 1;
-           ++nlocs;
+      for (size_t i = 0; i < dimspot; ++i) {
+        for (size_t j = 0; j < dimscan; ++j) {
+          const float la = lat[i * dimscan + j];
+          const float lo = lon[i * dimscan + j];
+
+          // Skip invalid lat/lon
+          if (!std::isfinite(la) || !std::isfinite(lo)) continue;
+
+          if (dis(gen) > thinThreshold) {
+            mask[i][j] = 1;
+            ++nlocs;
+          }
         }
+      }
 
       // Create instance of iodaVars object
-      obsforge::preproc::iodavars::IodaVars iodaVars(nlocs, nchan, floatMetadataNames, intMetadataNames);
+      obsforge::preproc::iodavars::IodaVars iodaVars(
+          nlocs, nchan, floatMetadataNames, intMetadataNames);
       oops::Log::info() << " iodaVars.obsVal_ size :" << iodaVars.obsVal_.size() << std::endl;
 
       // Assign values
@@ -160,30 +231,34 @@ namespace obsforge {
       oops::Log::info() << " eigen... locations and channels :" << iodaVars.location_ <<
                            " " << iodaVars.channel_ << std::endl;
       for (size_t k = 0; k < nchan; k++) {
-          iodaVars.channelValues_(k) = channels[k];
+        iodaVars.channelValues_(k) = channels[k];
       }
 
       size_t loc = 0;
       for (size_t i = 0; i < dimspot; ++i) {
+        // "spot" is the position within a scan line, so it is the scan position (1-based)
+        const int scanposition = static_cast<int>(i + 1);
         for (size_t j = 0; j < dimscan; ++j) {
           if (mask[i][j] != 1) continue;
-          iodaVars.latitude_(loc)  = lat[i*dimscan + j];
-          iodaVars.longitude_(loc) = lon[i*dimscan + j];
+          iodaVars.latitude_(loc)  = lat[i * dimscan + j];
+          iodaVars.longitude_(loc) = lon[i * dimscan + j];
           iodaVars.datetime_(loc)  = epochTime[j];
-          iodaVars.floatMetadata_.row(loc) << lunar_azimuth_angle[i*dimscan + j],
-                                              lunar_zenith_angle[i*dimscan + j],
-                                              sensor_azimuth_angle[i*dimscan + j],
-                                              sensor_view_angle[i*dimscan + j],
-                                              sensor_zenith_angle[i*dimscan + j],
-                                              solar_azimuth_angle[i*dimscan + j],
-                                              solar_zenith_angle[i*dimscan + j];
+          iodaVars.floatMetadata_.row(loc) << lunar_azimuth_angle[i * dimscan + j],
+                                              lunar_zenith_angle[i * dimscan + j],
+                                              sensor_azimuth_angle[i * dimscan + j],
+                                              sensor_view_angle[i * dimscan + j],
+                                              sensor_zenith_angle[i * dimscan + j],
+                                              solar_azimuth_angle[i * dimscan + j],
+                                              solar_zenith_angle[i * dimscan + j];
+          iodaVars.intMetadata_.row(loc) << flagAscDesc_2d[i * dimscan + j],
+                                            scanposition;
           for (size_t k = 0; k < nchan; ++k) {
-            size_t ch = channels[k] - 1;
-            size_t idx = (i*dimscan + j)*dimchan + ch;
+            const size_t ch = channels[k] - 1;
+            const size_t idx = (i * dimscan + j) * dimchan + ch;
 
-            iodaVars.obsVal_(nchan*loc + k)   = tb[idx];
-            iodaVars.preQc_(nchan*loc + k)    = comflag[idx];
-            iodaVars.obsError_(nchan*loc + k) = 1.0;
+            iodaVars.obsVal_(nchan * loc + k)   = tb[idx];
+            iodaVars.preQc_(nchan * loc + k)    = comflag[idx];
+            iodaVars.obsError_(nchan * loc + k) = 1.0;
           }
           ++loc;
         }
@@ -191,15 +266,17 @@ namespace obsforge {
       oops::Log::info() << " total locations: " << loc << std::endl;
 
       return iodaVars;
-    };
+    }
 
    private:
-    std::vector<int8_t> createRepackedFlag(const std::vector<uint16_t>& rawflag, const std::vector<uint8_t>& flag1) {
+    std::vector<int8_t> createRepackedFlag(const std::vector<uint16_t>& rawflag,
+                                           const std::vector<uint8_t>& flag1) {
       std::vector<int8_t> new_flags(rawflag.size());
 
       // Note: The 'combinedQualityFlag' in NetCDF differs from the 'Overall Quality' flag in BUFR
       // We generate a new combined flag here to replicate the BUFR logic.
-      // Flag Bit in Overall QC Flag in BUFR and the corresponding Bit in netCDF combinedQualityFlag (cfq):
+      // Flag Bit in Overall QC Flag in BUFR and the corresponding Bit in netCDF
+      // combinedQualityFlag (cfq):
       //    7   Outlier detection for internal calibration target spots: cfq 7
       //    8   Outlier detection for noise diode calibration spots : cfg 8
       //    9   Outlier detection for deep space calibration spots: cfq 9
@@ -214,26 +291,26 @@ namespace obsforge {
       //    21  Software-defined Radio Transmit: flagSDRTX
       //    22  Outlier Timestamp: cfq 3
 
-      const uint16_t ma_ICT  = 1 << 6;  // bit 7
-      const uint16_t ma_ND   = 1 << 7;  // bit 8
-      const uint16_t ma_Cold = 1 << 8;  // bit 9
+      const uint16_t ma_ICT  = 1 << 6;   // bit 7
+      const uint16_t ma_ND   = 1 << 7;   // bit 8
+      const uint16_t ma_Cold = 1 << 8;   // bit 9
       const uint16_t ma_Manv = 1 << 12;  // bit 13
       const uint16_t ma_SoInt = 1 << 13;  // bit 14
       const uint16_t ma_LuInt = 1 << 14;  // bit 15
-      const uint16_t ma_RFI = 1 << 3;  // bit 4
+      const uint16_t ma_RFI = 1 << 3;    // bit 4
       const uint16_t ma_ICTND = 1 << 4;  // bit 5
-      const uint16_t ma_AttQ = 1 << 5;  // bit 6
-      const uint16_t ma_time = 1 << 2;  // bit 3
+      const uint16_t ma_AttQ = 1 << 5;   // bit 6
+      const uint16_t ma_time = 1 << 2;   // bit 3
 
       const uint16_t MASK_ALL = ma_time | ma_RFI | ma_ICTND | ma_AttQ | ma_ICT |
-                                  ma_ND | ma_Cold | ma_Manv | ma_SoInt | ma_LuInt;
+                                ma_ND | ma_Cold | ma_Manv | ma_SoInt | ma_LuInt;
 
       for (size_t i = 0; i < rawflag.size(); ++i) {
-            if ( (rawflag[i] & MASK_ALL) != 0 || (flag1[i] != 0) ) {
-                new_flags[i] = 1;  // Bad
-            } else {
-                new_flags[i] = 0;  // Good
-            }
+        if ((rawflag[i] & MASK_ALL) != 0 || (flag1[i] != 0)) {
+          new_flags[i] = 1;  // Bad
+        } else {
+          new_flags[i] = 0;  // Good
+        }
       }
       return new_flags;
     }
