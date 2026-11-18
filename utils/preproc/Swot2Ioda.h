@@ -50,7 +50,10 @@ namespace obsforge {
       std::vector<std::string> intMetadataNames = {"cycle", "pass", "mission", "oceanBasin"};
 
       // Set the float metadata name
-      std::vector<std::string> floatMetadataNames = {"mdt", "crossTrackDistance"};
+      std::vector<std::string> floatMetadataNames = {"mdt", "crossTrackDistance",
+                                                     "waveHeightSignificant", "windSpeed",
+                                                     "waveDirectionMean", "distanceToCoastline",
+                                                     "backscatter"};
 
       // Open the NetCDF file in read-only mode
       netCDF::NcFile ncFile(fileName, netCDF::NcFile::read);
@@ -87,6 +90,18 @@ namespace obsforge {
       std::vector<double> mdt = readSwathVar<int16_t>(ncFile, "mean_dynamic_topography", &valid);
       std::vector<double> xtrack = readSwathVar<float>(ncFile, "cross_track_distance", &valid);
 
+      // Auxiliary KaRIn fields, carried as metadata only. Each has its own validity so that
+      // a missing value (or a missing variable) never rejects the ADT observation.
+      std::vector<bool> swhValid, windValid, mwdValid, dtcValid, sig0Valid;
+      std::vector<double> swh = readSwathAux<uint16_t>(ncFile, "swh_karin", nSwath, &swhValid);
+      std::vector<double> wind =
+        readSwathAux<uint16_t>(ncFile, "wind_speed_karin", nSwath, &windValid);
+      std::vector<double> mwd =
+        readSwathAux<uint16_t>(ncFile, "mean_wave_direction", nSwath, &mwdValid);
+      std::vector<double> dtc =
+        readSwathAux<int16_t>(ncFile, "distance_to_coast", nSwath, &dtcValid);
+      std::vector<double> sig0 = readSwathAux<float>(ncFile, "sig0_karin", nSwath, &sig0Valid);
+
       // Quality and surface flags, 0 is good/open ocean/no ice/no rain for all of them.
       // Fill values are non-zero and are rejected as well.
       std::vector<uint32_t> sshaQual = readSwathFlag<uint32_t>(ncFile, sshaName + "_qual", nSwath);
@@ -116,6 +131,13 @@ namespace obsforge {
       std::vector<std::vector<float>> lon2d(nLines, std::vector<float>(nPixels));
       std::vector<std::vector<float>> xtrack2d(nLines, std::vector<float>(nPixels));
       std::vector<std::vector<double>> seconds2d(nLines, std::vector<double>(nPixels));
+      // Auxiliary fields: wave direction as unit vector components, sig0 in linear units
+      std::vector<std::vector<double>> swh2d(nLines, std::vector<double>(nPixels));
+      std::vector<std::vector<double>> wind2d(nLines, std::vector<double>(nPixels));
+      std::vector<std::vector<double>> mwdCos2d(nLines, std::vector<double>(nPixels));
+      std::vector<std::vector<double>> mwdSin2d(nLines, std::vector<double>(nPixels));
+      std::vector<std::vector<double>> dtc2d(nLines, std::vector<double>(nPixels));
+      std::vector<std::vector<double>> sig02d(nLines, std::vector<double>(nPixels));
       size_t index = 0;
       for (int i = 0; i < nLines; i++) {
         for (int j = 0; j < nPixels; j++) {
@@ -126,6 +148,12 @@ namespace obsforge {
           lon2d[i][j] = static_cast<float>(lon[index] >= 180.0 ? lon[index] - 360.0 : lon[index]);
           xtrack2d[i][j] = static_cast<float>(xtrack[index]);
           seconds2d[i][j] = time[i];
+          swh2d[i][j] = swh[index];
+          wind2d[i][j] = wind[index];
+          mwdCos2d[i][j] = std::cos(mwd[index] * M_PI / 180.0);
+          mwdSin2d[i][j] = std::sin(mwd[index] * M_PI / 180.0);
+          dtc2d[i][j] = dtc[index];
+          sig02d[i][j] = sig0[index];
 
           // Basic QC
           mask[i][j] = (valid[index] && time[i] != timeFillValue &&
@@ -136,8 +164,29 @@ namespace obsforge {
         }
       }
 
+      // Per-field masks for the auxiliary fields: valid ADT obs and valid auxiliary value
+      std::vector<std::vector<int>> swhMask = auxMask(mask, swhValid);
+      std::vector<std::vector<int>> windMask = auxMask(mask, windValid);
+      std::vector<std::vector<int>> mwdMask = auxMask(mask, mwdValid);
+      std::vector<std::vector<int>> dtcMask = auxMask(mask, dtcValid);
+      std::vector<std::vector<int>> sig0Mask = auxMask(mask, sig0Valid);
+
       // Superobing over (stride x stride) boxes of swath pixels
       if ( fullConfig_.has("binning") ) {
+        // Auxiliary fields are binned with their own masks, so that their fill values are
+        // never averaged in. Empty bins come back as -9999 and are flagged as missing below.
+        swh2d = binSwath(swh2d, swhMask);
+        wind2d = binSwath(wind2d, windMask);
+        mwdCos2d = binSwath(mwdCos2d, mwdMask);
+        mwdSin2d = binSwath(mwdSin2d, mwdMask);
+        dtc2d = binSwath(dtc2d, dtcMask);
+        sig02d = binSwath(sig02d, sig0Mask);
+        swhMask = binnedMask(swh2d);
+        windMask = binnedMask(wind2d);
+        mwdMask = binnedMask(mwdCos2d);
+        dtcMask = binnedMask(dtc2d);
+        sig0Mask = binnedMask(sig02d);
+
         // Average the longitude as a unit vector to avoid issues at the dateline.
         // Done in double precision so that the float results do not depend on the
         // compiler's single precision trigonometric functions.
@@ -189,6 +238,7 @@ namespace obsforge {
       iodaVars.strGlobalAttr_["references"] = references;
 
       // Store into eigen arrays
+      const float missing = util::missingValue<float>();
       int loc = 0;
       for (size_t i = 0; i < mask.size(); i++) {
         for (size_t j = 0; j < mask[0].size(); j++) {
@@ -201,7 +251,21 @@ namespace obsforge {
           iodaVars.preQc_(loc)     = 0;
           // Store optional metadata, set ocean basins to -999 for now
           iodaVars.intMetadata_.row(loc) << cycle, pass, missionIndex, -999;
-          iodaVars.floatMetadata_.row(loc) << mdt2d[i][j], xtrack2d[i][j];
+          // Auxiliary metadata, missing where the field is missing
+          const float swhOut = swhMask[i][j] ? static_cast<float>(swh2d[i][j]) : missing;
+          const float windOut = windMask[i][j] ? static_cast<float>(wind2d[i][j]) : missing;
+          float mwdOut = missing;
+          if (mwdMask[i][j]) {
+            double dir = std::atan2(mwdSin2d[i][j], mwdCos2d[i][j]) * 180.0 / M_PI;
+            if (dir < 0.0) dir += 360.0;
+            mwdOut = static_cast<float>(dir);
+          }
+          const float dtcOut = dtcMask[i][j] ? static_cast<float>(dtc2d[i][j]) : missing;
+          // sig0 from linear units to dB
+          const float sig0Out = (sig0Mask[i][j] && sig02d[i][j] > 0.0) ?
+            static_cast<float>(10.0 * std::log10(sig02d[i][j])) : missing;
+          iodaVars.floatMetadata_.row(loc) << mdt2d[i][j], xtrack2d[i][j],
+                                              swhOut, windOut, mwdOut, dtcOut, sig0Out;
           loc++;
         }
       }
@@ -242,6 +306,45 @@ namespace obsforge {
         binned[i].insert(binned[i].end(), binnedRight[i].begin(), binnedRight[i].end());
       }
       return binned;
+    }
+
+    // Combine the ADT mask with the validity of an auxiliary field
+    std::vector<std::vector<int>> auxMask(const std::vector<std::vector<int>> & mask,
+                                          const std::vector<bool> & auxValid) const {
+      std::vector<std::vector<int>> out(mask);
+      size_t index = 0;
+      for (auto & row : out) {
+        for (int & m : row) {
+          m = (m == 1 && auxValid[index]) ? 1 : 0;
+          index++;
+        }
+      }
+      return out;
+    }
+
+    // Validity of a binned field, empty bins are set to -9999 by subsample2D
+    std::vector<std::vector<int>> binnedMask(const std::vector<std::vector<double>> & field) const {
+      std::vector<std::vector<int>> out(field.size(), std::vector<int>(field[0].size()));
+      for (size_t i = 0; i < field.size(); i++) {
+        for (size_t j = 0; j < field[0].size(); j++) {
+          out[i][j] = (field[i][j] != -9999.0) ? 1 : 0;
+        }
+      }
+      return out;
+    }
+
+    // Read an optional auxiliary (num_lines, num_pixels) variable. auxValid is false where
+    // the fill value is found, or everywhere if the variable is not in the file.
+    template <typename T>
+    std::vector<double> readSwathAux(const netCDF::NcFile & ncFile, const std::string & varName,
+                                     const size_t nSwath, std::vector<bool> * auxValid) const {
+      auxValid->assign(nSwath, true);
+      if (ncFile.getVars().count(varName) == 0) {
+        oops::Log::info() << varName << " not found, set to missing" << std::endl;
+        auxValid->assign(nSwath, false);
+        return std::vector<double>(nSwath, 0.0);
+      }
+      return readSwathVar<T>(ncFile, varName, auxValid);
     }
 
     // Get a variable and check that it is defined on the (num_lines, num_pixels) swath
