@@ -1,0 +1,11 @@
+provider: GOESAOD
+window begin: '2023-12-18T19:50:00Z'
+window end: '2023-12-18T20:00:00Z'
+variable: aerosolOpticalDepth
+output file: goes18_aod.ioda.nc
+input files:
+- /scratch3/NCEPDEV/da/Anton.Kliewer/ABI_data/downloads/OR_ABI-L2-AODF-M6_G18_s20233521950216_e20233521959524_c20233522000559.nc
+thinning:
+  threshold: 0
+channel: 4
+preqc: 0
