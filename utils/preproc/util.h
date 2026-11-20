@@ -129,6 +129,7 @@ namespace obsforge {
         Eigen::ArrayXXi intMetadata_;
         std::vector<std::string> intMetadataName_;
         Eigen::Array<int64_t, Eigen::Dynamic, 1> originalDatetime_;
+        Eigen::ArrayXf obsBiasValue_;
 
         // Optional global attributes
         std::map<std::string, std::string> strGlobalAttr_;
@@ -166,7 +167,8 @@ namespace obsforge {
           floatMetadataName_(fmnames),
           intMetadata_(location_, imnames.size()),
           intMetadataName_(imnames),
-          originalDatetime_() {
+          originalDatetime_(),
+          obsBiasValue_() {
           oops::Log::trace()
               << "IodaVars::IodaVars created." << std::endl;
         }
@@ -304,7 +306,9 @@ namespace obsforge {
                 iodaVarsMasked.originalDatetime_(j) =
                     originalDatetime_(i);
               }
-
+              if (obsBiasValue_.size() != 0) {
+                iodaVarsMasked.obsBiasValue_(j) = obsBiasValue_(i);
+              }
               j++;
             }  // end if (mask(i))
           }
